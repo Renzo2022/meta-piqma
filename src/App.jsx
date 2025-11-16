@@ -14,6 +14,9 @@ import {
   Info,
   Wand2,
   Edit,
+  ArrowDown,
+  Download,
+  CheckCircle2,
 } from 'lucide-react';
 import './index.css';
 
@@ -1036,19 +1039,187 @@ const ModuleEligibility = () => {
   );
 };
 
-const ModulePRISMA = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-  >
-    <h1 className="text-4xl font-bold text-monokai-purple mb-4">Reporte PRISMA</h1>
-    <p className="text-monokai-subtle">
-      Generación automática del reporte PRISMA 2020
-    </p>
-  </motion.div>
-);
+const ModulePRISMA = () => {
+  const { state } = useProject();
+
+  // Selectores para calcular métricas
+  const countTotalIdentified = state.projectArticles.length;
+  const countDuplicates = state.projectArticles.filter((a) => a.status === 'duplicate').length;
+  const countScreened = countTotalIdentified - countDuplicates;
+  const countExcludedTitle = state.projectArticles.filter((a) => a.status === 'excluded_title').length;
+  const countFullText = state.projectArticles.filter(
+    (a) => a.status === 'included_title' || a.status === 'included_final' || a.status === 'excluded_fulltext'
+  ).length;
+  const countExcludedFullText = state.projectArticles.filter((a) => a.status === 'excluded_fulltext').length;
+  const countIncludedFinal = state.projectArticles.filter((a) => a.status === 'included_final').length;
+
+  const includedArticles = state.projectArticles.filter((a) => a.status === 'included_final');
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <h1 className="text-4xl font-bold text-monokai-purple mb-8">Módulo 5: Reporte PRISMA 2020</h1>
+
+      {/* Sección 1: Diagrama PRISMA Visual */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold text-monokai-purple mb-8">Diagrama de Flujo PRISMA 2020</h2>
+
+        <div className="space-y-6">
+          {/* Etapa 1: Identificación */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0 }}
+            className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-green"
+          >
+            <h3 className="text-lg font-bold text-monokai-green mb-3">Identificación</h3>
+            <p className="text-monokai-text mb-2">
+              Registros identificados en bases de datos (n = <span className="font-bold text-monokai-yellow">{countTotalIdentified}</span>)
+            </p>
+            <p className="text-monokai-subtle text-sm">
+              Resultados de búsqueda en PubMed, Semantic Scholar, ArXiv/Crossref
+            </p>
+          </motion.div>
+
+          {/* Flecha 1 */}
+          <div className="flex justify-center">
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <ArrowDown className="w-6 h-6 text-monokai-green" />
+            </motion.div>
+          </div>
+
+          {/* Etapa 2: Cribado */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-yellow"
+          >
+            <h3 className="text-lg font-bold text-monokai-yellow mb-3">Cribado</h3>
+            <div className="space-y-2">
+              <p className="text-monokai-text mb-2">
+                Registros después de eliminar duplicados (n = <span className="font-bold text-monokai-yellow">{countScreened}</span>)
+              </p>
+              <p className="text-monokai-subtle text-sm">
+                Duplicados removidos: <span className="font-bold text-monokai-pink">{countDuplicates}</span>
+              </p>
+              <p className="text-monokai-text mt-3">
+                Registros excluidos por título/resumen (n = <span className="font-bold text-monokai-pink">{countExcludedTitle}</span>)
+              </p>
+              <p className="text-monokai-subtle text-sm">
+                Registros para revisión de texto completo: <span className="font-bold text-monokai-blue">{countFullText}</span>
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Flecha 2 */}
+          <div className="flex justify-center">
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}
+            >
+              <ArrowDown className="w-6 h-6 text-monokai-yellow" />
+            </motion.div>
+          </div>
+
+          {/* Etapa 3: Elegibilidad */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue"
+          >
+            <h3 className="text-lg font-bold text-monokai-blue mb-3">Elegibilidad</h3>
+            <div className="space-y-2">
+              <p className="text-monokai-text mb-2">
+                Registros evaluados para elegibilidad (n = <span className="font-bold text-monokai-blue">{countFullText}</span>)
+              </p>
+              <p className="text-monokai-subtle text-sm">
+                Registros excluidos con motivo: <span className="font-bold text-monokai-pink">{countExcludedFullText}</span>
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Flecha 3 */}
+          <div className="flex justify-center">
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, delay: 0.4 }}
+            >
+              <ArrowDown className="w-6 h-6 text-monokai-blue" />
+            </motion.div>
+          </div>
+
+          {/* Etapa 4: Incluidos */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-green"
+          >
+            <h3 className="text-lg font-bold text-monokai-green mb-3">Incluidos</h3>
+            <p className="text-monokai-text">
+              Estudios incluidos en la revisión (n = <span className="font-bold text-monokai-green">{countIncludedFinal}</span>)
+            </p>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Sección 2: Exportación de Datos */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold text-monokai-purple mb-6">Exportar Reporte</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-blue text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+          >
+            <Download className="w-5 h-5" />
+            Exportar Estadísticas (JSON)
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all"
+          >
+            <Download className="w-5 h-5" />
+            Exportar Estudios Incluidos (CSV)
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Sección 3: Lista de Estudios Incluidos */}
+      <div>
+        <h2 className="text-2xl font-bold text-monokai-purple mb-6">
+          Estudios Incluidos en la Revisión (n = <span className="text-monokai-green">{countIncludedFinal}</span>)
+        </h2>
+
+        {includedArticles.length > 0 ? (
+          <div className="space-y-4">
+            <AnimatePresence>
+              {includedArticles.map((article) => (
+                <ArticleCard key={article.uniqueId} article={article} />
+              ))}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
+            <p className="text-monokai-subtle">
+              No hay estudios incluidos aún. Completa los módulos anteriores para ver los resultados.
+            </p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
 
 const ModuleMetaAnalysis = () => (
   <motion.div
