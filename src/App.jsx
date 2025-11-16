@@ -24,7 +24,7 @@ import './index.css';
 const ProjectContext = createContext();
 
 const initialState = {
-  currentPage: 'home',
+  currentPage: 'pico',
   sidebarOpen: true,
   pico: {
     population: '',
@@ -32,7 +32,13 @@ const initialState = {
     comparison: '',
     outcome: '',
   },
-  searchStrategy: '',
+  searchStrategies: {
+    pubmed: '',
+    semanticScholar: '',
+    arxivCrossref: '',
+  },
+  isLoading: false,
+  searchResults: [],
 };
 
 const projectReducer = (state, action) => {
@@ -49,12 +55,18 @@ const projectReducer = (state, action) => {
           [action.payload.field]: action.payload.value,
         },
       };
-    case 'UPDATE_SEARCH_STRATEGY':
-      return { ...state, searchStrategy: action.payload };
-    case 'GENERATE_MANUAL_STRATEGY':
-      const { population, intervention, comparison, outcome } = state.pico;
-      const strategy = `(${population}) AND (${intervention}) AND (${comparison}) AND (${outcome})`;
-      return { ...state, searchStrategy: strategy };
+    case 'UPDATE_STRATEGY_FIELD':
+      return {
+        ...state,
+        searchStrategies: {
+          ...state.searchStrategies,
+          [action.payload.db]: action.payload.value,
+        },
+      };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_SEARCH_RESULTS':
+      return { ...state, searchResults: action.payload };
     default:
       return state;
   }
@@ -81,14 +93,66 @@ const useProject = () => {
 // SERVICIO API (Stub para compatibilidad R/Python)
 // ============================================================================
 
+// ============================================================================
+// MOCK DATA PARA BÚSQUEDA
+// ============================================================================
+
+const mockArticles = [
+  {
+    id: 1,
+    title: 'Efficacy of Metformin in Type 2 Diabetes Mellitus: A Systematic Review',
+    authors: 'Smith J, Johnson A, Williams B',
+    source: 'PubMed',
+    year: 2023,
+    abstract: 'This systematic review examines the efficacy of metformin in reducing cardiovascular risk in patients with type 2 diabetes mellitus. A total of 45 randomized controlled trials were included...',
+  },
+  {
+    id: 2,
+    title: 'Cardiovascular Outcomes with Metformin vs Insulin in Type 2 Diabetes',
+    authors: 'Brown C, Davis D, Miller E',
+    source: 'Semantic Scholar',
+    year: 2022,
+    abstract: 'We conducted a meta-analysis comparing cardiovascular outcomes between metformin and insulin therapy in type 2 diabetic patients. Results showed a 23% reduction in cardiovascular events...',
+  },
+  {
+    id: 3,
+    title: 'Long-term Effects of Metformin on Glycemic Control and Mortality',
+    authors: 'Garcia F, Martinez G, Lopez H',
+    source: 'PubMed',
+    year: 2023,
+    abstract: 'A prospective cohort study of 2,500 patients with type 2 diabetes treated with metformin showed sustained glycemic control over 10 years with improved survival rates...',
+  },
+  {
+    id: 4,
+    title: 'Metformin Monotherapy vs Combination Therapy in Diabetes Management',
+    authors: 'Taylor I, Anderson J, Thomas K',
+    source: 'Crossref',
+    year: 2021,
+    abstract: 'This comparative effectiveness study evaluated metformin monotherapy against combination therapies. Monotherapy was effective in 68% of patients with adequate glycemic control...',
+  },
+  {
+    id: 5,
+    title: 'Adverse Effects and Safety Profile of Metformin: A Systematic Review',
+    authors: 'White L, Harris M, Young N',
+    source: 'Semantic Scholar',
+    year: 2022,
+    abstract: 'Safety analysis of metformin use in type 2 diabetes revealed gastrointestinal side effects in 15% of patients, with lactic acidosis occurring in less than 0.1% of cases...',
+  },
+];
+
+// ============================================================================
+// SERVICIO API (Stub para compatibilidad R/Python)
+// ============================================================================
+
 const apiClient = {
-  // Placeholder para futuras llamadas a backend
-  async fetchPICOData() {
-    console.log('Fetching PICO data...');
+  async mockSearchAPI(strategies) {
+    // Simula una espera de 2 segundos
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    
+    // Devuelve los artículos mock
+    return mockArticles;
   },
-  async fetchSearchResults() {
-    console.log('Fetching search results...');
-  },
+  
   async fetchScreeningData() {
     console.log('Fetching screening data...');
   },
@@ -101,6 +165,77 @@ const apiClient = {
   async fetchGraphAnalysisData() {
     console.log('Fetching graph analysis data...');
   },
+};
+
+// ============================================================================
+// COMPONENTES REUTILIZABLES
+// ============================================================================
+
+const LoadingSpinner = () => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="flex flex-col items-center justify-center py-12"
+  >
+    <motion.div
+      animate={{ rotate: 360 }}
+      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+      className="w-12 h-12 border-4 border-monokai-pink border-t-monokai-green rounded-full"
+    />
+    <p className="text-monokai-subtle mt-4">Buscando artículos...</p>
+  </motion.div>
+);
+
+const ArticleCard = ({ article }) => {
+  const [showAbstract, setShowAbstract] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30 hover:border-opacity-60 transition-all"
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-monokai-pink mb-2">{article.title}</h3>
+          <p className="text-sm text-monokai-subtle mb-2">{article.authors}</p>
+        </div>
+        <span className="ml-4 px-3 py-1 bg-monokai-dark rounded-full text-xs font-semibold text-monokai-green whitespace-nowrap">
+          {article.source}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-4 mb-3">
+        <span className="text-sm text-monokai-subtle">Año: {article.year}</span>
+      </div>
+
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setShowAbstract(!showAbstract)}
+        className="text-sm text-monokai-blue hover:text-monokai-cyan transition-colors font-semibold"
+      >
+        {showAbstract ? 'Ocultar Abstracto' : 'Ver Abstracto'}
+      </motion.button>
+
+      <AnimatePresence>
+        {showAbstract && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-3 pt-3 border-t border-monokai-subtle border-opacity-30"
+          >
+            <p className="text-sm text-monokai-text leading-relaxed">{article.abstract}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 };
 
 // ============================================================================
@@ -230,6 +365,32 @@ const PicoFormCard = ({ label, field, icon: Icon, color, placeholder }) => {
   );
 };
 
+const StrategyField = ({ label, db, placeholder, color }) => {
+  const { state, dispatch } = useProject();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <label className={`block text-sm font-semibold mb-2 ${color}`}>{label}</label>
+      <textarea
+        value={state.searchStrategies[db]}
+        onChange={(e) =>
+          dispatch({
+            type: 'UPDATE_STRATEGY_FIELD',
+            payload: { db, value: e.target.value },
+          })
+        }
+        placeholder={placeholder}
+        className="w-full h-24 bg-monokai-dark text-monokai-text placeholder-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-pink focus:ring-opacity-30 resize-none transition-all"
+      />
+    </motion.div>
+  );
+};
+
 const ModulePICO = () => {
   const { state, dispatch } = useProject();
   const [showGuide, setShowGuide] = useState(false);
@@ -298,8 +459,8 @@ const ModulePICO = () => {
         {/* Guía de estrategia */}
         <SearchStrategyGuide />
 
-        {/* Botones de acción */}
-        <div className="flex gap-4 mb-6">
+        {/* Botón IA (disabled) */}
+        <div className="mb-6">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -309,47 +470,218 @@ const ModulePICO = () => {
             <Wand2 className="w-5 h-5" />
             Generar con IA (Próximamente)
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => dispatch({ type: 'GENERATE_MANUAL_STRATEGY' })}
-            className="flex items-center gap-2 px-6 py-3 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-monokai-green transition-all"
-          >
-            <Edit className="w-5 h-5" />
-            Generar Manualmente
-          </motion.button>
         </div>
 
-        {/* Campo de estrategia */}
-        <textarea
-          value={state.searchStrategy}
-          onChange={(e) =>
-            dispatch({
-              type: 'UPDATE_SEARCH_STRATEGY',
-              payload: e.target.value,
-            })
-          }
-          placeholder="La estrategia de búsqueda aparecerá aquí..."
-          className="w-full h-40 bg-monokai-sidebar text-monokai-text placeholder-monokai-subtle rounded-lg p-4 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-green focus:ring-opacity-30 resize-none transition-all"
-        />
+        {/* 3 campos de estrategia */}
+        <div className="space-y-6">
+          <StrategyField
+            label="Estrategia PubMed (Sintaxis Mesh)"
+            db="pubmed"
+            placeholder='Ej: (("Type 2 Diabetes Mellitus"[Mesh]) AND (Metformin[Mesh]))'
+            color="text-monokai-green"
+          />
+          <StrategyField
+            label="Estrategia Semantic Scholar"
+            db="semanticScholar"
+            placeholder="Ej: (Type 2 Diabetes Mellitus OR T2DM) AND (Metformin) AND (Cardiovascular Risk)"
+            color="text-monokai-yellow"
+          />
+          <StrategyField
+            label="Estrategia ArXiv / Crossref (Términos clave)"
+            db="arxivCrossref"
+            placeholder="Ej: Type 2 diabetes treatment with metformin cardiovascular outcomes"
+            color="text-monokai-blue"
+          />
+        </div>
       </div>
     </motion.div>
   );
 };
 
-const ModuleSearch = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-  >
-    <h1 className="text-4xl font-bold text-monokai-green mb-4">Búsqueda Bibliográfica</h1>
-    <p className="text-monokai-subtle">
-      Búsqueda y recuperación de estudios de múltiples bases de datos
-    </p>
-  </motion.div>
-);
+const ModuleSearch = () => {
+  const { state, dispatch } = useProject();
+  const [activeTab, setActiveTab] = useState('pico');
+  const [quickSearchTerm, setQuickSearchTerm] = useState('');
+
+  const handleSearchPICO = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const results = await apiClient.mockSearchAPI(state.searchStrategies);
+      dispatch({ type: 'SET_SEARCH_RESULTS', payload: results });
+    } catch (error) {
+      console.error('Error en búsqueda:', error);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  const handleQuickSearch = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const results = await apiClient.mockSearchAPI({ quickSearch: quickSearchTerm });
+      dispatch({ type: 'SET_SEARCH_RESULTS', payload: results });
+    } catch (error) {
+      console.error('Error en búsqueda rápida:', error);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <h1 className="text-4xl font-bold text-monokai-green mb-6">Módulo 2: Búsqueda Bibliográfica</h1>
+
+      {/* Pestañas */}
+      <div className="flex gap-4 mb-6 border-b border-monokai-subtle border-opacity-30">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setActiveTab('pico')}
+          className={`px-6 py-3 font-semibold transition-all ${
+            activeTab === 'pico'
+              ? 'text-monokai-green border-b-2 border-monokai-green'
+              : 'text-monokai-subtle hover:text-monokai-text'
+          }`}
+        >
+          Búsqueda PICO
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setActiveTab('quick')}
+          className={`px-6 py-3 font-semibold transition-all ${
+            activeTab === 'quick'
+              ? 'text-monokai-green border-b-2 border-monokai-green'
+              : 'text-monokai-subtle hover:text-monokai-text'
+          }`}
+        >
+          Búsqueda Rápida
+        </motion.button>
+      </div>
+
+      {/* Contenido de Pestaña 1: Búsqueda PICO */}
+      <AnimatePresence mode="wait">
+        {activeTab === 'pico' && (
+          <motion.div
+            key="pico-tab"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4 mb-8"
+          >
+            <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30 space-y-3">
+              <div>
+                <label className="text-sm font-semibold text-monokai-green mb-2 block">
+                  Estrategia PubMed
+                </label>
+                <textarea
+                  value={state.searchStrategies.pubmed}
+                  disabled
+                  className="w-full h-16 bg-monokai-dark text-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-monokai-yellow mb-2 block">
+                  Estrategia Semantic Scholar
+                </label>
+                <textarea
+                  value={state.searchStrategies.semanticScholar}
+                  disabled
+                  className="w-full h-16 bg-monokai-dark text-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-monokai-blue mb-2 block">
+                  Estrategia ArXiv / Crossref
+                </label>
+                <textarea
+                  value={state.searchStrategies.arxivCrossref}
+                  disabled
+                  className="w-full h-16 bg-monokai-dark text-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 resize-none"
+                />
+              </div>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSearchPICO}
+              disabled={state.isLoading}
+              className="flex items-center gap-2 px-6 py-3 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-monokai-green transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Search className="w-5 h-5" />
+              {state.isLoading ? 'Buscando...' : 'Buscar usando Estrategias PICO'}
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* Contenido de Pestaña 2: Búsqueda Rápida */}
+        {activeTab === 'quick' && (
+          <motion.div
+            key="quick-tab"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4 mb-8"
+          >
+            <div className="flex gap-4">
+              <input
+                type="text"
+                value={quickSearchTerm}
+                onChange={(e) => setQuickSearchTerm(e.target.value)}
+                placeholder="Ej: diabetes metformina cardiovascular..."
+                className="flex-1 bg-monokai-dark text-monokai-text placeholder-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-green focus:ring-opacity-30 transition-all"
+              />
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleQuickSearch}
+                disabled={state.isLoading}
+                className="flex items-center gap-2 px-6 py-3 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-monokai-green transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Search className="w-5 h-5" />
+                {state.isLoading ? 'Buscando...' : 'Buscar'}
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Sección de Resultados */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold text-monokai-pink mb-6">Resultados</h2>
+
+        {state.isLoading ? (
+          <LoadingSpinner />
+        ) : state.searchResults.length > 0 ? (
+          <div className="space-y-4">
+            <p className="text-sm text-monokai-subtle mb-4">
+              Se encontraron {state.searchResults.length} artículos
+            </p>
+            <AnimatePresence>
+              {state.searchResults.map((article) => (
+                <ArticleCard key={article.id} article={article} />
+              ))}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-monokai-subtle">
+              Realiza una búsqueda para ver los resultados aquí
+            </p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
 
 const ModuleScreening = () => (
   <motion.div
