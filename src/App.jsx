@@ -39,6 +39,13 @@ const initialState = {
   },
   isLoading: false,
   projectArticles: [],
+  exclusionReasons: [
+    'Outcome incorrecto',
+    'Población incorrecta',
+    'Tipo de estudio incorrecto',
+    'Texto completo no disponible',
+    'Otro',
+  ],
 };
 
 const projectReducer = (state, action) => {
@@ -77,7 +84,11 @@ const projectReducer = (state, action) => {
         ...state,
         projectArticles: state.projectArticles.map((article) =>
           article.uniqueId === action.payload.articleId
-            ? { ...article, status: action.payload.newStatus }
+            ? {
+                ...article,
+                status: action.payload.newStatus,
+                ...(action.payload.reason && { exclusionReason: action.payload.reason }),
+              }
             : article
         ),
       };
@@ -231,9 +242,16 @@ const ArticleCard = ({ article }) => {
           <h3 className="text-lg font-semibold text-monokai-pink mb-2">{article.title}</h3>
           <p className="text-sm text-monokai-subtle mb-2">{article.authors}</p>
         </div>
-        <span className="ml-4 px-3 py-1 bg-monokai-dark rounded-full text-xs font-semibold text-monokai-green whitespace-nowrap">
-          {article.source}
-        </span>
+        <div className="ml-4 flex flex-col gap-2 items-end">
+          <span className="px-3 py-1 bg-monokai-dark rounded-full text-xs font-semibold text-monokai-green whitespace-nowrap">
+            {article.source}
+          </span>
+          {article.exclusionReason && (
+            <span className="px-3 py-1 bg-monokai-pink rounded-full text-xs font-semibold text-monokai-text whitespace-nowrap">
+              {article.exclusionReason}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-4 mb-3">
@@ -901,19 +919,122 @@ const ModuleScreening = () => {
   );
 };
 
-const ModuleEligibility = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-  >
-    <h1 className="text-4xl font-bold text-monokai-blue mb-4">Evaluación de Elegibilidad</h1>
-    <p className="text-monokai-subtle">
-      Evaluación detallada de criterios de inclusión/exclusión
-    </p>
-  </motion.div>
-);
+const ModuleEligibility = () => {
+  const { state, dispatch } = useProject();
+
+  // Calcular estadísticas
+  const forReview = state.projectArticles.filter((a) => a.status === 'included_title');
+  const included = state.projectArticles.filter((a) => a.status === 'included_final');
+  const excluded = state.projectArticles.filter((a) => a.status === 'excluded_fulltext');
+  const nextArticle = forReview.length > 0 ? forReview[0] : null;
+
+  const handleIncludeFinal = () => {
+    if (nextArticle) {
+      dispatch({
+        type: 'UPDATE_ARTICLE_STATUS',
+        payload: { articleId: nextArticle.uniqueId, newStatus: 'included_final' },
+      });
+    }
+  };
+
+  const handleExcludeWithReason = (reason) => {
+    if (nextArticle) {
+      dispatch({
+        type: 'UPDATE_ARTICLE_STATUS',
+        payload: {
+          articleId: nextArticle.uniqueId,
+          newStatus: 'excluded_fulltext',
+          reason,
+        },
+      });
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <h1 className="text-4xl font-bold text-monokai-blue mb-6">Módulo 4: Evaluación de Elegibilidad</h1>
+
+      {/* Estadísticas */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+          <p className="text-sm text-monokai-subtle mb-1">Para revisión</p>
+          <p className="text-3xl font-bold text-monokai-blue">{forReview.length}</p>
+        </div>
+        <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+          <p className="text-sm text-monokai-subtle mb-1">Incluidos</p>
+          <p className="text-3xl font-bold text-monokai-green">{included.length}</p>
+        </div>
+        <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+          <p className="text-sm text-monokai-subtle mb-1">Excluidos</p>
+          <p className="text-3xl font-bold text-monokai-pink">{excluded.length}</p>
+        </div>
+        <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+          <p className="text-sm text-monokai-subtle mb-1">Total</p>
+          <p className="text-3xl font-bold text-monokai-yellow">{state.projectArticles.length}</p>
+        </div>
+      </div>
+
+      {/* Artículo para Revisión */}
+      {nextArticle ? (
+        <div className="space-y-6">
+          <ArticleCard article={nextArticle} />
+
+          {/* Botón Incluir */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleIncludeFinal}
+            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-monokai-green text-monokai-dark font-bold rounded-lg hover:shadow-monokai-green transition-all text-lg mb-6"
+          >
+            <CheckCircle className="w-6 h-6" />
+            Incluir
+          </motion.button>
+
+          {/* Sección de Exclusión */}
+          <div>
+            <h2 className="text-lg font-bold text-monokai-pink mb-4">Excluir por motivo:</h2>
+            <div className="grid grid-cols-1 gap-3">
+              {state.exclusionReasons.map((reason) => (
+                <motion.button
+                  key={reason}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleExcludeWithReason(reason)}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-monokai-pink transition-all"
+                >
+                  <X className="w-5 h-5" />
+                  {reason}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-16 bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
+          <p className="text-2xl font-bold text-monokai-blue mb-2">¡Revisión de elegibilidad completada!</p>
+          <p className="text-monokai-subtle mb-6">
+            Se han revisado {included.length + excluded.length} de {state.projectArticles.length} artículos.
+          </p>
+          <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+            <div className="bg-monokai-dark p-4 rounded-lg">
+              <p className="text-sm text-monokai-subtle mb-1">Incluidos</p>
+              <p className="text-2xl font-bold text-monokai-green">{included.length}</p>
+            </div>
+            <div className="bg-monokai-dark p-4 rounded-lg">
+              <p className="text-sm text-monokai-subtle mb-1">Excluidos</p>
+              <p className="text-2xl font-bold text-monokai-pink">{excluded.length}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+};
 
 const ModulePRISMA = () => (
   <motion.div
