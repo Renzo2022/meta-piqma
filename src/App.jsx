@@ -38,7 +38,7 @@ const initialState = {
     arxivCrossref: '',
   },
   isLoading: false,
-  searchResults: [],
+  projectArticles: [],
 };
 
 const projectReducer = (state, action) => {
@@ -65,8 +65,36 @@ const projectReducer = (state, action) => {
       };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
-    case 'SET_SEARCH_RESULTS':
-      return { ...state, searchResults: action.payload };
+    case 'LOAD_PROJECT_ARTICLES':
+      const articlesWithIds = action.payload.map((article) => ({
+        ...article,
+        uniqueId: crypto.randomUUID(),
+        status: 'unscreened',
+      }));
+      return { ...state, projectArticles: articlesWithIds };
+    case 'UPDATE_ARTICLE_STATUS':
+      return {
+        ...state,
+        projectArticles: state.projectArticles.map((article) =>
+          article.uniqueId === action.payload.articleId
+            ? { ...article, status: action.payload.newStatus }
+            : article
+        ),
+      };
+    case 'MARK_DUPLICATES':
+      // Simula búsqueda de duplicados por similitud de títulos
+      const duplicateMap = new Map();
+      const articlesWithDuplicates = state.projectArticles.map((article) => {
+        // Normalizar título para comparación
+        const normalizedTitle = article.title.toLowerCase().trim();
+        
+        if (duplicateMap.has(normalizedTitle)) {
+          return { ...article, status: 'duplicate' };
+        }
+        duplicateMap.set(normalizedTitle, true);
+        return article;
+      });
+      return { ...state, projectArticles: articlesWithDuplicates };
     default:
       return state;
   }
@@ -507,7 +535,7 @@ const ModuleSearch = () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const results = await apiClient.mockSearchAPI(state.searchStrategies);
-      dispatch({ type: 'SET_SEARCH_RESULTS', payload: results });
+      dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: results });
     } catch (error) {
       console.error('Error en búsqueda:', error);
     } finally {
@@ -519,7 +547,7 @@ const ModuleSearch = () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const results = await apiClient.mockSearchAPI({ quickSearch: quickSearchTerm });
-      dispatch({ type: 'SET_SEARCH_RESULTS', payload: results });
+      dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: results });
     } catch (error) {
       console.error('Error en búsqueda rápida:', error);
     } finally {
@@ -660,14 +688,14 @@ const ModuleSearch = () => {
 
         {state.isLoading ? (
           <LoadingSpinner />
-        ) : state.searchResults.length > 0 ? (
+        ) : state.projectArticles.length > 0 ? (
           <div className="space-y-4">
             <p className="text-sm text-monokai-subtle mb-4">
-              Se encontraron {state.searchResults.length} artículos
+              Se encontraron {state.projectArticles.length} artículos
             </p>
             <AnimatePresence>
-              {state.searchResults.map((article) => (
-                <ArticleCard key={article.id} article={article} />
+              {state.projectArticles.map((article) => (
+                <ArticleCard key={article.uniqueId} article={article} />
               ))}
             </AnimatePresence>
           </div>
@@ -683,19 +711,195 @@ const ModuleSearch = () => {
   );
 };
 
-const ModuleScreening = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-  >
-    <h1 className="text-4xl font-bold text-monokai-yellow mb-4">Cribado de Estudios</h1>
-    <p className="text-monokai-subtle">
-      Cribado por título y resumen, seguido de cribado a texto completo
-    </p>
-  </motion.div>
-);
+const ModuleScreening = () => {
+  const { state, dispatch } = useProject();
+  const [activeTab, setActiveTab] = useState('duplicates');
+
+  // Calcular estadísticas
+  const totalArticles = state.projectArticles.length;
+  const duplicates = state.projectArticles.filter((a) => a.status === 'duplicate');
+  const screened = state.projectArticles.filter(
+    (a) => a.status === 'included_title' || a.status === 'excluded_title'
+  );
+  const unscreened = state.projectArticles.filter((a) => a.status === 'unscreened');
+  const nextArticle = unscreened.length > 0 ? unscreened[0] : null;
+
+  const handleInclude = () => {
+    if (nextArticle) {
+      dispatch({
+        type: 'UPDATE_ARTICLE_STATUS',
+        payload: { articleId: nextArticle.uniqueId, newStatus: 'included_title' },
+      });
+    }
+  };
+
+  const handleExclude = () => {
+    if (nextArticle) {
+      dispatch({
+        type: 'UPDATE_ARTICLE_STATUS',
+        payload: { articleId: nextArticle.uniqueId, newStatus: 'excluded_title' },
+      });
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <h1 className="text-4xl font-bold text-monokai-yellow mb-6">Módulo 3: Cribado de Estudios</h1>
+
+      {/* Pestañas */}
+      <div className="flex gap-4 mb-6 border-b border-monokai-subtle border-opacity-30">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setActiveTab('duplicates')}
+          className={`px-6 py-3 font-semibold transition-all ${
+            activeTab === 'duplicates'
+              ? 'text-monokai-yellow border-b-2 border-monokai-yellow'
+              : 'text-monokai-subtle hover:text-monokai-text'
+          }`}
+        >
+          Detección de Duplicados
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setActiveTab('screening')}
+          className={`px-6 py-3 font-semibold transition-all ${
+            activeTab === 'screening'
+              ? 'text-monokai-yellow border-b-2 border-monokai-yellow'
+              : 'text-monokai-subtle hover:text-monokai-text'
+          }`}
+        >
+          Cribado Título/Resumen
+        </motion.button>
+      </div>
+
+      {/* Pestaña 1: Detección de Duplicados */}
+      <AnimatePresence mode="wait">
+        {activeTab === 'duplicates' && (
+          <motion.div
+            key="duplicates-tab"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Botón Buscar Duplicados */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => dispatch({ type: 'MARK_DUPLICATES' })}
+              className="flex items-center gap-2 px-6 py-3 bg-monokai-yellow text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all mb-6"
+            >
+              <Search className="w-5 h-5" />
+              Buscar Duplicados
+            </motion.button>
+
+            {/* Resumen */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+                <p className="text-sm text-monokai-subtle mb-1">Total de artículos</p>
+                <p className="text-3xl font-bold text-monokai-yellow">{totalArticles}</p>
+              </div>
+              <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+                <p className="text-sm text-monokai-subtle mb-1">Duplicados encontrados</p>
+                <p className="text-3xl font-bold text-monokai-pink">{duplicates.length}</p>
+              </div>
+            </div>
+
+            {/* Lista de Duplicados */}
+            {duplicates.length > 0 ? (
+              <div className="space-y-4">
+                <p className="text-sm text-monokai-subtle mb-4">
+                  Artículos marcados como duplicados:
+                </p>
+                <AnimatePresence>
+                  {duplicates.map((article) => (
+                    <ArticleCard key={article.uniqueId} article={article} />
+                  ))}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
+                <p className="text-monokai-subtle">
+                  No hay duplicados detectados. Haz clic en "Buscar Duplicados" para iniciar.
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Pestaña 2: Cribado Título/Resumen */}
+        {activeTab === 'screening' && (
+          <motion.div
+            key="screening-tab"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Estadísticas */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+                <p className="text-sm text-monokai-subtle mb-1">Total</p>
+                <p className="text-2xl font-bold text-monokai-green">{totalArticles}</p>
+              </div>
+              <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+                <p className="text-sm text-monokai-subtle mb-1">Cribados</p>
+                <p className="text-2xl font-bold text-monokai-yellow">{screened.length}</p>
+              </div>
+              <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+                <p className="text-sm text-monokai-subtle mb-1">Restantes</p>
+                <p className="text-2xl font-bold text-monokai-pink">{unscreened.length}</p>
+              </div>
+            </div>
+
+            {/* Artículo para Cribado */}
+            {nextArticle ? (
+              <div className="space-y-6">
+                <ArticleCard article={nextArticle} />
+
+                {/* Botones de Acción */}
+                <div className="flex gap-4">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleInclude}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-monokai-green text-monokai-dark font-bold rounded-lg hover:shadow-monokai-green transition-all text-lg"
+                  >
+                    <CheckCircle className="w-6 h-6" />
+                    Incluir
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleExclude}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-bold rounded-lg hover:shadow-monokai-pink transition-all text-lg"
+                  >
+                    <X className="w-6 h-6" />
+                    Excluir
+                  </motion.button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-16 bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
+                <p className="text-2xl font-bold text-monokai-green mb-2">¡Cribado completado!</p>
+                <p className="text-monokai-subtle">
+                  Se han cribado {screened.length} de {totalArticles} artículos.
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
 
 const ModuleEligibility = () => (
   <motion.div
