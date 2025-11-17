@@ -17,6 +17,7 @@ import {
   ArrowDown,
   Download,
   CheckCircle2,
+  Plus,
 } from 'lucide-react';
 import './index.css';
 
@@ -49,6 +50,28 @@ const initialState = {
     'Texto completo no disponible',
     'Otro',
   ],
+  extractionColumns: [
+    { id: 'study_name', label: 'Nombre del Estudio' },
+    { id: 'n_intervention', label: 'N (Intervención)' },
+    { id: 'mean_intervention', label: 'Media (Intervención)' },
+    { id: 'sd_intervention', label: 'DE (Intervención)' },
+    { id: 'n_control', label: 'N (Control)' },
+    { id: 'mean_control', label: 'Media (Control)' },
+    { id: 'sd_control', label: 'DE (Control)' },
+  ],
+  extractionData: [
+    {
+      id: 'row_1',
+      study_name: '',
+      n_intervention: '',
+      mean_intervention: '',
+      sd_intervention: '',
+      n_control: '',
+      mean_control: '',
+      sd_control: '',
+    },
+  ],
+  metaAnalysisResults: null,
 };
 
 const projectReducer = (state, action) => {
@@ -109,6 +132,29 @@ const projectReducer = (state, action) => {
         return article;
       });
       return { ...state, projectArticles: articlesWithDuplicates };
+    case 'ADD_EXTRACTION_ROW':
+      const newRow = {
+        id: `row_${Date.now()}`,
+        ...state.extractionColumns.reduce((acc, col) => {
+          acc[col.id] = '';
+          return acc;
+        }, {}),
+      };
+      return {
+        ...state,
+        extractionData: [...state.extractionData, newRow],
+      };
+    case 'UPDATE_EXTRACTION_CELL':
+      return {
+        ...state,
+        extractionData: state.extractionData.map((row, idx) =>
+          idx === action.payload.rowIndex
+            ? { ...row, [action.payload.columnId]: action.payload.value }
+            : row
+        ),
+      };
+    case 'SET_META_ANALYSIS_RESULTS':
+      return { ...state, metaAnalysisResults: action.payload };
     default:
       return state;
   }
@@ -193,6 +239,23 @@ const apiClient = {
     
     // Devuelve los artículos mock
     return mockArticles;
+  },
+
+  async mockMetaAnalysisAPI(data) {
+    // Simula la ejecución de R/Python por 2 segundos
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Devuelve resultados simulados
+    return {
+      metrics: {
+        i2: '89.5%',
+        q: 132.1,
+        p_value: '< 0.001',
+        heterogeneity: 'Alta',
+      },
+      forestPlotUrl: 'https://placehold.co/800x400/272822/F8F8F2?text=Forest+Plot+(Simulado)',
+      funnelPlotUrl: 'https://placehold.co/600x400/272822/F8F8F2?text=Funnel+Plot+(Simulado)',
+    };
   },
   
   async fetchScreeningData() {
@@ -1221,19 +1284,179 @@ const ModulePRISMA = () => {
   );
 };
 
-const ModuleMetaAnalysis = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-  >
-    <h1 className="text-4xl font-bold text-monokai-orange mb-4">Meta-Análisis</h1>
-    <p className="text-monokai-subtle">
-      Análisis estadístico combinado de múltiples estudios
-    </p>
-  </motion.div>
-);
+const ModuleMetaAnalysis = () => {
+  const { state, dispatch } = useProject();
+
+  const handleAddRow = () => {
+    dispatch({ type: 'ADD_EXTRACTION_ROW' });
+  };
+
+  const handleCellChange = (rowIndex, columnId, value) => {
+    dispatch({
+      type: 'UPDATE_EXTRACTION_CELL',
+      payload: { rowIndex, columnId, value },
+    });
+  };
+
+  const handleExecuteMetaAnalysis = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const results = await apiClient.mockMetaAnalysisAPI(state.extractionData);
+      dispatch({ type: 'SET_META_ANALYSIS_RESULTS', payload: results });
+    } catch (error) {
+      console.error('Error en meta-análisis:', error);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <h1 className="text-4xl font-bold text-monokai-orange mb-8">Módulo 6: Meta-Análisis</h1>
+
+      {/* Sección 1: Tabla de Extracción de Datos */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold text-monokai-orange mb-6">Extracción de Datos</h2>
+
+        <div className="overflow-x-auto bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
+          <table className="w-full divide-y divide-monokai-subtle divide-opacity-30">
+            <thead className="bg-monokai-dark">
+              <tr>
+                {state.extractionColumns.map((col) => (
+                  <th
+                    key={col.id}
+                    className="px-4 py-3 text-left text-sm font-semibold text-monokai-yellow"
+                  >
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-monokai-subtle divide-opacity-30">
+              {state.extractionData.map((row, rowIndex) => (
+                <tr key={row.id} className="hover:bg-monokai-dark transition-colors">
+                  {state.extractionColumns.map((col) => (
+                    <td key={`${row.id}-${col.id}`} className="px-4 py-3">
+                      <input
+                        type="text"
+                        value={row[col.id] || ''}
+                        onChange={(e) => handleCellChange(rowIndex, col.id, e.target.value)}
+                        placeholder={col.label}
+                        className="w-full bg-monokai-sidebar text-monokai-text placeholder-monokai-subtle rounded px-2 py-1 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-orange focus:ring-opacity-30"
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Botón Añadir Fila */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleAddRow}
+          className="mt-4 flex items-center gap-2 px-6 py-3 bg-monokai-orange text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all"
+        >
+          <Plus className="w-5 h-5" />
+          Añadir Fila
+        </motion.button>
+      </div>
+
+      {/* Sección 2: Ejecutar Análisis */}
+      <div className="mb-12">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleExecuteMetaAnalysis}
+          disabled={state.isLoading}
+          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-monokai-blue text-monokai-text font-bold rounded-lg hover:shadow-lg transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <BarChart3 className="w-6 h-6" />
+          Ejecutar Meta-Análisis (Simulado)
+        </motion.button>
+      </div>
+
+      {/* Sección 3: Resultados del Meta-Análisis */}
+      {state.isLoading ? (
+        <LoadingSpinner />
+      ) : state.metaAnalysisResults ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-8"
+        >
+          {/* Métricas */}
+          <div className="bg-monokai-dark p-6 rounded-lg border border-monokai-subtle border-opacity-30">
+            <h3 className="text-xl font-bold text-monokai-orange mb-4">Métricas de Heterogeneidad</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-monokai-subtle mb-1">I² (Inconsistencia)</p>
+                <p className="text-2xl font-bold text-monokai-yellow">{state.metaAnalysisResults.metrics.i2}</p>
+              </div>
+              <div>
+                <p className="text-sm text-monokai-subtle mb-1">Q (Estadístico)</p>
+                <p className="text-2xl font-bold text-monokai-yellow">{state.metaAnalysisResults.metrics.q}</p>
+              </div>
+              <div>
+                <p className="text-sm text-monokai-subtle mb-1">P-value</p>
+                <p className="text-2xl font-bold text-monokai-yellow">{state.metaAnalysisResults.metrics.p_value}</p>
+              </div>
+              <div>
+                <p className="text-sm text-monokai-subtle mb-1">Heterogeneidad</p>
+                <p className="text-2xl font-bold text-monokai-yellow">{state.metaAnalysisResults.metrics.heterogeneity}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Gráficos */}
+          <div className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30"
+            >
+              <h3 className="text-lg font-bold text-monokai-orange mb-4">Forest Plot</h3>
+              <img
+                src={state.metaAnalysisResults.forestPlotUrl}
+                alt="Forest Plot"
+                className="w-full rounded-lg"
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30"
+            >
+              <h3 className="text-lg font-bold text-monokai-orange mb-4">Funnel Plot</h3>
+              <img
+                src={state.metaAnalysisResults.funnelPlotUrl}
+                alt="Funnel Plot"
+                className="w-full rounded-lg"
+              />
+            </motion.div>
+          </div>
+        </motion.div>
+      ) : (
+        <div className="text-center py-12 bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
+          <p className="text-monokai-subtle">
+            Ingresa los datos de los estudios y haz clic en "Ejecutar Meta-Análisis" para ver los resultados.
+          </p>
+        </div>
+      )}
+    </motion.div>
+  );
+};
 
 const ModuleGraphAnalysis = () => (
   <motion.div
