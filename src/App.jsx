@@ -18,7 +18,9 @@ import {
   Download,
   CheckCircle2,
   Plus,
+  Share2,
 } from 'lucide-react';
+import CytoscapeComponent from 'react-cytoscapejs';
 import './index.css';
 
 // ============================================================================
@@ -72,6 +74,8 @@ const initialState = {
     },
   ],
   metaAnalysisResults: null,
+  graphElements: [],
+  isLoadingGraph: false,
 };
 
 const projectReducer = (state, action) => {
@@ -155,6 +159,10 @@ const projectReducer = (state, action) => {
       };
     case 'SET_META_ANALYSIS_RESULTS':
       return { ...state, metaAnalysisResults: action.payload };
+    case 'SET_LOADING_GRAPH':
+      return { ...state, isLoadingGraph: action.payload };
+    case 'SET_GRAPH_ELEMENTS':
+      return { ...state, graphElements: action.payload };
     default:
       return state;
   }
@@ -256,6 +264,76 @@ const apiClient = {
       forestPlotUrl: 'https://placehold.co/800x400/272822/F8F8F2?text=Forest+Plot+(Simulado)',
       funnelPlotUrl: 'https://placehold.co/600x400/272822/F8F8F2?text=Funnel+Plot+(Simulado)',
     };
+  },
+
+  async mockGraphAPI() {
+    // Simula la ejecución de bibliometrix (R) o scientoPy (Python) por 2 segundos
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Devuelve datos de grafo simulados en formato Cytoscape.js
+    // 20 nodos (10 artículos + 10 autores) y 30+ enlaces
+    const elements = [
+      // Nodos - Artículos
+      { data: { id: 'a1', label: 'Estudio A', type: 'article' } },
+      { data: { id: 'a2', label: 'Estudio B', type: 'article' } },
+      { data: { id: 'a3', label: 'Estudio C', type: 'article' } },
+      { data: { id: 'a4', label: 'Estudio D', type: 'article' } },
+      { data: { id: 'a5', label: 'Estudio E', type: 'article' } },
+      { data: { id: 'a6', label: 'Estudio F', type: 'article' } },
+      { data: { id: 'a7', label: 'Estudio G', type: 'article' } },
+      { data: { id: 'a8', label: 'Estudio H', type: 'article' } },
+      { data: { id: 'a9', label: 'Estudio I', type: 'article' } },
+      { data: { id: 'a10', label: 'Estudio J', type: 'article' } },
+
+      // Nodos - Autores
+      { data: { id: 'au1', label: 'Autor Smith', type: 'author' } },
+      { data: { id: 'au2', label: 'Autor Johnson', type: 'author' } },
+      { data: { id: 'au3', label: 'Autor Williams', type: 'author' } },
+      { data: { id: 'au4', label: 'Autor Brown', type: 'author' } },
+      { data: { id: 'au5', label: 'Autor Jones', type: 'author' } },
+      { data: { id: 'au6', label: 'Autor Garcia', type: 'author' } },
+      { data: { id: 'au7', label: 'Autor Miller', type: 'author' } },
+      { data: { id: 'au8', label: 'Autor Davis', type: 'author' } },
+      { data: { id: 'au9', label: 'Autor Rodriguez', type: 'author' } },
+      { data: { id: 'au10', label: 'Autor Martinez', type: 'author' } },
+
+      // Enlaces - Conexiones de co-autoría (30+ enlaces)
+      { data: { source: 'a1', target: 'au1' } },
+      { data: { source: 'a1', target: 'au2' } },
+      { data: { source: 'a1', target: 'au3' } },
+      { data: { source: 'a2', target: 'au1' } },
+      { data: { source: 'a2', target: 'au4' } },
+      { data: { source: 'a2', target: 'au5' } },
+      { data: { source: 'a3', target: 'au2' } },
+      { data: { source: 'a3', target: 'au6' } },
+      { data: { source: 'a3', target: 'au7' } },
+      { data: { source: 'a4', target: 'au3' } },
+      { data: { source: 'a4', target: 'au8' } },
+      { data: { source: 'a4', target: 'au9' } },
+      { data: { source: 'a5', target: 'au4' } },
+      { data: { source: 'a5', target: 'au10' } },
+      { data: { source: 'a5', target: 'au1' } },
+      { data: { source: 'a6', target: 'au5' } },
+      { data: { source: 'a6', target: 'au6' } },
+      { data: { source: 'a6', target: 'au2' } },
+      { data: { source: 'a7', target: 'au7' } },
+      { data: { source: 'a7', target: 'au8' } },
+      { data: { source: 'a7', target: 'au3' } },
+      { data: { source: 'a8', target: 'au9' } },
+      { data: { source: 'a8', target: 'au10' } },
+      { data: { source: 'a8', target: 'au4' } },
+      { data: { source: 'a9', target: 'au1' } },
+      { data: { source: 'a9', target: 'au5' } },
+      { data: { source: 'a9', target: 'au6' } },
+      { data: { source: 'a10', target: 'au2' } },
+      { data: { source: 'a10', target: 'au7' } },
+      { data: { source: 'a10', target: 'au10' } },
+      { data: { source: 'au1', target: 'au2' } },
+      { data: { source: 'au3', target: 'au4' } },
+      { data: { source: 'au5', target: 'au6' } },
+    ];
+
+    return elements;
   },
   
   async fetchScreeningData() {
@@ -1458,19 +1536,117 @@ const ModuleMetaAnalysis = () => {
   );
 };
 
-const ModuleGraphAnalysis = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-  >
-    <h1 className="text-4xl font-bold text-monokai-pink mb-4">Análisis de Grafos</h1>
-    <p className="text-monokai-subtle">
-      Visualización y análisis de redes de estudios y conceptos
-    </p>
-  </motion.div>
-);
+const ModuleGraphAnalysis = () => {
+  const { state, dispatch } = useProject();
+
+  // Estilos Monokai para Cytoscape
+  const graphStylesheet = [
+    {
+      selector: 'node',
+      style: {
+        'background-color': '#78DCE8',
+        'label': 'data(label)',
+        'color': '#F8F8F2',
+        'font-size': '12px',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        'width': '40px',
+        'height': '40px',
+        'border-width': '2px',
+        'border-color': '#75715E',
+      },
+    },
+    {
+      selector: 'node[type="author"]',
+      style: {
+        'background-color': '#FF6188',
+        'width': '50px',
+        'height': '50px',
+      },
+    },
+    {
+      selector: 'edge',
+      style: {
+        'width': 2,
+        'line-color': '#75715E',
+        'curve-style': 'bezier',
+        'target-arrow-color': '#75715E',
+        'target-arrow-shape': 'none',
+      },
+    },
+  ];
+
+  // Layout de fuerza dirigida (COSE)
+  const graphLayout = {
+    name: 'cose',
+    animate: true,
+    fit: true,
+    padding: 20,
+    nodeSpacing: 10,
+    gravity: 1,
+    friction: 0.8,
+  };
+
+  const handleGenerateGraph = async () => {
+    dispatch({ type: 'SET_LOADING_GRAPH', payload: true });
+    try {
+      const elements = await apiClient.mockGraphAPI();
+      dispatch({ type: 'SET_GRAPH_ELEMENTS', payload: elements });
+    } catch (error) {
+      console.error('Error generando grafo:', error);
+    } finally {
+      dispatch({ type: 'SET_LOADING_GRAPH', payload: false });
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <h1 className="text-4xl font-bold text-monokai-pink mb-8">Módulo 7: Análisis de Redes Bibliométricas</h1>
+
+      {/* Sección 1: Controles */}
+      <div className="mb-8">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleGenerateGraph}
+          disabled={state.isLoadingGraph}
+          className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-blue text-monokai-text font-bold rounded-lg hover:shadow-lg transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Share2 className="w-6 h-6" />
+          Generar Grafo de Co-autores (Simulado)
+        </motion.button>
+      </div>
+
+      {/* Sección 2: Visualización del Grafo */}
+      <div className="relative w-full h-[70vh] bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30 overflow-hidden">
+        {state.isLoadingGraph ? (
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-monokai-dark bg-opacity-50">
+            <LoadingSpinner />
+          </div>
+        ) : state.graphElements.length > 0 ? (
+          <CytoscapeComponent
+            elements={state.graphElements}
+            style={{ width: '100%', height: '100%' }}
+            stylesheet={graphStylesheet}
+            layout={graphLayout}
+            wheelSensitivity={0.1}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-monokai-subtle">
+              Haz clic en "Generar Grafo" para visualizar la red de co-autores
+            </p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
 
 // ============================================================================
 // COMPONENTE SIDEBAR (Navegación)
