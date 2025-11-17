@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Plus,
   Share2,
+  ExternalLink,
 } from 'lucide-react';
 import CytoscapeComponent from 'react-cytoscapejs';
 import { createClient } from '@supabase/supabase-js';
@@ -53,7 +54,8 @@ const initialState = {
   searchStrategies: {
     pubmed: '',
     semanticScholar: '',
-    arxivCrossref: '',
+    arxiv: '',
+    crossref: '',
   },
   projectArticles: [],
   exclusionReasons: [
@@ -188,14 +190,20 @@ const projectReducer = (state, action) => {
         searchStrategies: {
           pubmed: projectData.strategy_pubmed || '',
           semanticScholar: projectData.strategy_semantic || '',
-          arxivCrossref: projectData.strategy_arxiv || '',
+          arxiv: projectData.strategy_arxiv || '',
+          crossref: projectData.strategy_arxiv || '',
         },
       };
     case 'SET_PROJECT_ARTICLES':
       if (Array.isArray(action.payload)) {
+        const articlesWithIds = action.payload.map((article) => ({
+          ...article,
+          uniqueId: article.uniqueId || crypto.randomUUID(),
+          status: article.status || 'unscreened',
+        }));
         return {
           ...state,
-          projectArticles: action.payload,
+          projectArticles: articlesWithIds,
           articlesLoaded: true,
         };
       }
@@ -316,7 +324,7 @@ const apiClient = {
           pico_outcome: picoData.outcome,
           strategy_pubmed: strategyData.pubmed,
           strategy_semantic: strategyData.semanticScholar,
-          strategy_arxiv: strategyData.arxivCrossref,
+          strategy_arxiv: strategyData.arxiv || strategyData.crossref,
         })
         .eq('id', projectId);
       if (error) console.error('Error guardando proyecto:', error);
@@ -356,6 +364,7 @@ const apiClient = {
         source: article.source,
         year: article.year,
         abstract: article.abstract,
+        url: article.url || '',
         status: 'unscreened',
         exclusion_reason: null,
       }));
@@ -407,22 +416,43 @@ const apiClient = {
   // Búsqueda real usando servidor Python
   async runRealSearch(strategies) {
     try {
-      // URL del servidor de búsqueda (cambiar a URL de Render.com en producción)
+      // URL del servidor de búsqueda
+      // Por defecto: localhost:8000 (desarrollo)
+      // Producción: configurar VITE_SEARCH_SERVER_URL en .env.local
       const SEARCH_SERVER_URL = import.meta.env.VITE_SEARCH_SERVER_URL || 'http://localhost:8000';
       
+      // Preparar datos para enviar al backend
+      const searchPayload = {
+        pubmed: strategies.pubmed || '',
+        semanticScholar: strategies.semanticScholar || '',
+        arxiv: strategies.arxiv || '',
+        crossref: strategies.crossref || '',
+        max_pubmed: strategies.max_pubmed || 5,
+        max_semantic: strategies.max_semantic || 5,
+        max_arxiv: strategies.max_arxiv || 5,
+        max_crossref: strategies.max_crossref || 5,
+      };
+      
       console.log(`[Search] Conectando a: ${SEARCH_SERVER_URL}/api/v1/search`);
+      console.log('[Search] Payload:', searchPayload);
       
       const response = await fetch(`${SEARCH_SERVER_URL}/api/v1/search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(strategies),
+        body: JSON.stringify(searchPayload),
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `Error en búsqueda: ${response.status}`);
+        let errorMessage = `Error ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.detail || errorMessage;
+        } catch (e) {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -441,6 +471,7 @@ const apiClient = {
         source: article.source,
         year: article.year,
         abstract: article.abstract,
+        url: article.url,
       }));
     } catch (error) {
       console.error('[Search] Error:', error);
@@ -448,18 +479,66 @@ const apiClient = {
     }
   },
 
-  async mockMetaAnalysisAPI(data) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    return {
-      metrics: {
-        i2: '89.5%',
-        q: 132.1,
-        p_value: '< 0.001',
-        heterogeneity: 'Alta',
-      },
-      forestPlotUrl: 'https://placehold.co/800x400/272822/F8F8F2?text=Forest+Plot+(Simulado)',
-      funnelPlotUrl: 'https://placehold.co/600x400/272822/F8F8F2?text=Funnel+Plot+(Simulado)',
-    };
+  // Meta-análisis real usando servidor Python
+  async runMetaAnalysis(extractionData) {
+    try {
+      // URL del servidor de búsqueda
+      const SEARCH_SERVER_URL = import.meta.env.VITE_SEARCH_SERVER_URL || 'http://localhost:8000';
+      
+      console.log(`[Meta-Analysis] Conectando a: ${SEARCH_SERVER_URL}/api/v1/meta-analysis`);
+      console.log(`[Meta-Analysis] Enviando ${extractionData.length} estudios`);
+      
+      // Convertir extractionData al formato esperado por el servidor
+      const formattedData = extractionData.map((row) => ({
+        id: row.id,
+        studyName: row.studyName || `Study ${row.id}`,
+        n: parseInt(row.n) || 0,
+        mean: parseFloat(row.mean) || 0,
+        sd: parseFloat(row.sd) || 0,
+      }));
+      
+      const response = await fetch(`${SEARCH_SERVER_URL}/api/v1/meta-analysis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          extractionData: formattedData,
+          analysisType: 'fixed',
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Error en meta-análisis: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Error en meta-análisis');
+      }
+      
+      console.log(`[Meta-Analysis] ✓ Análisis completado`);
+      console.log(`[Meta-Analysis] I² = ${data.metrics.i_squared.toFixed(2)}%`);
+      console.log(`[Meta-Analysis] Q = ${data.metrics.q_statistic.toFixed(4)}`);
+      console.log(`[Meta-Analysis] p-value = ${data.metrics.p_value.toFixed(4)}`);
+      
+      // Mapear respuesta del servidor al formato esperado por React
+      return {
+        metrics: {
+          i2: `${data.metrics.i_squared.toFixed(1)}%`,
+          q: data.metrics.q_statistic,
+          p_value: data.metrics.p_value < 0.001 ? '< 0.001' : `${data.metrics.p_value.toFixed(4)}`,
+          heterogeneity: data.metrics.heterogeneity,
+        },
+        forestPlotUrl: data.forestPlotUrl,
+        funnelPlotUrl: data.funnelPlotUrl,
+      };
+    } catch (error) {
+      console.error('[Meta-Analysis] Error:', error);
+      throw error;
+    }
   },
 
   async mockGraphAPI() {
@@ -556,7 +635,18 @@ const ArticleCard = ({ article }) => {
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-monokai-pink mb-2">{article.title}</h3>
+          {article.url ? (
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-lg font-semibold text-monokai-pink mb-2 hover:text-monokai-cyan transition-colors cursor-pointer block"
+            >
+              {article.title}
+            </a>
+          ) : (
+            <h3 className="text-lg font-semibold text-monokai-pink mb-2">{article.title}</h3>
+          )}
           <p className="text-sm text-monokai-subtle mb-2">{article.authors}</p>
         </div>
         <div className="ml-4 flex flex-col gap-2 items-end">
@@ -575,14 +665,30 @@ const ArticleCard = ({ article }) => {
         <span className="text-sm text-monokai-subtle">Año: {article.year}</span>
       </div>
 
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setShowAbstract(!showAbstract)}
-        className="text-sm text-monokai-blue hover:text-monokai-cyan transition-colors font-semibold"
-      >
-        {showAbstract ? 'Ocultar Abstracto' : 'Ver Abstracto'}
-      </motion.button>
+      <div className="flex gap-3">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowAbstract(!showAbstract)}
+          className="text-sm text-monokai-blue hover:text-monokai-cyan transition-colors font-semibold"
+        >
+          {showAbstract ? 'Ocultar Abstracto' : 'Ver Abstracto'}
+        </motion.button>
+        
+        {article.url && (
+          <motion.a
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 text-sm text-monokai-cyan hover:text-monokai-green transition-colors font-semibold"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Ver artículo
+          </motion.a>
+        )}
+      </div>
 
       <AnimatePresence>
         {showAbstract && (
@@ -767,7 +873,7 @@ const ModulePICO = () => {
     >
       {/* Título con botón de información */}
       <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-4xl font-bold text-monokai-pink">Módulo 1: Definición PICO</h1>
+        <h1 className="text-4xl font-bold text-monokai-green">Módulo 1: Definición PICO</h1>
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
@@ -850,10 +956,16 @@ const ModulePICO = () => {
             color="text-monokai-yellow"
           />
           <StrategyField
-            label="Estrategia ArXiv / Crossref (Términos clave)"
-            db="arxivCrossref"
+            label="Estrategia ArXiv (Términos clave)"
+            db="arxiv"
             placeholder="Ej: Type 2 diabetes treatment with metformin cardiovascular outcomes"
             color="text-monokai-blue"
+          />
+          <StrategyField
+            label="Estrategia Crossref (Términos clave)"
+            db="crossref"
+            placeholder="Ej: Type 2 diabetes treatment with metformin cardiovascular outcomes"
+            color="text-monokai-purple"
           />
         </div>
       </div>
@@ -861,15 +973,67 @@ const ModulePICO = () => {
   );
 };
 
+// Componente para dropdown de límites de búsqueda
+const SearchLimitDropdown = ({ label, value, onChange, color }) => {
+  const options = [
+    { label: 'Ninguno', value: 0 },
+    { label: '10 resultados', value: 10 },
+    { label: '50 resultados', value: 50 },
+    { label: '100 resultados', value: 100 },
+    { label: '150 resultados', value: 150 },
+  ];
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label className={`text-xs font-semibold ${color}`}>{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value))}
+        className="bg-monokai-dark text-monokai-text rounded-lg p-2 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-opacity-30 transition-all cursor-pointer"
+        style={{
+          focusRingColor: color.replace('text-', ''),
+        }}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 const ModuleSearch = () => {
   const { state, dispatch } = useProject();
   const [activeTab, setActiveTab] = useState('pico');
   const [quickSearchTerm, setQuickSearchTerm] = useState('');
+  const [searchLimits, setSearchLimits] = useState({
+    max_pubmed: 5,
+    max_semantic: 5,
+    max_arxiv: 5,
+    max_crossref: 5,
+  });
 
   const handleSearchPICO = async () => {
+    // Validar que al menos una estrategia tenga contenido
+    const hasStrategy = state.searchStrategies.pubmed || 
+                       state.searchStrategies.semanticScholar || 
+                       state.searchStrategies.arxiv || 
+                       state.searchStrategies.crossref;
+    
+    if (!hasStrategy) {
+      alert('Por favor ingresa al menos una estrategia de búsqueda');
+      return;
+    }
+
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const results = await apiClient.runRealSearch(state.searchStrategies);
+      const searchData = {
+        ...state.searchStrategies,
+        ...searchLimits,
+      };
+      const results = await apiClient.runRealSearch(searchData);
       // Guardar artículos en Supabase
       if (state.currentProjectId && results.length > 0) {
         await apiClient.saveArticles(state.currentProjectId, results);
@@ -884,15 +1048,23 @@ const ModuleSearch = () => {
   };
 
   const handleQuickSearch = async () => {
+    // Validar que haya término de búsqueda
+    if (!quickSearchTerm.trim()) {
+      alert('Por favor ingresa un término de búsqueda');
+      return;
+    }
+
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       // Convertir búsqueda rápida a estrategias
-      const strategies = {
+      const searchData = {
         pubmed: quickSearchTerm,
         semanticScholar: quickSearchTerm,
-        arxivCrossref: quickSearchTerm,
+        arxiv: quickSearchTerm,
+        crossref: quickSearchTerm,
+        ...searchLimits,
       };
-      const results = await apiClient.runRealSearch(strategies);
+      const results = await apiClient.runRealSearch(searchData);
       // Guardar artículos en Supabase
       if (state.currentProjectId && results.length > 0) {
         await apiClient.saveArticles(state.currentProjectId, results);
@@ -913,7 +1085,7 @@ const ModuleSearch = () => {
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-4xl font-bold text-monokai-green mb-6">Módulo 2: Búsqueda Bibliográfica</h1>
+      <h1 className="text-4xl font-bold text-monokai-yellow mb-6">Módulo 2: Búsqueda Bibliográfica</h1>
 
       {/* Pestañas */}
       <div className="flex gap-4 mb-6 border-b border-monokai-subtle border-opacity-30">
@@ -959,31 +1131,73 @@ const ModuleSearch = () => {
                 <label className="text-sm font-semibold text-monokai-green mb-2 block">
                   Estrategia PubMed
                 </label>
-                <textarea
-                  value={state.searchStrategies.pubmed}
-                  disabled
-                  className="w-full h-16 bg-monokai-dark text-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 resize-none"
-                />
+                <div className="flex gap-3">
+                  <textarea
+                    value={state.searchStrategies.pubmed}
+                    disabled
+                    className="flex-1 h-16 bg-monokai-dark text-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 resize-none"
+                  />
+                  <SearchLimitDropdown
+                    label="Resultados"
+                    value={searchLimits.max_pubmed}
+                    onChange={(val) => setSearchLimits({ ...searchLimits, max_pubmed: val })}
+                    color="text-monokai-green"
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-sm font-semibold text-monokai-yellow mb-2 block">
                   Estrategia Semantic Scholar
                 </label>
-                <textarea
-                  value={state.searchStrategies.semanticScholar}
-                  disabled
-                  className="w-full h-16 bg-monokai-dark text-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 resize-none"
-                />
+                <div className="flex gap-3">
+                  <textarea
+                    value={state.searchStrategies.semanticScholar}
+                    disabled
+                    className="flex-1 h-16 bg-monokai-dark text-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 resize-none"
+                  />
+                  <SearchLimitDropdown
+                    label="Resultados"
+                    value={searchLimits.max_semantic}
+                    onChange={(val) => setSearchLimits({ ...searchLimits, max_semantic: val })}
+                    color="text-monokai-yellow"
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-sm font-semibold text-monokai-blue mb-2 block">
                   Estrategia ArXiv / Crossref
                 </label>
-                <textarea
-                  value={state.searchStrategies.arxivCrossref}
-                  disabled
-                  className="w-full h-16 bg-monokai-dark text-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 resize-none"
-                />
+                <div className="flex gap-3">
+                  <textarea
+                    value={state.searchStrategies.arxiv}
+                    disabled
+                    className="flex-1 h-16 bg-monokai-dark text-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 resize-none"
+                  />
+                  <SearchLimitDropdown
+                    label="Resultados"
+                    value={searchLimits.max_arxiv}
+                    onChange={(val) => setSearchLimits({ ...searchLimits, max_arxiv: val })}
+                    color="text-monokai-blue"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-monokai-purple mb-2 block">
+                  Estrategia Crossref
+                </label>
+                <div className="flex gap-3">
+                  <textarea
+                    value={state.searchStrategies.crossref}
+                    disabled
+                    className="flex-1 h-16 bg-monokai-dark text-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 resize-none"
+                  />
+                  <SearchLimitDropdown
+                    label="Resultados"
+                    value={searchLimits.max_crossref}
+                    onChange={(val) => setSearchLimits({ ...searchLimits, max_crossref: val })}
+                    color="text-monokai-purple"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1010,24 +1224,56 @@ const ModuleSearch = () => {
             transition={{ duration: 0.3 }}
             className="space-y-4 mb-8"
           >
-            <div className="flex gap-4">
-              <input
-                type="text"
-                value={quickSearchTerm}
-                onChange={(e) => setQuickSearchTerm(e.target.value)}
-                placeholder="Ej: diabetes metformina cardiovascular..."
-                className="flex-1 bg-monokai-dark text-monokai-text placeholder-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-green focus:ring-opacity-30 transition-all"
-              />
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleQuickSearch}
-                disabled={state.isLoading}
-                className="flex items-center gap-2 px-6 py-3 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-monokai-green transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Search className="w-5 h-5" />
-                {state.isLoading ? 'Buscando...' : 'Buscar'}
-              </motion.button>
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <input
+                  type="text"
+                  value={quickSearchTerm}
+                  onChange={(e) => setQuickSearchTerm(e.target.value)}
+                  placeholder="Ej: diabetes metformina cardiovascular..."
+                  className="flex-1 bg-monokai-dark text-monokai-text placeholder-monokai-subtle rounded-lg p-3 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-green focus:ring-opacity-30 transition-all"
+                />
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleQuickSearch}
+                  disabled={state.isLoading}
+                  className="flex items-center gap-2 px-6 py-3 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-monokai-green transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Search className="w-5 h-5" />
+                  {state.isLoading ? 'Buscando...' : 'Buscar'}
+                </motion.button>
+              </div>
+              
+              <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+                <p className="text-xs font-semibold text-monokai-subtle mb-3">Límites de resultados:</p>
+                <div className="grid grid-cols-4 gap-4">
+                  <SearchLimitDropdown
+                    label="PubMed"
+                    value={searchLimits.max_pubmed}
+                    onChange={(val) => setSearchLimits({ ...searchLimits, max_pubmed: val })}
+                    color="text-monokai-green"
+                  />
+                  <SearchLimitDropdown
+                    label="Semantic Scholar"
+                    value={searchLimits.max_semantic}
+                    onChange={(val) => setSearchLimits({ ...searchLimits, max_semantic: val })}
+                    color="text-monokai-yellow"
+                  />
+                  <SearchLimitDropdown
+                    label="ArXiv"
+                    value={searchLimits.max_arxiv}
+                    onChange={(val) => setSearchLimits({ ...searchLimits, max_arxiv: val })}
+                    color="text-monokai-blue"
+                  />
+                  <SearchLimitDropdown
+                    label="Crossref"
+                    value={searchLimits.max_crossref}
+                    onChange={(val) => setSearchLimits({ ...searchLimits, max_crossref: val })}
+                    color="text-monokai-purple"
+                  />
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -1100,7 +1346,7 @@ const ModuleScreening = () => {
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-4xl font-bold text-monokai-yellow mb-6">Módulo 3: Cribado de Estudios</h1>
+      <h1 className="text-4xl font-bold text-monokai-blue mb-6">Módulo 3: Cribado de Estudios</h1>
 
       {/* Pestañas */}
       <div className="flex gap-4 mb-6 border-b border-monokai-subtle border-opacity-30">
@@ -1127,6 +1373,18 @@ const ModuleScreening = () => {
           }`}
         >
           Cribado Título/Resumen
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setActiveTab('filters')}
+          className={`px-6 py-3 font-semibold transition-all ${
+            activeTab === 'filters'
+              ? 'text-monokai-yellow border-b-2 border-monokai-yellow'
+              : 'text-monokai-subtle hover:text-monokai-text'
+          }`}
+        >
+          Filtros de Datos
         </motion.button>
       </div>
 
@@ -1247,6 +1505,119 @@ const ModuleScreening = () => {
             )}
           </motion.div>
         )}
+
+        {/* Pestaña 3: Filtros de Datos */}
+        {activeTab === 'filters' && (
+          <motion.div
+            key="filters-tab"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30 mb-6">
+              <h3 className="text-lg font-bold text-monokai-yellow mb-4">Filtros de Datos Incompletos</h3>
+              <p className="text-monokai-subtle mb-6">Elimina artículos que no tengan ciertos datos:</p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    const articlesWithoutTitle = state.projectArticles.filter((a) => !a.title || a.title.trim() === '');
+                    articlesWithoutTitle.forEach((a) => {
+                      dispatch({
+                        type: 'UPDATE_ARTICLE_STATUS',
+                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin título' },
+                      });
+                    });
+                    alert(`${articlesWithoutTitle.length} artículos sin título eliminados`);
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                  Eliminar sin Título
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    const articlesWithoutAuthors = state.projectArticles.filter((a) => !a.authors || a.authors.length === 0);
+                    articlesWithoutAuthors.forEach((a) => {
+                      dispatch({
+                        type: 'UPDATE_ARTICLE_STATUS',
+                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin autores' },
+                      });
+                    });
+                    alert(`${articlesWithoutAuthors.length} artículos sin autores eliminados`);
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                  Eliminar sin Autores
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    const articlesWithoutYear = state.projectArticles.filter((a) => !a.year);
+                    articlesWithoutYear.forEach((a) => {
+                      dispatch({
+                        type: 'UPDATE_ARTICLE_STATUS',
+                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin año' },
+                      });
+                    });
+                    alert(`${articlesWithoutYear.length} artículos sin año eliminados`);
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                  Eliminar sin Año
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    const articlesWithoutURL = state.projectArticles.filter((a) => !a.url || a.url.trim() === '');
+                    articlesWithoutURL.forEach((a) => {
+                      dispatch({
+                        type: 'UPDATE_ARTICLE_STATUS',
+                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin URL' },
+                      });
+                    });
+                    alert(`${articlesWithoutURL.length} artículos sin URL eliminados`);
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                  Eliminar sin URL
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    const articlesWithoutAbstract = state.projectArticles.filter((a) => !a.abstract || a.abstract.trim() === '');
+                    articlesWithoutAbstract.forEach((a) => {
+                      dispatch({
+                        type: 'UPDATE_ARTICLE_STATUS',
+                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin abstract' },
+                      });
+                    });
+                    alert(`${articlesWithoutAbstract.length} artículos sin abstract eliminados`);
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                  Eliminar sin Abstract
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </motion.div>
   );
@@ -1290,7 +1661,7 @@ const ModuleEligibility = () => {
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-4xl font-bold text-monokai-blue mb-6">Módulo 4: Evaluación de Elegibilidad</h1>
+      <h1 className="text-4xl font-bold text-monokai-purple mb-6">Módulo 4: Evaluación de Elegibilidad</h1>
 
       {/* Estadísticas */}
       <div className="grid grid-cols-4 gap-4 mb-8">
@@ -1372,6 +1743,91 @@ const ModuleEligibility = () => {
 const ModulePRISMA = () => {
   const { state } = useProject();
 
+  // Función para exportar estadísticas como JSON
+  const handleExportJSON = () => {
+    const statistics = {
+      timestamp: new Date().toISOString(),
+      projectId: state.currentProjectId,
+      totalIdentified: state.projectArticles.length,
+      duplicates: state.projectArticles.filter((a) => a.status === 'duplicate').length,
+      screened: state.projectArticles.filter((a) => a.status !== 'duplicate').length,
+      excludedTitle: state.projectArticles.filter((a) => a.status === 'excluded_title').length,
+      fullText: state.projectArticles.filter((a) => a.status === 'included_title').length,
+      excludedFullText: state.projectArticles.filter((a) => a.status === 'excluded_fulltext').length,
+      includedFinal: state.projectArticles.filter((a) => a.status === 'included_final').length,
+    };
+
+    const dataStr = JSON.stringify(statistics, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `prisma-estadisticas-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Función para exportar estudios incluidos como CSV
+  const handleExportCSV = () => {
+    const includedArticles = state.projectArticles.filter((a) => a.status === 'included_final');
+    
+    const headers = ['Título', 'Autores', 'Año', 'Fuente', 'URL', 'Abstract'];
+    const rows = includedArticles.map((article) => [
+      `"${article.title.replace(/"/g, '""')}"`,
+      `"${(article.authors || []).join('; ').replace(/"/g, '""')}"`,
+      article.year || '',
+      article.source || '',
+      article.url || '',
+      `"${(article.abstract || '').replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.join(',')),
+    ].join('\n');
+
+    const dataBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `estudios-incluidos-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Función para exportar diagrama PRISMA como PNG
+  const handleExportPNG = async () => {
+    try {
+      // Importar html2canvas dinámicamente
+      const html2canvas = (await import('html2canvas')).default;
+      
+      const diagramElement = document.getElementById('prisma-diagram');
+      if (!diagramElement) {
+        alert('No se encontró el diagrama PRISMA');
+        return;
+      }
+
+      const canvas = await html2canvas(diagramElement, {
+        backgroundColor: '#1e1e1e',
+        scale: 2,
+      });
+
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `diagrama-prisma-${new Date().toISOString().split('T')[0]}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error exportando PNG:', error);
+      alert('Error al exportar el diagrama. Asegúrate de tener html2canvas instalado.');
+    }
+  };
+
   // Selectores para calcular métricas
   const countTotalIdentified = state.projectArticles.length;
   const countDuplicates = state.projectArticles.filter((a) => a.status === 'duplicate').length;
@@ -1392,13 +1848,13 @@ const ModulePRISMA = () => {
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-4xl font-bold text-monokai-purple mb-8">Módulo 5: Reporte PRISMA 2020</h1>
+      <h1 className="text-4xl font-bold text-monokai-orange mb-8">Módulo 5: Reporte PRISMA 2020</h1>
 
       {/* Sección 1: Diagrama PRISMA Visual */}
       <div className="mb-12">
         <h2 className="text-2xl font-bold text-monokai-purple mb-8">Diagrama de Flujo PRISMA 2020</h2>
 
-        <div className="space-y-6">
+        <div className="space-y-6" id="prisma-diagram">
           {/* Etapa 1: Identificación */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -1505,10 +1961,11 @@ const ModulePRISMA = () => {
       {/* Sección 2: Exportación de Datos */}
       <div className="mb-12">
         <h2 className="text-2xl font-bold text-monokai-purple mb-6">Exportar Reporte</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onClick={handleExportJSON}
             className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-blue text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
           >
             <Download className="w-5 h-5" />
@@ -1517,10 +1974,20 @@ const ModulePRISMA = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onClick={handleExportCSV}
             className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all"
           >
             <Download className="w-5 h-5" />
             Exportar Estudios Incluidos (CSV)
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleExportPNG}
+            className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-purple text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+          >
+            <Download className="w-5 h-5" />
+            Exportar Diagrama (PNG)
           </motion.button>
         </div>
       </div>
@@ -1568,10 +2035,11 @@ const ModuleMetaAnalysis = () => {
   const handleExecuteMetaAnalysis = async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const results = await apiClient.mockMetaAnalysisAPI(state.extractionData);
+      const results = await apiClient.runMetaAnalysis(state.extractionData);
       dispatch({ type: 'SET_META_ANALYSIS_RESULTS', payload: results });
     } catch (error) {
       console.error('Error en meta-análisis:', error);
+      alert('Error en meta-análisis: ' + error.message);
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
@@ -1584,7 +2052,7 @@ const ModuleMetaAnalysis = () => {
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-4xl font-bold text-monokai-orange mb-8">Módulo 6: Meta-Análisis</h1>
+      <h1 className="text-4xl font-bold text-monokai-pink mb-8">Módulo 6: Meta-Análisis</h1>
 
       {/* Sección 1: Tabla de Extracción de Datos */}
       <div className="mb-12">
@@ -1795,7 +2263,7 @@ const ModuleGraphAnalysis = () => {
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-4xl font-bold text-monokai-pink mb-8">Módulo 7: Análisis de Redes Bibliométricas</h1>
+      <h1 className="text-4xl font-bold text-monokai-blue mb-8">Módulo 7: Análisis de Redes Bibliométricas</h1>
 
       {/* Sección 1: Controles */}
       <div className="mb-8">
