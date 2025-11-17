@@ -1,4 +1,4 @@
-import React, { useReducer, createContext, useContext, useState } from 'react';
+import React, { useReducer, createContext, useContext, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
@@ -21,7 +21,16 @@ import {
   Share2,
 } from 'lucide-react';
 import CytoscapeComponent from 'react-cytoscapejs';
+import { createClient } from '@supabase/supabase-js';
 import './index.css';
+
+// ============================================================================
+// CLIENTE SUPABASE
+// ============================================================================
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================================================
 // CONTEXT Y REDUCER (El "Cerebro" de la Aplicación)
@@ -32,6 +41,8 @@ const ProjectContext = createContext();
 const initialState = {
   currentPage: 'pico',
   sidebarOpen: true,
+  currentProjectId: null,
+  isLoading: true,
   pico: {
     population: '',
     intervention: '',
@@ -43,7 +54,6 @@ const initialState = {
     semanticScholar: '',
     arxivCrossref: '',
   },
-  isLoading: false,
   projectArticles: [],
   exclusionReasons: [
     'Outcome incorrecto',
@@ -163,6 +173,23 @@ const projectReducer = (state, action) => {
       return { ...state, isLoadingGraph: action.payload };
     case 'SET_GRAPH_ELEMENTS':
       return { ...state, graphElements: action.payload };
+    case 'SET_PROJECT_DATA':
+      const projectData = action.payload;
+      return {
+        ...state,
+        currentProjectId: projectData.id,
+        pico: {
+          population: projectData.pico_population || '',
+          intervention: projectData.pico_intervention || '',
+          comparison: projectData.pico_comparison || '',
+          outcome: projectData.pico_outcome || '',
+        },
+        searchStrategies: {
+          pubmed: projectData.strategy_pubmed || '',
+          semanticScholar: projectData.strategy_semantic || '',
+          arxivCrossref: projectData.strategy_arxiv || '',
+        },
+      };
     default:
       return state;
   }
@@ -237,23 +264,65 @@ const mockArticles = [
 ];
 
 // ============================================================================
-// SERVICIO API (Stub para compatibilidad R/Python)
+// SERVICIO API (Real + Simulado)
 // ============================================================================
 
 const apiClient = {
+  // Carga el primer proyecto que encuentra
+  loadProject: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .limit(1);
+      
+      if (error) {
+        console.error('Error cargando proyecto:', error);
+        return null;
+      }
+      
+      // Si no hay proyectos, retorna null
+      if (!data || data.length === 0) {
+        console.log('No hay proyectos en la base de datos');
+        return null;
+      }
+      
+      return data[0];
+    } catch (err) {
+      console.error('Error en loadProject:', err);
+      return null;
+    }
+  },
+
+  // Guarda los datos en el proyecto con el ID especificado
+  saveProject: async (projectId, picoData, strategyData) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          pico_population: picoData.population,
+          pico_intervention: picoData.intervention,
+          pico_comparison: picoData.comparison,
+          pico_outcome: picoData.outcome,
+          strategy_pubmed: strategyData.pubmed,
+          strategy_semantic: strategyData.semanticScholar,
+          strategy_arxiv: strategyData.arxivCrossref,
+        })
+        .eq('id', projectId);
+      if (error) console.error('Error guardando proyecto:', error);
+    } catch (err) {
+      console.error('Error en saveProject:', err);
+    }
+  },
+
+  // Funciones simuladas (mantenidas por ahora)
   async mockSearchAPI(strategies) {
-    // Simula una espera de 2 segundos
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    // Devuelve los artículos mock
     return mockArticles;
   },
 
   async mockMetaAnalysisAPI(data) {
-    // Simula la ejecución de R/Python por 2 segundos
     await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Devuelve resultados simulados
     return {
       metrics: {
         i2: '89.5%',
@@ -267,13 +336,8 @@ const apiClient = {
   },
 
   async mockGraphAPI() {
-    // Simula la ejecución de bibliometrix (R) o scientoPy (Python) por 2 segundos
     await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Devuelve datos de grafo simulados en formato Cytoscape.js
-    // 20 nodos (10 artículos + 10 autores) y 30+ enlaces
     const elements = [
-      // Nodos - Artículos
       { data: { id: 'a1', label: 'Estudio A', type: 'article' } },
       { data: { id: 'a2', label: 'Estudio B', type: 'article' } },
       { data: { id: 'a3', label: 'Estudio C', type: 'article' } },
@@ -284,8 +348,6 @@ const apiClient = {
       { data: { id: 'a8', label: 'Estudio H', type: 'article' } },
       { data: { id: 'a9', label: 'Estudio I', type: 'article' } },
       { data: { id: 'a10', label: 'Estudio J', type: 'article' } },
-
-      // Nodos - Autores
       { data: { id: 'au1', label: 'Autor Smith', type: 'author' } },
       { data: { id: 'au2', label: 'Autor Johnson', type: 'author' } },
       { data: { id: 'au3', label: 'Autor Williams', type: 'author' } },
@@ -296,8 +358,6 @@ const apiClient = {
       { data: { id: 'au8', label: 'Autor Davis', type: 'author' } },
       { data: { id: 'au9', label: 'Autor Rodriguez', type: 'author' } },
       { data: { id: 'au10', label: 'Autor Martinez', type: 'author' } },
-
-      // Enlaces - Conexiones de co-autoría (30+ enlaces)
       { data: { source: 'a1', target: 'au1' } },
       { data: { source: 'a1', target: 'au2' } },
       { data: { source: 'a1', target: 'au3' } },
@@ -332,21 +392,7 @@ const apiClient = {
       { data: { source: 'au3', target: 'au4' } },
       { data: { source: 'au5', target: 'au6' } },
     ];
-
     return elements;
-  },
-  
-  async fetchScreeningData() {
-    console.log('Fetching screening data...');
-  },
-  async fetchEligibilityData() {
-    console.log('Fetching eligibility data...');
-  },
-  async fetchMetaAnalysisData() {
-    console.log('Fetching meta-analysis data...');
-  },
-  async fetchGraphAnalysisData() {
-    console.log('Fetching graph analysis data...');
   },
 };
 
@@ -354,19 +400,19 @@ const apiClient = {
 // COMPONENTES REUTILIZABLES
 // ============================================================================
 
-const LoadingSpinner = () => (
+const LoadingSpinner = ({ fullScreen = false }) => (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    className="flex flex-col items-center justify-center py-12"
+    className={`flex flex-col items-center justify-center ${fullScreen ? 'fixed inset-0 bg-monokai-dark' : 'py-12'}`}
   >
     <motion.div
       animate={{ rotate: 360 }}
       transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
       className="w-12 h-12 border-4 border-monokai-pink border-t-monokai-green rounded-full"
     />
-    <p className="text-monokai-subtle mt-4">Buscando artículos...</p>
+    <p className="text-monokai-subtle mt-4">Cargando proyecto...</p>
   </motion.div>
 );
 
@@ -1778,17 +1824,58 @@ const MainContent = () => {
 };
 
 // ============================================================================
+// COMPONENTE APP CONTENT (Con lógica de carga y auto-guardado)
+// ============================================================================
+
+const AppContent = () => {
+  const { state, dispatch } = useProject();
+
+  // useEffect 1: Cargar proyecto al iniciar
+  useEffect(() => {
+    const loadProjectData = async () => {
+      const projectData = await apiClient.loadProject();
+      if (projectData) {
+        dispatch({ type: 'SET_PROJECT_DATA', payload: projectData });
+      }
+      dispatch({ type: 'SET_LOADING', payload: false });
+    };
+
+    loadProjectData();
+  }, [dispatch]);
+
+  // useEffect 2: Auto-guardado con debounce
+  useEffect(() => {
+    if (!state.currentProjectId) return;
+
+    const debounceTimer = setTimeout(() => {
+      apiClient.saveProject(state.currentProjectId, state.pico, state.searchStrategies);
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [state.pico, state.searchStrategies, state.currentProjectId]);
+
+  // Mostrar spinner mientras carga
+  if (state.isLoading) {
+    return <LoadingSpinner fullScreen={true} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-monokai-bg text-monokai-text">
+      <Header />
+      <Sidebar />
+      <MainContent />
+    </div>
+  );
+};
+
+// ============================================================================
 // COMPONENTE APP (Contenedor principal)
 // ============================================================================
 
 export default function App() {
   return (
     <ProjectProvider>
-      <div className="min-h-screen bg-monokai-bg text-monokai-text">
-        <Header />
-        <Sidebar />
-        <MainContent />
-      </div>
+      <AppContent />
     </ProjectProvider>
   );
 }
