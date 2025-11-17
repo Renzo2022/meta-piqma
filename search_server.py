@@ -1,9 +1,7 @@
 """
 MetaPiqma Search Server
 Backend de búsqueda REAL para MetaPiqma usando FastAPI
-Búsquedas reales en PubMed, Semantic Scholar y ArXiv
-Backend de búsqueda REAL para MetaPiqma usando FastAPI
-Búsquedas reales en PubMed, Semantic Scholar y ArXiv
+Búsquedas reales en PubMed, Semantic Scholar, ArXiv y Crossref
 """
 
 from fastapi import FastAPI, HTTPException
@@ -13,9 +11,6 @@ from typing import List, Optional
 import requests
 import json
 from datetime import datetime
-import os
-import xml.etree.ElementTree as ET
-from urllib.parse import quote
 import os
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
@@ -33,7 +28,6 @@ app = FastAPI(
 # Configurar CORS para permitir solicitudes desde React
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir todas las orígenes
     allow_origins=["*"],  # Permitir todas las orígenes
     allow_credentials=True,
     allow_methods=["*"],
