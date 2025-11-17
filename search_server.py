@@ -584,10 +584,11 @@ async def search(strategies: SearchStrategies):
         print(f"  - Crossref: {strategies.crossref} (máx {strategies.max_crossref})")
         
         # Ejecutar búsquedas con límites
-        pubmed_articles = search_pubmed(strategies.pubmed, strategies.max_pubmed) if strategies.pubmed else []
-        semantic_articles = search_semantic_scholar(strategies.semanticScholar, strategies.max_semantic) if strategies.semanticScholar else []
-        arxiv_articles = search_arxiv(strategies.arxiv, strategies.max_arxiv) if strategies.arxiv else []
-        crossref_articles = search_crossref(strategies.crossref, strategies.max_crossref) if strategies.crossref else []
+        # Solo buscar si hay estrategia Y límite > 0
+        pubmed_articles = search_pubmed(strategies.pubmed, strategies.max_pubmed) if (strategies.pubmed and strategies.max_pubmed > 0) else []
+        semantic_articles = search_semantic_scholar(strategies.semanticScholar, strategies.max_semantic) if (strategies.semanticScholar and strategies.max_semantic > 0) else []
+        arxiv_articles = search_arxiv(strategies.arxiv, strategies.max_arxiv) if (strategies.arxiv and strategies.max_arxiv > 0) else []
+        crossref_articles = search_crossref(strategies.crossref, strategies.max_crossref) if (strategies.crossref and strategies.max_crossref > 0) else []
         
         # Unificar resultados
         all_articles = pubmed_articles + semantic_articles + arxiv_articles + crossref_articles

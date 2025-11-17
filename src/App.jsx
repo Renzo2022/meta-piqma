@@ -674,20 +674,6 @@ const ArticleCard = ({ article }) => {
         >
           {showAbstract ? 'Ocultar Abstracto' : 'Ver Abstracto'}
         </motion.button>
-        
-        {article.url && (
-          <motion.a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 text-sm text-monokai-cyan hover:text-monokai-green transition-colors font-semibold"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Ver artículo
-          </motion.a>
-        )}
       </div>
 
       <AnimatePresence>
@@ -1029,9 +1015,16 @@ const ModuleSearch = () => {
 
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
+      // Solo enviar estrategias que tienen contenido
       const searchData = {
-        ...state.searchStrategies,
-        ...searchLimits,
+        pubmed: state.searchStrategies.pubmed || '',
+        semanticScholar: state.searchStrategies.semanticScholar || '',
+        arxiv: state.searchStrategies.arxiv || '',
+        crossref: state.searchStrategies.crossref || '',
+        max_pubmed: state.searchStrategies.pubmed ? searchLimits.max_pubmed : 0,
+        max_semantic: state.searchStrategies.semanticScholar ? searchLimits.max_semantic : 0,
+        max_arxiv: state.searchStrategies.arxiv ? searchLimits.max_arxiv : 0,
+        max_crossref: state.searchStrategies.crossref ? searchLimits.max_crossref : 0,
       };
       const results = await apiClient.runRealSearch(searchData);
       // Guardar artículos en Supabase
@@ -1056,13 +1049,16 @@ const ModuleSearch = () => {
 
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      // Convertir búsqueda rápida a estrategias
+      // Búsqueda rápida en todas las bases de datos
       const searchData = {
         pubmed: quickSearchTerm,
         semanticScholar: quickSearchTerm,
         arxiv: quickSearchTerm,
         crossref: quickSearchTerm,
-        ...searchLimits,
+        max_pubmed: searchLimits.max_pubmed,
+        max_semantic: searchLimits.max_semantic,
+        max_arxiv: searchLimits.max_arxiv,
+        max_crossref: searchLimits.max_crossref,
       };
       const results = await apiClient.runRealSearch(searchData);
       // Guardar artículos en Supabase
