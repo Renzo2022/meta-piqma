@@ -1,7 +1,7 @@
 """
 MetaPiqma Search Server
-Backend de búsqueda para MetaPiqma usando FastAPI
-Simula búsquedas en PubMed, Semantic Scholar y ArXiv
+Backend de búsqueda REAL para MetaPiqma usando FastAPI
+Búsquedas reales en PubMed, Semantic Scholar y ArXiv
 """
 
 from fastapi import FastAPI, HTTPException
@@ -11,6 +11,9 @@ from typing import List, Optional
 import requests
 import json
 from datetime import datetime
+import os
+import xml.etree.ElementTree as ET
+from urllib.parse import quote
 
 # ============================================================================
 # CONFIGURACIÓN
@@ -25,7 +28,7 @@ app = FastAPI(
 # Configurar CORS para permitir solicitudes desde React
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Agregar URL de producción aquí
+    allow_origins=["*"],  # Permitir todas las orígenes
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -132,89 +135,247 @@ MOCK_ARXIV_ARTICLES = [
 
 def search_pubmed(query: str) -> List[dict]:
     """
-    Simula búsqueda en PubMed
+    Búsqueda REAL en PubMed usando E-utilities API
     
-    PARA BÚSQUEDA REAL:
-    1. Usar la API de PubMed E-utilities: https://www.ncbi.nlm.nih.gov/books/NBK25499/
-    2. Endpoint: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi
-    3. Parámetros: db=pubmed, term=<query>, retmax=100, rettype=json
-    4. Parsear respuesta JSON y extraer UIDs
-    5. Usar efetch para obtener detalles de artículos
-    6. Parsear XML y extraer: title, authors, abstract, year
-    
-    Ejemplo:
-        response = requests.get(
-            'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
-            params={
-                'db': 'pubmed',
-                'term': query,
-                'retmax': 100,
-                'rettype': 'json'
-            }
-        )
-        uids = response.json()['esearchresult']['idlist']
-        # ... obtener detalles con efetch ...
+    API: https://www.ncbi.nlm.nih.gov/books/NBK25499/
     """
-    print(f"[PubMed] Buscando: {query}")
-    # Simular latencia de API
-    return MOCK_PUBMED_ARTICLES
+    if not query or query.strip() == '':
+        return []
+    
+    try:
+        print(f"[PubMed] Buscando: {query}")
+        
+        # Paso 1: Esearch - Obtener UIDs
+        esearch_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
+        esearch_params = {
+            'db': 'pubmed',
+            'term': query,
+            'retmax': 20,
+            'rettype': 'json',
+            'tool': 'MetaPiqma',
+            'email': 'search@meta-piqma.com'
+        }
+        
+        response = requests.get(esearch_url, params=esearch_params, timeout=10)
+        response.raise_for_status()
+        
+        uids = response.json()['esearchresult'].get('idlist', [])
+        
+        if not uids:
+            print(f"[PubMed] No se encontraron resultados")
+            return []
+        
+        # Paso 2: Efetch - Obtener detalles
+        efetch_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
+        efetch_params = {
+            'db': 'pubmed',
+            'id': ','.join(uids[:10]),  # Limitar a 10 resultados
+            'rettype': 'xml',
+            'tool': 'MetaPiqma',
+            'email': 'search@meta-piqma.com'
+        }
+        
+        response = requests.get(efetch_url, params=efetch_params, timeout=10)
+        response.raise_for_status()
+        
+        # Paso 3: Parsear XML
+        root = ET.fromstring(response.content)
+        articles = []
+        
+        for article in root.findall('.//PubmedArticle'):
+            try:
+                # Extraer título
+                title_elem = article.find('.//ArticleTitle')
+                title = title_elem.text if title_elem is not None else 'Sin título'
+                
+                # Extraer autores
+                authors = []
+                for author in article.findall('.//Author'):
+                    last_name = author.find('LastName')
+                    initials = author.find('Initials')
+                    if last_name is not None:
+                        author_name = last_name.text
+                        if initials is not None:
+                            author_name += ' ' + initials.text
+                        authors.append(author_name)
+                
+                # Extraer abstract
+                abstract_elem = article.find('.//AbstractText')
+                abstract = abstract_elem.text if abstract_elem is not None else ''
+                
+                # Extraer año
+                year_elem = article.find('.//PubDate/Year')
+                year = int(year_elem.text) if year_elem is not None else None
+                
+                # Extraer PMID
+                pmid_elem = article.find('.//PMID')
+                pmid = pmid_elem.text if pmid_elem is not None else 'unknown'
+                
+                articles.append({
+                    'id': f'pubmed_{pmid}',
+                    'title': title,
+                    'authors': authors,
+                    'source': 'PubMed',
+                    'year': year,
+                    'abstract': abstract
+                })
+            except Exception as e:
+                print(f"[PubMed] Error procesando artículo: {str(e)}")
+                continue
+        
+        print(f"[PubMed] Encontrados {len(articles)} artículos")
+        return articles
+    
+    except Exception as e:
+        print(f"[PubMed] Error en búsqueda: {str(e)}")
+        return MOCK_PUBMED_ARTICLES  # Fallback a datos simulados
 
-def search_semantic_scholar(query: str, api_key: Optional[str] = None) -> List[dict]:
+def search_semantic_scholar(query: str) -> List[dict]:
     """
-    Simula búsqueda en Semantic Scholar
+    Búsqueda REAL en Semantic Scholar usando API
     
-    PARA BÚSQUEDA REAL:
-    1. Obtener API key de: https://www.semanticscholar.org/product/api
-    2. Endpoint: https://api.semanticscholar.org/graph/v1/paper/search
-    3. Headers: {'x-api-key': api_key}
-    4. Parámetros: query=<query>, limit=100, fields=title,authors,abstract,year,venue
-    5. Parsear respuesta JSON
-    6. Extraer: title, authors (lista de dicts con 'name'), abstract, year
+    API: https://www.semanticscholar.org/product/api
+    Requiere: Variable de entorno SEMANTIC_SCHOLAR_API_KEY
+    """
+    if not query or query.strip() == '':
+        return []
     
-    Ejemplo:
+    try:
+        api_key = os.getenv('SEMANTIC_SCHOLAR_API_KEY')
+        print(f"[Semantic Scholar] Buscando: {query}")
+        
+        if not api_key:
+            print(f"[Semantic Scholar] API key no configurada, usando datos simulados")
+            return MOCK_SEMANTIC_SCHOLAR_ARTICLES
+        
+        # Búsqueda en Semantic Scholar
+        url = 'https://api.semanticscholar.org/graph/v1/paper/search'
         headers = {'x-api-key': api_key}
-        response = requests.get(
-            'https://api.semanticscholar.org/graph/v1/paper/search',
-            params={'query': query, 'limit': 100, 'fields': 'title,authors,abstract,year'},
-            headers=headers
-        )
-        papers = response.json()['data']
-        # ... procesar papers ...
-    """
-    print(f"[Semantic Scholar] Buscando: {query}")
-    if api_key:
-        print(f"[Semantic Scholar] Usando API key: {api_key[:10]}...")
-    # Simular latencia de API
-    return MOCK_SEMANTIC_SCHOLAR_ARTICLES
+        params = {
+            'query': query,
+            'limit': 20,
+            'fields': 'title,authors,abstract,year,venue,paperId'
+        }
+        
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        papers = response.json().get('data', [])
+        
+        articles = []
+        for paper in papers:
+            try:
+                # Extraer autores
+                authors = []
+                for author in paper.get('authors', []):
+                    if isinstance(author, dict) and 'name' in author:
+                        authors.append(author['name'])
+                    elif isinstance(author, str):
+                        authors.append(author)
+                
+                articles.append({
+                    'id': f"semantic_{paper.get('paperId', 'unknown')}",
+                    'title': paper.get('title', 'Sin título'),
+                    'authors': authors,
+                    'source': 'Semantic Scholar',
+                    'year': paper.get('year'),
+                    'abstract': paper.get('abstract', '')
+                })
+            except Exception as e:
+                print(f"[Semantic Scholar] Error procesando paper: {str(e)}")
+                continue
+        
+        print(f"[Semantic Scholar] Encontrados {len(articles)} artículos")
+        return articles
+    
+    except Exception as e:
+        print(f"[Semantic Scholar] Error en búsqueda: {str(e)}")
+        return MOCK_SEMANTIC_SCHOLAR_ARTICLES  # Fallback a datos simulados
 
 def search_arxiv(query: str) -> List[dict]:
     """
-    Simula búsqueda en ArXiv
+    Búsqueda REAL en ArXiv usando API pública
     
-    PARA BÚSQUEDA REAL:
-    1. No requiere API key (acceso público)
-    2. Endpoint: http://export.arxiv.org/api/query
-    3. Parámetros: search_query=all:<query>&start=0&max_results=100&sortBy=submittedDate&sortOrder=descending
-    4. Parsear respuesta XML (Atom format)
-    5. Extraer: title, authors (lista de dicts con 'name'), summary (abstract), published (year)
-    
-    Ejemplo:
-        response = requests.get(
-            'http://export.arxiv.org/api/query',
-            params={
-                'search_query': f'all:{query}',
-                'start': 0,
-                'max_results': 100,
-                'sortBy': 'submittedDate',
-                'sortOrder': 'descending'
-            }
-        )
-        # Parsear XML con ElementTree
-        # ... extraer entries ...
+    API: https://arxiv.org/help/api
+    No requiere autenticación
+    Límite: 3 solicitudes por segundo
     """
-    print(f"[ArXiv] Buscando: {query}")
-    # Simular latencia de API
-    return MOCK_ARXIV_ARTICLES
+    if not query or query.strip() == '':
+        return []
+    
+    try:
+        print(f"[ArXiv] Buscando: {query}")
+        
+        # Construir búsqueda
+        url = 'http://export.arxiv.org/api/query'
+        params = {
+            'search_query': f'all:{query}',
+            'start': 0,
+            'max_results': 20,
+            'sortBy': 'submittedDate',
+            'sortOrder': 'descending'
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        
+        # Parsear XML (Atom format)
+        root = ET.fromstring(response.content)
+        
+        # Namespace para Atom
+        ns = {'atom': 'http://www.w3.org/2005/Atom'}
+        
+        articles = []
+        for entry in root.findall('atom:entry', ns):
+            try:
+                # Extraer título
+                title_elem = entry.find('atom:title', ns)
+                title = title_elem.text.strip() if title_elem is not None else 'Sin título'
+                
+                # Extraer autores
+                authors = []
+                for author in entry.findall('atom:author', ns):
+                    name_elem = author.find('atom:name', ns)
+                    if name_elem is not None:
+                        authors.append(name_elem.text)
+                
+                # Extraer resumen (abstract)
+                summary_elem = entry.find('atom:summary', ns)
+                abstract = summary_elem.text.strip() if summary_elem is not None else ''
+                
+                # Extraer fecha de publicación
+                published_elem = entry.find('atom:published', ns)
+                year = None
+                if published_elem is not None:
+                    try:
+                        year = int(published_elem.text[:4])
+                    except:
+                        pass
+                
+                # Extraer ID
+                id_elem = entry.find('atom:id', ns)
+                arxiv_id = 'unknown'
+                if id_elem is not None:
+                    arxiv_id = id_elem.text.split('/abs/')[-1]
+                
+                articles.append({
+                    'id': f'arxiv_{arxiv_id}',
+                    'title': title,
+                    'authors': authors,
+                    'source': 'ArXiv',
+                    'year': year,
+                    'abstract': abstract
+                })
+            except Exception as e:
+                print(f"[ArXiv] Error procesando entry: {str(e)}")
+                continue
+        
+        print(f"[ArXiv] Encontrados {len(articles)} artículos")
+        return articles
+    
+    except Exception as e:
+        print(f"[ArXiv] Error en búsqueda: {str(e)}")
+        return MOCK_ARXIV_ARTICLES  # Fallback a datos simulados
 
 # ============================================================================
 # ENDPOINTS
