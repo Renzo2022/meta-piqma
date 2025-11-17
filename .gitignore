@@ -27,3 +27,11 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Archivos de entorno
+/venvmeta
+/venv
+
+# Archivos de Python
+__pycache__/
+*.pyc

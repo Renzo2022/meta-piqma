@@ -404,10 +404,48 @@ const apiClient = {
     }
   },
 
-  // Funciones simuladas (mantenidas por ahora)
-  async mockSearchAPI(strategies) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    return mockArticles;
+  // Búsqueda real usando servidor Python
+  async runRealSearch(strategies) {
+    try {
+      // URL del servidor de búsqueda (cambiar a URL de Render.com en producción)
+      const SEARCH_SERVER_URL = import.meta.env.VITE_SEARCH_SERVER_URL || 'http://localhost:8000';
+      
+      console.log(`[Search] Conectando a: ${SEARCH_SERVER_URL}/api/v1/search`);
+      
+      const response = await fetch(`${SEARCH_SERVER_URL}/api/v1/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(strategies),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Error en búsqueda: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Error en búsqueda');
+      }
+      
+      console.log(`[Search] Resultados: ${data.total_count} artículos encontrados`);
+      
+      // Mapear respuesta del servidor al formato esperado por React
+      return data.articles.map((article) => ({
+        id: article.id,
+        title: article.title,
+        authors: article.authors,
+        source: article.source,
+        year: article.year,
+        abstract: article.abstract,
+      }));
+    } catch (error) {
+      console.error('[Search] Error:', error);
+      throw error;
+    }
   },
 
   async mockMetaAnalysisAPI(data) {
@@ -831,10 +869,15 @@ const ModuleSearch = () => {
   const handleSearchPICO = async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const results = await apiClient.mockSearchAPI(state.searchStrategies);
+      const results = await apiClient.runRealSearch(state.searchStrategies);
+      // Guardar artículos en Supabase
+      if (state.currentProjectId && results.length > 0) {
+        await apiClient.saveArticles(state.currentProjectId, results);
+      }
       dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: results });
     } catch (error) {
       console.error('Error en búsqueda:', error);
+      alert('Error en búsqueda: ' + error.message);
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
@@ -843,10 +886,21 @@ const ModuleSearch = () => {
   const handleQuickSearch = async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const results = await apiClient.mockSearchAPI({ quickSearch: quickSearchTerm });
+      // Convertir búsqueda rápida a estrategias
+      const strategies = {
+        pubmed: quickSearchTerm,
+        semanticScholar: quickSearchTerm,
+        arxivCrossref: quickSearchTerm,
+      };
+      const results = await apiClient.runRealSearch(strategies);
+      // Guardar artículos en Supabase
+      if (state.currentProjectId && results.length > 0) {
+        await apiClient.saveArticles(state.currentProjectId, results);
+      }
       dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: results });
     } catch (error) {
       console.error('Error en búsqueda rápida:', error);
+      alert('Error en búsqueda: ' + error.message);
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
