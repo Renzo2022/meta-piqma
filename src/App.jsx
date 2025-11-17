@@ -43,6 +43,7 @@ const initialState = {
   sidebarOpen: true,
   currentProjectId: null,
   isLoading: true,
+  articlesLoaded: false,
   pico: {
     population: '',
     intervention: '',
@@ -190,6 +191,15 @@ const projectReducer = (state, action) => {
           arxivCrossref: projectData.strategy_arxiv || '',
         },
       };
+    case 'SET_PROJECT_ARTICLES':
+      if (Array.isArray(action.payload)) {
+        return {
+          ...state,
+          projectArticles: action.payload,
+          articlesLoaded: true,
+        };
+      }
+      return state;
     default:
       return state;
   }
@@ -274,20 +284,20 @@ const apiClient = {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .limit(1);
+        .limit(1)
+        .single();
       
       if (error) {
+        // Si no hay proyectos, retorna null sin error
+        if (error.code === 'PGRST116') {
+          console.log('No hay proyectos en la base de datos');
+          return null;
+        }
         console.error('Error cargando proyecto:', error);
         return null;
       }
       
-      // Si no hay proyectos, retorna null
-      if (!data || data.length === 0) {
-        console.log('No hay proyectos en la base de datos');
-        return null;
-      }
-      
-      return data[0];
+      return data;
     } catch (err) {
       console.error('Error en loadProject:', err);
       return null;
@@ -312,6 +322,85 @@ const apiClient = {
       if (error) console.error('Error guardando proyecto:', error);
     } catch (err) {
       console.error('Error en saveProject:', err);
+    }
+  },
+
+  // Carga todos los artículos de un proyecto
+  loadArticles: async (projectId) => {
+    try {
+      const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('project_id', projectId);
+      
+      if (error) {
+        console.error('Error cargando artículos:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (err) {
+      console.error('Error en loadArticles:', err);
+      return [];
+    }
+  },
+
+  // Guarda (inserta) múltiples artículos en Supabase
+  saveArticles: async (projectId, articles) => {
+    try {
+      // Mapear artículos para agregar project_id
+      const articlesToInsert = articles.map((article) => ({
+        project_id: projectId,
+        title: article.title,
+        authors: article.authors?.join(', ') || '',
+        source: article.source,
+        year: article.year,
+        abstract: article.abstract,
+        status: 'unscreened',
+        exclusion_reason: null,
+      }));
+
+      const { error } = await supabase
+        .from('articles')
+        .insert(articlesToInsert);
+      
+      if (error) {
+        console.error('Error guardando artículos:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error en saveArticles:', err);
+      return false;
+    }
+  },
+
+  // Actualiza el estado de un artículo específico
+  updateArticleStatus: async (articleId, newStatus, reason = null) => {
+    try {
+      const updateData = {
+        status: newStatus,
+      };
+      
+      if (reason) {
+        updateData.exclusion_reason = reason;
+      }
+
+      const { error } = await supabase
+        .from('articles')
+        .update(updateData)
+        .eq('id', articleId);
+      
+      if (error) {
+        console.error('Error actualizando artículo:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error en updateArticleStatus:', err);
+      return false;
     }
   },
 
@@ -1830,12 +1919,20 @@ const MainContent = () => {
 const AppContent = () => {
   const { state, dispatch } = useProject();
 
-  // useEffect 1: Cargar proyecto al iniciar
+  // useEffect 1: Cargar proyecto y artículos al iniciar
   useEffect(() => {
     const loadProjectData = async () => {
       const projectData = await apiClient.loadProject();
       if (projectData) {
         dispatch({ type: 'SET_PROJECT_DATA', payload: projectData });
+        
+        // Cargar artículos del proyecto
+        const articles = await apiClient.loadArticles(projectData.id);
+        if (articles && articles.length > 0) {
+          dispatch({ type: 'SET_PROJECT_ARTICLES', payload: articles });
+        } else {
+          dispatch({ type: 'SET_PROJECT_ARTICLES', payload: [] });
+        }
       }
       dispatch({ type: 'SET_LOADING', payload: false });
     };
@@ -1845,17 +1942,18 @@ const AppContent = () => {
 
   // useEffect 2: Auto-guardado con debounce
   useEffect(() => {
-    if (!state.currentProjectId) return;
+    // No guardar si no hay proyecto o si está cargando
+    if (!state.currentProjectId || state.isLoading) return;
 
     const debounceTimer = setTimeout(() => {
       apiClient.saveProject(state.currentProjectId, state.pico, state.searchStrategies);
     }, 500);
 
     return () => clearTimeout(debounceTimer);
-  }, [state.pico, state.searchStrategies, state.currentProjectId]);
+  }, [state.pico, state.searchStrategies, state.currentProjectId, state.isLoading]);
 
-  // Mostrar spinner mientras carga
-  if (state.isLoading) {
+  // Mostrar spinner mientras carga proyecto o artículos
+  if (state.isLoading || !state.articlesLoaded) {
     return <LoadingSpinner fullScreen={true} />;
   }
 
