@@ -44,10 +44,11 @@ class SearchStrategies(BaseModel):
     semanticScholar: str = ''
     arxiv: str = ''
     crossref: str = ''
-    max_pubmed: int = 5
-    max_semantic: int = 5
-    max_arxiv: int = 5
-    max_crossref: int = 5
+    # Bases de datos seleccionadas (botones)
+    use_pubmed: bool = False
+    use_semantic: bool = False
+    use_arxiv: bool = False
+    use_crossref: bool = False
     
     class Config:
         extra = 'ignore'  # Ignorar campos adicionales
@@ -101,128 +102,46 @@ class MetaAnalysisResponse(BaseModel):
     message: str
 
 # ============================================================================
-# DATOS SIMULADOS
+# DATOS SIMULADOS - REMOVIDOS
+# Todas las búsquedas son REALES usando APIs de bases de datos académicas
 # ============================================================================
-
-MOCK_PUBMED_ARTICLES = [
-    {
-        "id": "pubmed_1",
-        "title": "Metformin and Glycemic Control in Type 2 Diabetes: A Systematic Review",
-        "authors": ["Smith A", "Johnson B", "Williams C"],
-        "source": "PubMed",
-        "year": 2024,
-        "abstract": "This systematic review examines the efficacy of metformin in controlling blood glucose levels in patients with type 2 diabetes. We analyzed 45 randomized controlled trials involving 12,000 patients. Results show significant HbA1c reduction of 1.5-2.0% compared to placebo.",
-        "url": "https://pubmed.ncbi.nlm.nih.gov/38123456"
-    },
-    {
-        "id": "pubmed_2",
-        "title": "Cardiovascular Safety of Metformin in Diabetic Patients",
-        "authors": ["Brown D", "Davis E"],
-        "source": "PubMed",
-        "year": 2023,
-        "abstract": "Long-term cardiovascular outcomes in 8,000 type 2 diabetic patients treated with metformin. No significant increase in adverse events. Mortality rates comparable to control group.",
-        "url": "https://pubmed.ncbi.nlm.nih.gov/37654321"
-    },
-    {
-        "id": "pubmed_3",
-        "title": "Lactic Acidosis Risk with Metformin: A Meta-Analysis",
-        "authors": ["Garcia F", "Martinez G", "Lopez H"],
-        "source": "PubMed",
-        "year": 2023,
-        "abstract": "Meta-analysis of 120 studies examining lactic acidosis incidence in metformin users. Incidence rate: 0.03 cases per 1000 patient-years in patients with normal renal function.",
-        "url": "https://pubmed.ncbi.nlm.nih.gov/37987654"
-    }
-]
-
-MOCK_SEMANTIC_SCHOLAR_ARTICLES = [
-    {
-        "id": "semantic_1",
-        "title": "Metformin Mechanism of Action in Type 2 Diabetes",
-        "authors": ["Chen X", "Wang Y"],
-        "source": "Semantic Scholar",
-        "year": 2024,
-        "abstract": "Comprehensive review of metformin's molecular mechanisms including AMPK activation, mitochondrial function, and glucose metabolism pathways.",
-        "url": "https://www.semanticscholar.org/paper/1a2b3c4d5e6f"
-    },
-    {
-        "id": "semantic_2",
-        "title": "Efficacy Comparison: Metformin vs Other Antidiabetic Drugs",
-        "authors": ["Patel R", "Kumar S", "Singh T"],
-        "source": "Semantic Scholar",
-        "year": 2023,
-        "abstract": "Comparative analysis of metformin, sulfonylureas, and insulin in type 2 diabetes management. Metformin shows superior glycemic control with fewer hypoglycemic episodes.",
-        "url": "https://www.semanticscholar.org/paper/6f7e8d9c0b1a"
-    }
-]
-
-MOCK_ARXIV_ARTICLES = [
-    {
-        "id": "arxiv_1",
-        "title": "Machine Learning Prediction of Metformin Response in Type 2 Diabetes",
-        "authors": ["Zhang L", "Liu M", "Wu N"],
-        "source": "ArXiv",
-        "year": 2024,
-        "abstract": "Novel machine learning model predicts individual patient response to metformin therapy based on genetic and clinical parameters. Accuracy: 87%.",
-        "url": "https://arxiv.org/abs/2401.12345"
-    },
-    {
-        "id": "arxiv_2",
-        "title": "Computational Analysis of Metformin-Protein Interactions",
-        "authors": ["Park J", "Kim K"],
-        "source": "ArXiv",
-        "year": 2023,
-        "abstract": "Molecular dynamics simulations of metformin interactions with cellular proteins. Identifies key binding sites and mechanisms of action.",
-        "url": "https://arxiv.org/abs/2312.54321"
-    }
-]
-
-MOCK_CROSSREF_ARTICLES = [
-    {
-        "id": "crossref_1",
-        "title": "Metformin and Cardiovascular Risk in Type 2 Diabetes: A Systematic Review",
-        "authors": ["Anderson R", "Taylor S", "White M"],
-        "source": "Crossref",
-        "year": 2024,
-        "abstract": "Comprehensive systematic review examining the cardiovascular safety profile of metformin in type 2 diabetic patients. Analysis of 35 randomized controlled trials.",
-        "url": "https://doi.org/10.1016/j.diabet.2024.101234"
-    },
-    {
-        "id": "crossref_2",
-        "title": "Long-term Efficacy of Metformin Monotherapy in Type 2 Diabetes",
-        "authors": ["Johnson K", "Lee H", "Chen X"],
-        "source": "Crossref",
-        "year": 2023,
-        "abstract": "10-year follow-up study of metformin monotherapy efficacy in 5,000 type 2 diabetic patients. Sustained HbA1c reduction and weight loss observed.",
-        "url": "https://doi.org/10.1016/j.diabetes.2023.098765"
-    }
-]
 
 # ============================================================================
 # FUNCIONES DE BÚSQUEDA SIMULADAS
 # ============================================================================
 
-def search_pubmed(query: str, max_results: int = 50) -> List[dict]:
+def search_pubmed(query: str) -> List[dict]:
     """
     Búsqueda REAL en PubMed usando E-utilities API
     
     API: https://www.ncbi.nlm.nih.gov/books/NBK25499/
+    Con API key: hasta 10 requests/segundo
+    Sin API key: hasta 3 requests/segundo
     """
     if not query or query.strip() == '':
         return []
     
     try:
-        print(f"[PubMed] Buscando: {query} (máx {max_results} resultados)")
+        api_key = os.getenv('PUBMED_API_KEY')
+        print(f"[PubMed] Buscando: {query}")
         
         # Paso 1: Esearch - Obtener UIDs
         esearch_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
         esearch_params = {
             'db': 'pubmed',
             'term': query,
-            'retmax': min(max_results, 100),  # Limitar a 100 máximo
+            'retmax': 100,  # Máximo que PubMed permite por consulta
             'rettype': 'json',
             'tool': 'MetaPiqma',
             'email': 'search@meta-piqma.com'
         }
+        
+        # Agregar API key si está disponible
+        if api_key:
+            esearch_params['api_key'] = api_key
+            print(f"[PubMed] Usando API key (10 req/s)")
+        else:
+            print(f"[PubMed] Sin API key (3 req/s)")
         
         response = requests.get(esearch_url, params=esearch_params, timeout=10)
         response.raise_for_status()
@@ -237,7 +156,7 @@ def search_pubmed(query: str, max_results: int = 50) -> List[dict]:
         efetch_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
         efetch_params = {
             'db': 'pubmed',
-            'id': ','.join(uids[:max_results]),  # Limitar a max_results
+            'id': ','.join(uids),  # Obtener todos los UIDs encontrados
             'rettype': 'xml',
             'tool': 'MetaPiqma',
             'email': 'search@meta-piqma.com'
@@ -297,9 +216,9 @@ def search_pubmed(query: str, max_results: int = 50) -> List[dict]:
     
     except Exception as e:
         print(f"[PubMed] Error en búsqueda: {str(e)}")
-        return MOCK_PUBMED_ARTICLES  # Fallback a datos simulados
+        return []  # No hay fallback, solo resultados reales
 
-def search_semantic_scholar(query: str, max_results: int = 50) -> List[dict]:
+def search_semantic_scholar(query: str) -> List[dict]:
     """
     Búsqueda REAL en Semantic Scholar usando API
     
@@ -311,18 +230,18 @@ def search_semantic_scholar(query: str, max_results: int = 50) -> List[dict]:
     
     try:
         api_key = os.getenv('SEMANTIC_SCHOLAR_API_KEY')
-        print(f"[Semantic Scholar] Buscando: {query} (máx {max_results} resultados)")
+        print(f"[Semantic Scholar] Buscando: {query}")
         
         if not api_key:
-            print(f"[Semantic Scholar] API key no configurada, usando datos simulados")
-            return MOCK_SEMANTIC_SCHOLAR_ARTICLES
+            print(f"[Semantic Scholar] API key no configurada")
+            return []
         
         # Búsqueda en Semantic Scholar
         url = 'https://api.semanticscholar.org/graph/v1/paper/search'
         headers = {'x-api-key': api_key}
         params = {
             'query': query,
-            'limit': min(max_results, 100),
+            'limit': 100,  # Máximo que Semantic Scholar permite
             'fields': 'title,authors,abstract,year,venue,paperId'
         }
         
@@ -361,9 +280,9 @@ def search_semantic_scholar(query: str, max_results: int = 50) -> List[dict]:
     
     except Exception as e:
         print(f"[Semantic Scholar] Error en búsqueda: {str(e)}")
-        return MOCK_SEMANTIC_SCHOLAR_ARTICLES  # Fallback a datos simulados
+        return []  # No hay fallback, solo resultados reales
 
-def search_arxiv(query: str, max_results: int = 50) -> List[dict]:
+def search_arxiv(query: str) -> List[dict]:
     """
     Búsqueda REAL en ArXiv usando API pública
     
@@ -375,14 +294,14 @@ def search_arxiv(query: str, max_results: int = 50) -> List[dict]:
         return []
     
     try:
-        print(f"[ArXiv] Buscando: {query} (máx {max_results} resultados)")
+        print(f"[ArXiv] Buscando: {query}")
         
         # Construir búsqueda
         url = 'http://export.arxiv.org/api/query'
         params = {
             'search_query': f'all:{query}',
             'start': 0,
-            'max_results': min(max_results, 100),
+            'max_results': 100,  # Máximo razonable por consulta
             'sortBy': 'submittedDate',
             'sortOrder': 'descending'
         }
@@ -447,9 +366,9 @@ def search_arxiv(query: str, max_results: int = 50) -> List[dict]:
     
     except Exception as e:
         print(f"[ArXiv] Error en búsqueda: {str(e)}")
-        return MOCK_ARXIV_ARTICLES  # Fallback a datos simulados
+        return []  # No hay fallback, solo resultados reales
 
-def search_crossref(query: str, max_results: int = 50) -> List[dict]:
+def search_crossref(query: str) -> List[dict]:
     """
     Búsqueda REAL en Crossref usando API pública
     
@@ -460,13 +379,13 @@ def search_crossref(query: str, max_results: int = 50) -> List[dict]:
         return []
     
     try:
-        print(f"[Crossref] Buscando: {query} (máx {max_results} resultados)")
+        print(f"[Crossref] Buscando: {query}")
         
         # Búsqueda en Crossref
         url = 'https://api.crossref.org/works'
         params = {
             'query': query,
-            'rows': min(max_results, 100),
+            'rows': 100,  # Máximo que Crossref permite por consulta
             'sort': 'published',
             'order': 'desc'
         }
@@ -532,7 +451,7 @@ def search_crossref(query: str, max_results: int = 50) -> List[dict]:
     
     except Exception as e:
         print(f"[Crossref] Error en búsqueda: {str(e)}")
-        return MOCK_CROSSREF_ARTICLES  # Fallback a datos simulados
+        return []  # No hay fallback, solo resultados reales
 
 # ============================================================================
 # ENDPOINTS
@@ -570,25 +489,24 @@ async def search(strategies: SearchStrategies):
     }
     """
     try:
-        # Validar que al menos una estrategia no esté vacía
-        if not any([strategies.pubmed, strategies.semanticScholar, strategies.arxiv, strategies.crossref]):
+        # Validar que al menos una base de datos esté seleccionada
+        if not any([strategies.use_pubmed, strategies.use_semantic, strategies.use_arxiv, strategies.use_crossref]):
             raise HTTPException(
                 status_code=400,
-                detail="Al menos una estrategia de búsqueda debe ser proporcionada"
+                detail="Por favor selecciona al menos una base de datos"
             )
         
-        print(f"\n[SEARCH] Iniciando búsqueda con estrategias:")
-        print(f"  - PubMed: {strategies.pubmed} (máx {strategies.max_pubmed})")
-        print(f"  - Semantic Scholar: {strategies.semanticScholar} (máx {strategies.max_semantic})")
-        print(f"  - ArXiv: {strategies.arxiv} (máx {strategies.max_arxiv})")
-        print(f"  - Crossref: {strategies.crossref} (máx {strategies.max_crossref})")
+        print(f"\n[SEARCH] Iniciando búsqueda:")
+        print(f"  - PubMed: {'✓' if strategies.use_pubmed else '✗'} - {strategies.pubmed}")
+        print(f"  - Semantic Scholar: {'✓' if strategies.use_semantic else '✗'} - {strategies.semanticScholar}")
+        print(f"  - ArXiv: {'✓' if strategies.use_arxiv else '✗'} - {strategies.arxiv}")
+        print(f"  - Crossref: {'✓' if strategies.use_crossref else '✗'} - {strategies.crossref}")
         
-        # Ejecutar búsquedas con límites
-        # Solo buscar si hay estrategia Y límite > 0
-        pubmed_articles = search_pubmed(strategies.pubmed, strategies.max_pubmed) if (strategies.pubmed and strategies.max_pubmed > 0) else []
-        semantic_articles = search_semantic_scholar(strategies.semanticScholar, strategies.max_semantic) if (strategies.semanticScholar and strategies.max_semantic > 0) else []
-        arxiv_articles = search_arxiv(strategies.arxiv, strategies.max_arxiv) if (strategies.arxiv and strategies.max_arxiv > 0) else []
-        crossref_articles = search_crossref(strategies.crossref, strategies.max_crossref) if (strategies.crossref and strategies.max_crossref > 0) else []
+        # Ejecutar búsquedas SOLO en bases de datos seleccionadas
+        pubmed_articles = search_pubmed(strategies.pubmed) if (strategies.use_pubmed and strategies.pubmed) else []
+        semantic_articles = search_semantic_scholar(strategies.semanticScholar) if (strategies.use_semantic and strategies.semanticScholar) else []
+        arxiv_articles = search_arxiv(strategies.arxiv) if (strategies.use_arxiv and strategies.arxiv) else []
+        crossref_articles = search_crossref(strategies.crossref) if (strategies.use_crossref and strategies.crossref) else []
         
         # Unificar resultados
         all_articles = pubmed_articles + semantic_articles + arxiv_articles + crossref_articles
