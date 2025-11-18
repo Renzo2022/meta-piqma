@@ -443,10 +443,10 @@ const apiClient = {
         semanticScholar: strategies.semanticScholar || '',
         arxiv: strategies.arxiv || '',
         crossref: strategies.crossref || '',
-        max_pubmed: strategies.max_pubmed || 5,
-        max_semantic: strategies.max_semantic || 5,
-        max_arxiv: strategies.max_arxiv || 5,
-        max_crossref: strategies.max_crossref || 5,
+        use_pubmed: strategies.use_pubmed !== undefined ? strategies.use_pubmed : true,
+        use_semantic: strategies.use_semantic !== undefined ? strategies.use_semantic : true,
+        use_arxiv: strategies.use_arxiv !== undefined ? strategies.use_arxiv : true,
+        use_crossref: strategies.use_crossref !== undefined ? strategies.use_crossref : true,
       };
       
       console.log(`[Search] Conectando a: ${SEARCH_SERVER_URL}/api/v1/search`);
