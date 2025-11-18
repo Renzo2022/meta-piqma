@@ -57,12 +57,12 @@ const initialState = {
     arxiv: '',
     crossref: '',
   },
-  // Bases de datos seleccionadas
+  // Bases de datos seleccionadas (todas por defecto)
   selectedDatabases: {
-    pubmed: false,
-    semanticScholar: false,
-    arxiv: false,
-    crossref: false,
+    pubmed: true,
+    semanticScholar: true,
+    arxiv: true,
+    crossref: true,
   },
   projectArticles: [],
   exclusionReasons: [
