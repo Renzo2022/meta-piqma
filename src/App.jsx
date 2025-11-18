@@ -1456,30 +1456,30 @@ const ModuleSearch = () => {
                 <div className="bg-monokai-dark p-3 rounded-lg">
                   <p className="text-xs text-monokai-subtle">PubMed</p>
                   <p className="text-lg font-bold text-monokai-green">
-                    {state.projectArticles.filter((a) => a.source === 'PubMed').length}
+                    {state.projectArticles.filter((a) => a.source === 'PubMed' && a.status !== 'excluded_title').length}
                   </p>
                 </div>
                 <div className="bg-monokai-dark p-3 rounded-lg">
                   <p className="text-xs text-monokai-subtle">Semantic Scholar</p>
                   <p className="text-lg font-bold text-monokai-yellow">
-                    {state.projectArticles.filter((a) => a.source === 'Semantic Scholar').length}
+                    {state.projectArticles.filter((a) => a.source === 'Semantic Scholar' && a.status !== 'excluded_title').length}
                   </p>
                 </div>
                 <div className="bg-monokai-dark p-3 rounded-lg">
                   <p className="text-xs text-monokai-subtle">ArXiv</p>
                   <p className="text-lg font-bold text-monokai-blue">
-                    {state.projectArticles.filter((a) => a.source === 'ArXiv').length}
+                    {state.projectArticles.filter((a) => a.source === 'ArXiv' && a.status !== 'excluded_title').length}
                   </p>
                 </div>
                 <div className="bg-monokai-dark p-3 rounded-lg">
                   <p className="text-xs text-monokai-subtle">Crossref</p>
                   <p className="text-lg font-bold text-monokai-purple">
-                    {state.projectArticles.filter((a) => a.source === 'Crossref').length}
+                    {state.projectArticles.filter((a) => a.source === 'Crossref' && a.status !== 'excluded_title').length}
                   </p>
                 </div>
               </div>
               <p className="text-sm text-monokai-subtle mt-3 pt-3 border-t border-monokai-subtle border-opacity-30">
-                Total: {state.projectArticles.length} artículos
+                Total: {state.projectArticles.filter((a) => a.status !== 'excluded_title').length} artículos
               </p>
             </div>
             <AnimatePresence>
