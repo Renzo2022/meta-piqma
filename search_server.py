@@ -183,30 +183,35 @@ def search_pubmed(query: str) -> List[dict]:
             try:
                 # Extraer título
                 title_elem = article.find('.//ArticleTitle')
-                title = title_elem.text if title_elem is not None else 'Sin título'
+                title = (title_elem.text if title_elem is not None and title_elem.text else None) or 'Sin título'
                 
                 # Extraer autores
                 authors = []
                 for author in article.findall('.//Author'):
                     last_name = author.find('LastName')
                     initials = author.find('Initials')
-                    if last_name is not None:
+                    if last_name is not None and last_name.text:
                         author_name = last_name.text
-                        if initials is not None:
+                        if initials is not None and initials.text:
                             author_name += ' ' + initials.text
                         authors.append(author_name)
                 
                 # Extraer abstract
                 abstract_elem = article.find('.//AbstractText')
-                abstract = abstract_elem.text if abstract_elem is not None else ''
+                abstract = (abstract_elem.text if abstract_elem is not None and abstract_elem.text else None) or ''
                 
                 # Extraer año
                 year_elem = article.find('.//PubDate/Year')
-                year = int(year_elem.text) if year_elem is not None else None
+                year = None
+                if year_elem is not None and year_elem.text:
+                    try:
+                        year = int(year_elem.text)
+                    except (ValueError, TypeError):
+                        year = None
                 
                 # Extraer PMID
                 pmid_elem = article.find('.//PMID')
-                pmid = pmid_elem.text if pmid_elem is not None else 'unknown'
+                pmid = (pmid_elem.text if pmid_elem is not None and pmid_elem.text else None) or 'unknown'
                 
                 articles.append({
                     'id': f'pubmed_{pmid}',
@@ -534,6 +539,10 @@ async def search(strategies: SearchStrategies):
         seen_titles = set()
         unique_articles = []
         for article in all_articles:
+            # Validar que el título no sea None
+            if not article.get('title'):
+                print(f"[WARNING] Artículo sin título válido: {article.get('id', 'unknown')}")
+                continue
             title_lower = article['title'].lower()
             if title_lower not in seen_titles:
                 seen_titles.add(title_lower)
