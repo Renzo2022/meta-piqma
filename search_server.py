@@ -131,7 +131,7 @@ def search_pubmed(query: str) -> List[dict]:
             'db': 'pubmed',
             'term': query,
             'retmax': 100,  # Límite razonable
-            'rettype': 'json',
+            'rettype': 'xml',  # Usar XML en lugar de JSON
             'tool': 'MetaPiqma',
             'email': 'search@meta-piqma.com'
         }
@@ -147,10 +147,14 @@ def search_pubmed(query: str) -> List[dict]:
         response.raise_for_status()
         
         try:
-            data = response.json()
-            uids = data.get('esearchresult', {}).get('idlist', [])
+            # Parsear XML de esearch
+            root = ET.fromstring(response.content)
+            uids = []
+            for id_elem in root.findall('.//Id'):
+                if id_elem.text:
+                    uids.append(id_elem.text)
         except Exception as e:
-            print(f"[PubMed] Error parseando respuesta JSON: {str(e)}")
+            print(f"[PubMed] Error parseando respuesta: {str(e)}")
             print(f"[PubMed] Respuesta: {response.text[:200]}")
             return []
         
