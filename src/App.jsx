@@ -150,6 +150,13 @@ const projectReducer = (state, action) => {
             : article
         ),
       };
+    case 'REMOVE_ARTICLES':
+      return {
+        ...state,
+        projectArticles: state.projectArticles.filter(
+          (article) => !action.payload.includes(article.uniqueId)
+        ),
+      };
     case 'MARK_DUPLICATES':
       // Simula búsqueda de duplicados por similitud de títulos
       const duplicateMap = new Map();
@@ -1288,11 +1295,9 @@ const ModuleSearch = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     const articlesWithoutTitle = state.projectArticles.filter((a) => !a.title || a.title.trim() === '');
-                    articlesWithoutTitle.forEach((a) => {
-                      dispatch({
-                        type: 'UPDATE_ARTICLE_STATUS',
-                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin título' },
-                      });
+                    dispatch({
+                      type: 'REMOVE_ARTICLES',
+                      payload: articlesWithoutTitle.map((a) => a.uniqueId),
                     });
                     alert(`${articlesWithoutTitle.length} artículos sin título eliminados`);
                   }}
@@ -1307,11 +1312,9 @@ const ModuleSearch = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     const articlesWithoutAuthors = state.projectArticles.filter((a) => !a.authors || a.authors.length === 0);
-                    articlesWithoutAuthors.forEach((a) => {
-                      dispatch({
-                        type: 'UPDATE_ARTICLE_STATUS',
-                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin autores' },
-                      });
+                    dispatch({
+                      type: 'REMOVE_ARTICLES',
+                      payload: articlesWithoutAuthors.map((a) => a.uniqueId),
                     });
                     alert(`${articlesWithoutAuthors.length} artículos sin autores eliminados`);
                   }}
@@ -1326,11 +1329,9 @@ const ModuleSearch = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     const articlesWithoutYear = state.projectArticles.filter((a) => !a.year);
-                    articlesWithoutYear.forEach((a) => {
-                      dispatch({
-                        type: 'UPDATE_ARTICLE_STATUS',
-                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin año' },
-                      });
+                    dispatch({
+                      type: 'REMOVE_ARTICLES',
+                      payload: articlesWithoutYear.map((a) => a.uniqueId),
                     });
                     alert(`${articlesWithoutYear.length} artículos sin año eliminados`);
                   }}
@@ -1345,11 +1346,9 @@ const ModuleSearch = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     const articlesWithoutURL = state.projectArticles.filter((a) => !a.url || a.url.trim() === '');
-                    articlesWithoutURL.forEach((a) => {
-                      dispatch({
-                        type: 'UPDATE_ARTICLE_STATUS',
-                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin URL' },
-                      });
+                    dispatch({
+                      type: 'REMOVE_ARTICLES',
+                      payload: articlesWithoutURL.map((a) => a.uniqueId),
                     });
                     alert(`${articlesWithoutURL.length} artículos sin URL eliminados`);
                   }}
@@ -1364,11 +1363,9 @@ const ModuleSearch = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     const articlesWithoutAbstract = state.projectArticles.filter((a) => !a.abstract || a.abstract.trim() === '');
-                    articlesWithoutAbstract.forEach((a) => {
-                      dispatch({
-                        type: 'UPDATE_ARTICLE_STATUS',
-                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin abstract' },
-                      });
+                    dispatch({
+                      type: 'REMOVE_ARTICLES',
+                      payload: articlesWithoutAbstract.map((a) => a.uniqueId),
                     });
                     alert(`${articlesWithoutAbstract.length} artículos sin abstract eliminados`);
                   }}
@@ -1479,11 +1476,9 @@ const ModuleSearch = () => {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       const articlesWithoutTitle = state.projectArticles.filter((a) => !a.title || a.title.trim() === '');
-                      articlesWithoutTitle.forEach((a) => {
-                        dispatch({
-                          type: 'UPDATE_ARTICLE_STATUS',
-                          payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin título' },
-                        });
+                      dispatch({
+                        type: 'REMOVE_ARTICLES',
+                        payload: articlesWithoutTitle.map((a) => a.uniqueId),
                       });
                       alert(`${articlesWithoutTitle.length} artículos sin título eliminados`);
                     }}
@@ -1498,11 +1493,9 @@ const ModuleSearch = () => {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       const articlesWithoutAuthors = state.projectArticles.filter((a) => !a.authors || a.authors.length === 0);
-                      articlesWithoutAuthors.forEach((a) => {
-                        dispatch({
-                          type: 'UPDATE_ARTICLE_STATUS',
-                          payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin autores' },
-                        });
+                      dispatch({
+                        type: 'REMOVE_ARTICLES',
+                        payload: articlesWithoutAuthors.map((a) => a.uniqueId),
                       });
                       alert(`${articlesWithoutAuthors.length} artículos sin autores eliminados`);
                     }}
@@ -1517,11 +1510,9 @@ const ModuleSearch = () => {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       const articlesWithoutYear = state.projectArticles.filter((a) => !a.year);
-                      articlesWithoutYear.forEach((a) => {
-                        dispatch({
-                          type: 'UPDATE_ARTICLE_STATUS',
-                          payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin año' },
-                        });
+                      dispatch({
+                        type: 'REMOVE_ARTICLES',
+                        payload: articlesWithoutYear.map((a) => a.uniqueId),
                       });
                       alert(`${articlesWithoutYear.length} artículos sin año eliminados`);
                     }}
@@ -1536,11 +1527,9 @@ const ModuleSearch = () => {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       const articlesWithoutURL = state.projectArticles.filter((a) => !a.url || a.url.trim() === '');
-                      articlesWithoutURL.forEach((a) => {
-                        dispatch({
-                          type: 'UPDATE_ARTICLE_STATUS',
-                          payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin URL' },
-                        });
+                      dispatch({
+                        type: 'REMOVE_ARTICLES',
+                        payload: articlesWithoutURL.map((a) => a.uniqueId),
                       });
                       alert(`${articlesWithoutURL.length} artículos sin URL eliminados`);
                     }}
@@ -1555,11 +1544,9 @@ const ModuleSearch = () => {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       const articlesWithoutAbstract = state.projectArticles.filter((a) => !a.abstract || a.abstract.trim() === '');
-                      articlesWithoutAbstract.forEach((a) => {
-                        dispatch({
-                          type: 'UPDATE_ARTICLE_STATUS',
-                          payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin abstract' },
-                        });
+                      dispatch({
+                        type: 'REMOVE_ARTICLES',
+                        payload: articlesWithoutAbstract.map((a) => a.uniqueId),
                       });
                       alert(`${articlesWithoutAbstract.length} artículos sin abstract eliminados`);
                     }}
