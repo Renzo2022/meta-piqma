@@ -57,6 +57,13 @@ const initialState = {
     arxiv: '',
     crossref: '',
   },
+  // Bases de datos seleccionadas
+  selectedDatabases: {
+    pubmed: false,
+    semanticScholar: false,
+    arxiv: false,
+    crossref: false,
+  },
   projectArticles: [],
   exclusionReasons: [
     'Outcome incorrecto',
@@ -111,6 +118,14 @@ const projectReducer = (state, action) => {
         searchStrategies: {
           ...state.searchStrategies,
           [action.payload.db]: action.payload.value,
+        },
+      };
+    case 'TOGGLE_DATABASE':
+      return {
+        ...state,
+        selectedDatabases: {
+          ...state.selectedDatabases,
+          [action.payload]: !state.selectedDatabases[action.payload],
         },
       };
     case 'SET_LOADING':
@@ -1015,16 +1030,16 @@ const ModuleSearch = () => {
 
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      // Solo enviar estrategias que tienen contenido
+      // Enviar estrategias y bases de datos seleccionadas
       const searchData = {
         pubmed: state.searchStrategies.pubmed || '',
         semanticScholar: state.searchStrategies.semanticScholar || '',
         arxiv: state.searchStrategies.arxiv || '',
         crossref: state.searchStrategies.crossref || '',
-        max_pubmed: state.searchStrategies.pubmed ? searchLimits.max_pubmed : 0,
-        max_semantic: state.searchStrategies.semanticScholar ? searchLimits.max_semantic : 0,
-        max_arxiv: state.searchStrategies.arxiv ? searchLimits.max_arxiv : 0,
-        max_crossref: state.searchStrategies.crossref ? searchLimits.max_crossref : 0,
+        use_pubmed: state.selectedDatabases.pubmed,
+        use_semantic: state.selectedDatabases.semanticScholar,
+        use_arxiv: state.selectedDatabases.arxiv,
+        use_crossref: state.selectedDatabases.crossref,
       };
       const results = await apiClient.runRealSearch(searchData);
       // Guardar artículos en Supabase
