@@ -206,7 +206,7 @@ const projectReducer = (state, action) => {
           pubmed: projectData.strategy_pubmed || '',
           semanticScholar: projectData.strategy_semantic || '',
           arxiv: projectData.strategy_arxiv || '',
-          crossref: projectData.strategy_arxiv || '',
+          crossref: projectData.strategy_crossref || '',
         },
       };
     case 'SET_PROJECT_ARTICLES':
@@ -339,7 +339,8 @@ const apiClient = {
           pico_outcome: picoData.outcome,
           strategy_pubmed: strategyData.pubmed,
           strategy_semantic: strategyData.semanticScholar,
-          strategy_arxiv: strategyData.arxiv || strategyData.crossref,
+          strategy_arxiv: strategyData.arxiv,
+          strategy_crossref: strategyData.crossref,
         })
         .eq('id', projectId);
       if (error) console.error('Error guardando proyecto:', error);
