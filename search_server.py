@@ -130,7 +130,7 @@ def search_pubmed(query: str) -> List[dict]:
         esearch_params = {
             'db': 'pubmed',
             'term': query,
-            'retmax': 10000,  # Sin límite práctico (PubMed devuelve lo que tenga)
+            'retmax': 100,  # Límite razonable
             'rettype': 'json',
             'tool': 'MetaPiqma',
             'email': 'search@meta-piqma.com'
@@ -146,7 +146,13 @@ def search_pubmed(query: str) -> List[dict]:
         response = requests.get(esearch_url, params=esearch_params, timeout=10)
         response.raise_for_status()
         
-        uids = response.json()['esearchresult'].get('idlist', [])
+        try:
+            data = response.json()
+            uids = data.get('esearchresult', {}).get('idlist', [])
+        except Exception as e:
+            print(f"[PubMed] Error parseando respuesta JSON: {str(e)}")
+            print(f"[PubMed] Respuesta: {response.text[:200]}")
+            return []
         
         if not uids:
             print(f"[PubMed] No se encontraron resultados")
@@ -241,14 +247,23 @@ def search_semantic_scholar(query: str) -> List[dict]:
         headers = {'x-api-key': api_key}
         params = {
             'query': query,
-            'limit': 100,  # Sin límite práctico (Semantic Scholar devuelve lo que tenga)
+            'limit': 100,
             'fields': 'title,authors,abstract,year,venue,paperId'
         }
         
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        papers = response.json().get('data', [])
+        try:
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response.raise_for_status()
+            papers = response.json().get('data', [])
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                print(f"[Semantic Scholar] API key inválido o sin permiso (403 Forbidden)")
+            else:
+                print(f"[Semantic Scholar] Error HTTP {e.response.status_code}: {str(e)}")
+            return []
+        except Exception as e:
+            print(f"[Semantic Scholar] Error en solicitud: {str(e)}")
+            return []
         
         articles = []
         for paper in papers:
