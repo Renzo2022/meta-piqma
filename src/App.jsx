@@ -780,27 +780,57 @@ const SearchStrategyGuide = () => (
     className="bg-monokai-dark p-4 rounded-lg border border-monokai-blue border-opacity-30 mb-6"
   >
     <h3 className="text-lg font-semibold text-monokai-blue mb-3">Consejos para Estrategia de Búsqueda</h3>
-    <div className="space-y-3 text-sm text-monokai-text">
+    <div className="space-y-4 text-sm text-monokai-text">
       <p className="text-monokai-yellow">
-        💡 <span className="font-semibold">Tip:</span> Para mejores resultados, traduce los términos a inglés.
+        💡 <span className="font-semibold">Tip:</span> Para mejores resultados, traduce los términos a inglés y usa la sintaxis correcta para cada base de datos.
       </p>
+      
       <div>
-        <p className="text-monokai-green font-semibold mb-1">Ejemplo (PubMed):</p>
-        <p className="text-monokai-subtle text-xs bg-monokai-sidebar p-2 rounded">
-          (("Type 2 Diabetes Mellitus"[Mesh] OR T2DM OR "Diabetes Mellitus, Non-Insulin-Dependent" OR NIDDM OR "Adult-Onset Diabetes")) AND (Metformin[Mesh] OR Metformin OR Glucophage OR Biguanides)
-        </p>
+        <p className="text-monokai-green font-semibold mb-2">PubMed (Usa sintaxis MeSH y operadores booleanos):</p>
+        <div className="bg-monokai-sidebar p-3 rounded space-y-2">
+          <p className="text-monokai-subtle text-xs">
+            <span className="text-monokai-green font-semibold">✓ Correcto:</span> (("Type 2 Diabetes Mellitus"[Mesh] OR T2DM OR NIDDM) AND (Metformin[Mesh] OR Metformin OR Glucophage) AND (Cardiovascular[Mesh] OR Heart))
+          </p>
+          <p className="text-monokai-subtle text-xs">
+            <span className="text-monokai-pink font-semibold">✗ Incorrecto:</span> type 2 diabetes (sin operadores booleanos ni campos MeSH)
+          </p>
+        </div>
       </div>
+      
       <div>
-        <p className="text-monokai-orange font-semibold mb-1">Ejemplo (Semantic Scholar):</p>
-        <p className="text-monokai-subtle text-xs bg-monokai-sidebar p-2 rounded">
-          (Type 2 Diabetes Mellitus OR T2DM) AND (Metformin) AND (Cardiovascular Risk)
-        </p>
+        <p className="text-monokai-yellow font-semibold mb-2">Semantic Scholar (Usa palabras clave naturales):</p>
+        <div className="bg-monokai-sidebar p-3 rounded space-y-2">
+          <p className="text-monokai-subtle text-xs">
+            <span className="text-monokai-green font-semibold">✓ Correcto:</span> type 2 diabetes metformin cardiovascular risk treatment
+          </p>
+          <p className="text-monokai-subtle text-xs">
+            <span className="text-monokai-pink font-semibold">✗ Incorrecto:</span> (type 2 diabetes[Mesh] AND metformin[Mesh]) (sintaxis PubMed no funciona aquí)
+          </p>
+        </div>
       </div>
+      
       <div>
-        <p className="text-monokai-purple font-semibold mb-1">Ejemplo (Crossref/ArXiv):</p>
-        <p className="text-monokai-subtle text-xs bg-monokai-sidebar p-2 rounded">
-          Type 2 diabetes treatment with metformin
-        </p>
+        <p className="text-monokai-blue font-semibold mb-2">ArXiv (Usa palabras clave simples):</p>
+        <div className="bg-monokai-sidebar p-3 rounded space-y-2">
+          <p className="text-monokai-subtle text-xs">
+            <span className="text-monokai-green font-semibold">✓ Correcto:</span> machine learning deep learning neural networks
+          </p>
+          <p className="text-monokai-subtle text-xs">
+            <span className="text-monokai-pink font-semibold">✗ Incorrecto:</span> (machine learning[Mesh] OR deep learning[Mesh]) (ArXiv no usa MeSH)
+          </p>
+        </div>
+      </div>
+      
+      <div>
+        <p className="text-monokai-purple font-semibold mb-2">Crossref (Usa palabras clave naturales):</p>
+        <div className="bg-monokai-sidebar p-3 rounded space-y-2">
+          <p className="text-monokai-subtle text-xs">
+            <span className="text-monokai-green font-semibold">✓ Correcto:</span> diabetes treatment cardiovascular outcomes clinical trial
+          </p>
+          <p className="text-monokai-subtle text-xs">
+            <span className="text-monokai-pink font-semibold">✗ Incorrecto:</span> (diabetes[Mesh] AND treatment[Mesh]) (Crossref no usa MeSH)
+          </p>
+        </div>
       </div>
     </div>
   </motion.div>
