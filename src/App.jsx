@@ -1566,18 +1566,6 @@ const ModuleScreening = () => {
         >
           Cribado Título/Resumen
         </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setActiveTab('filters')}
-          className={`px-6 py-3 font-semibold transition-all ${
-            activeTab === 'filters'
-              ? 'text-monokai-yellow border-b-2 border-monokai-yellow'
-              : 'text-monokai-subtle hover:text-monokai-text'
-          }`}
-        >
-          Filtros de Datos
-        </motion.button>
       </div>
 
       {/* Pestaña 1: Detección de Duplicados */}
@@ -1698,118 +1686,6 @@ const ModuleScreening = () => {
           </motion.div>
         )}
 
-        {/* Pestaña 3: Filtros de Datos */}
-        {activeTab === 'filters' && (
-          <motion.div
-            key="filters-tab"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30 mb-6">
-              <h3 className="text-lg font-bold text-monokai-yellow mb-4">Filtros de Datos Incompletos</h3>
-              <p className="text-monokai-subtle mb-6">Elimina artículos que no tengan ciertos datos:</p>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    const articlesWithoutTitle = state.projectArticles.filter((a) => !a.title || a.title.trim() === '');
-                    articlesWithoutTitle.forEach((a) => {
-                      dispatch({
-                        type: 'UPDATE_ARTICLE_STATUS',
-                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin título' },
-                      });
-                    });
-                    alert(`${articlesWithoutTitle.length} artículos sin título eliminados`);
-                  }}
-                  className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
-                >
-                  <X className="w-5 h-5" />
-                  Eliminar sin Título
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    const articlesWithoutAuthors = state.projectArticles.filter((a) => !a.authors || a.authors.length === 0);
-                    articlesWithoutAuthors.forEach((a) => {
-                      dispatch({
-                        type: 'UPDATE_ARTICLE_STATUS',
-                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin autores' },
-                      });
-                    });
-                    alert(`${articlesWithoutAuthors.length} artículos sin autores eliminados`);
-                  }}
-                  className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
-                >
-                  <X className="w-5 h-5" />
-                  Eliminar sin Autores
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    const articlesWithoutYear = state.projectArticles.filter((a) => !a.year);
-                    articlesWithoutYear.forEach((a) => {
-                      dispatch({
-                        type: 'UPDATE_ARTICLE_STATUS',
-                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin año' },
-                      });
-                    });
-                    alert(`${articlesWithoutYear.length} artículos sin año eliminados`);
-                  }}
-                  className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
-                >
-                  <X className="w-5 h-5" />
-                  Eliminar sin Año
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    const articlesWithoutURL = state.projectArticles.filter((a) => !a.url || a.url.trim() === '');
-                    articlesWithoutURL.forEach((a) => {
-                      dispatch({
-                        type: 'UPDATE_ARTICLE_STATUS',
-                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin URL' },
-                      });
-                    });
-                    alert(`${articlesWithoutURL.length} artículos sin URL eliminados`);
-                  }}
-                  className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
-                >
-                  <X className="w-5 h-5" />
-                  Eliminar sin URL
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    const articlesWithoutAbstract = state.projectArticles.filter((a) => !a.abstract || a.abstract.trim() === '');
-                    articlesWithoutAbstract.forEach((a) => {
-                      dispatch({
-                        type: 'UPDATE_ARTICLE_STATUS',
-                        payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin abstract' },
-                      });
-                    });
-                    alert(`${articlesWithoutAbstract.length} artículos sin abstract eliminados`);
-                  }}
-                  className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
-                >
-                  <X className="w-5 h-5" />
-                  Eliminar sin Abstract
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        )}
       </AnimatePresence>
     </motion.div>
   );
