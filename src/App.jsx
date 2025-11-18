@@ -40,7 +40,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ProjectContext = createContext();
 
 const initialState = {
-  currentPage: 'pico',
+  currentPage: 'home',
   sidebarOpen: true,
   currentProjectId: null,
   isLoading: true,
@@ -1064,16 +1064,16 @@ const ModuleSearch = () => {
 
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      // Búsqueda rápida en todas las bases de datos
+      // Búsqueda rápida en todas las bases de datos seleccionadas
       const searchData = {
         pubmed: quickSearchTerm,
         semanticScholar: quickSearchTerm,
         arxiv: quickSearchTerm,
         crossref: quickSearchTerm,
-        max_pubmed: searchLimits.max_pubmed,
-        max_semantic: searchLimits.max_semantic,
-        max_arxiv: searchLimits.max_arxiv,
-        max_crossref: searchLimits.max_crossref,
+        use_pubmed: state.selectedDatabases.pubmed,
+        use_semantic: state.selectedDatabases.semanticScholar,
+        use_arxiv: state.selectedDatabases.arxiv,
+        use_crossref: state.selectedDatabases.crossref,
       };
       const results = await apiClient.runRealSearch(searchData);
       // Guardar artículos en Supabase
@@ -1258,6 +1258,61 @@ const ModuleSearch = () => {
             transition={{ duration: 0.3 }}
             className="space-y-4 mb-8"
           >
+            {/* Botones de Selección de Bases de Datos */}
+            <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+              <p className="text-sm font-semibold text-monokai-pink mb-3">Selecciona las bases de datos a buscar:</p>
+              <div className="grid grid-cols-2 gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'pubmed' })}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                    state.selectedDatabases.pubmed
+                      ? 'bg-monokai-green text-monokai-dark'
+                      : 'bg-monokai-dark text-monokai-green border border-monokai-green'
+                  }`}
+                >
+                  {state.selectedDatabases.pubmed ? '✓' : '○'} PubMed
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'semanticScholar' })}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                    state.selectedDatabases.semanticScholar
+                      ? 'bg-monokai-yellow text-monokai-dark'
+                      : 'bg-monokai-dark text-monokai-yellow border border-monokai-yellow'
+                  }`}
+                >
+                  {state.selectedDatabases.semanticScholar ? '✓' : '○'} Semantic Scholar
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'arxiv' })}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                    state.selectedDatabases.arxiv
+                      ? 'bg-monokai-blue text-monokai-dark'
+                      : 'bg-monokai-dark text-monokai-blue border border-monokai-blue'
+                  }`}
+                >
+                  {state.selectedDatabases.arxiv ? '✓' : '○'} ArXiv
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'crossref' })}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                    state.selectedDatabases.crossref
+                      ? 'bg-monokai-purple text-monokai-dark'
+                      : 'bg-monokai-dark text-monokai-purple border border-monokai-purple'
+                  }`}
+                >
+                  {state.selectedDatabases.crossref ? '✓' : '○'} Crossref
+                </motion.button>
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div className="flex gap-4">
                 <input
@@ -1277,36 +1332,6 @@ const ModuleSearch = () => {
                   <Search className="w-5 h-5" />
                   {state.isLoading ? 'Buscando...' : 'Buscar'}
                 </motion.button>
-              </div>
-              
-              <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
-                <p className="text-xs font-semibold text-monokai-subtle mb-3">Límites de resultados:</p>
-                <div className="grid grid-cols-4 gap-4">
-                  <SearchLimitDropdown
-                    label="PubMed"
-                    value={searchLimits.max_pubmed}
-                    onChange={(val) => setSearchLimits({ ...searchLimits, max_pubmed: val })}
-                    color="text-monokai-green"
-                  />
-                  <SearchLimitDropdown
-                    label="Semantic Scholar"
-                    value={searchLimits.max_semantic}
-                    onChange={(val) => setSearchLimits({ ...searchLimits, max_semantic: val })}
-                    color="text-monokai-yellow"
-                  />
-                  <SearchLimitDropdown
-                    label="ArXiv"
-                    value={searchLimits.max_arxiv}
-                    onChange={(val) => setSearchLimits({ ...searchLimits, max_arxiv: val })}
-                    color="text-monokai-blue"
-                  />
-                  <SearchLimitDropdown
-                    label="Crossref"
-                    value={searchLimits.max_crossref}
-                    onChange={(val) => setSearchLimits({ ...searchLimits, max_crossref: val })}
-                    color="text-monokai-purple"
-                  />
-                </div>
               </div>
             </div>
           </motion.div>
