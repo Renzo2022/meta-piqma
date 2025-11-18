@@ -130,7 +130,7 @@ def search_pubmed(query: str) -> List[dict]:
         esearch_params = {
             'db': 'pubmed',
             'term': query,
-            'retmax': 20,  # Límite razonable (PubMed devuelve lo que tenga)
+            'retmax': 10000,  # Sin límite práctico (PubMed devuelve lo que tenga)
             'rettype': 'json',
             'tool': 'MetaPiqma',
             'email': 'search@meta-piqma.com'
@@ -241,7 +241,7 @@ def search_semantic_scholar(query: str) -> List[dict]:
         headers = {'x-api-key': api_key}
         params = {
             'query': query,
-            'limit': 20,  # Límite razonable (Semantic Scholar devuelve lo que tenga)
+            'limit': 100,  # Sin límite práctico (Semantic Scholar devuelve lo que tenga)
             'fields': 'title,authors,abstract,year,venue,paperId'
         }
         
