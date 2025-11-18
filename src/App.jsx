@@ -1334,6 +1334,109 @@ const ModuleSearch = () => {
                   {state.isLoading ? 'Buscando...' : 'Buscar'}
                 </motion.button>
               </div>
+
+              {/* Filtros de Datos en Búsqueda Rápida */}
+              <div className="mt-6 bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30">
+                <h3 className="text-lg font-bold text-monokai-yellow mb-4">Filtros de Datos Incompletos</h3>
+                <p className="text-monokai-subtle mb-6">Elimina artículos que no tengan ciertos datos:</p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      const articlesWithoutTitle = state.projectArticles.filter((a) => !a.title || a.title.trim() === '');
+                      articlesWithoutTitle.forEach((a) => {
+                        dispatch({
+                          type: 'UPDATE_ARTICLE_STATUS',
+                          payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin título' },
+                        });
+                      });
+                      alert(`${articlesWithoutTitle.length} artículos sin título eliminados`);
+                    }}
+                    className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                    Eliminar sin Título
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      const articlesWithoutAuthors = state.projectArticles.filter((a) => !a.authors || a.authors.length === 0);
+                      articlesWithoutAuthors.forEach((a) => {
+                        dispatch({
+                          type: 'UPDATE_ARTICLE_STATUS',
+                          payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin autores' },
+                        });
+                      });
+                      alert(`${articlesWithoutAuthors.length} artículos sin autores eliminados`);
+                    }}
+                    className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                    Eliminar sin Autores
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      const articlesWithoutYear = state.projectArticles.filter((a) => !a.year);
+                      articlesWithoutYear.forEach((a) => {
+                        dispatch({
+                          type: 'UPDATE_ARTICLE_STATUS',
+                          payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin año' },
+                        });
+                      });
+                      alert(`${articlesWithoutYear.length} artículos sin año eliminados`);
+                    }}
+                    className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                    Eliminar sin Año
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      const articlesWithoutURL = state.projectArticles.filter((a) => !a.url || a.url.trim() === '');
+                      articlesWithoutURL.forEach((a) => {
+                        dispatch({
+                          type: 'UPDATE_ARTICLE_STATUS',
+                          payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin URL' },
+                        });
+                      });
+                      alert(`${articlesWithoutURL.length} artículos sin URL eliminados`);
+                    }}
+                    className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                    Eliminar sin URL
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      const articlesWithoutAbstract = state.projectArticles.filter((a) => !a.abstract || a.abstract.trim() === '');
+                      articlesWithoutAbstract.forEach((a) => {
+                        dispatch({
+                          type: 'UPDATE_ARTICLE_STATUS',
+                          payload: { articleId: a.uniqueId, newStatus: 'excluded_title', reason: 'Sin abstract' },
+                        });
+                      });
+                      alert(`${articlesWithoutAbstract.length} artículos sin abstract eliminados`);
+                    }}
+                    className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                    Eliminar sin Abstract
+                  </motion.button>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
