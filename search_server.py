@@ -60,7 +60,7 @@ class Article(BaseModel):
     authors: List[str]
     source: str
     year: Optional[int] = None
-    abstract: str
+    abstract: Optional[str] = None
     url: str
 
 class SearchResponse(BaseModel):
@@ -286,13 +286,16 @@ def search_semantic_scholar(query: str) -> List[dict]:
                         authors.append(author)
                 
                 paper_id = paper.get('paperId', 'unknown')
+                abstract = paper.get('abstract')
+                if abstract is None:
+                    abstract = ''
                 articles.append({
                     'id': f"semantic_{paper_id}",
                     'title': paper.get('title', 'Sin título'),
                     'authors': authors,
                     'source': 'Semantic Scholar',
                     'year': paper.get('year'),
-                    'abstract': paper.get('abstract', ''),
+                    'abstract': abstract,
                     'url': f'https://www.semanticscholar.org/paper/{paper_id}'
                 })
             except Exception as e:
