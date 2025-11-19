@@ -327,17 +327,35 @@ def search_arxiv(query: str) -> List[dict]:
         # Buscar en título y resumen (más relevante que 'all')
         url = 'http://export.arxiv.org/api/query'
         
-        # Estrategia: (title:palabra1 OR abs:palabra1) AND (title:palabra2 OR abs:palabra2)
-        # Esto busca en título O resumen, y requiere que TODOS los términos coincidan
+        # Estrategia: Filtrar palabras muy cortas (números, preposiciones)
+        # y usar búsqueda flexible en título y resumen
         keywords = query.strip().split()
         
-        # Construir búsqueda
-        search_parts = []
-        for keyword in keywords:
-            search_parts.append(f"(title:{keyword} OR abs:{keyword})")
+        # Filtrar palabras muy cortas (< 3 caracteres) para evitar ruido
+        # Excepto si es la única palabra
+        if len(keywords) > 1:
+            keywords = [kw for kw in keywords if len(kw) >= 3]
         
-        # Unir con AND para que coincidan todos los términos
-        search_query = ' AND '.join(search_parts) if search_parts else f'all:{query}'
+        if not keywords:
+            # Si todas las palabras fueron filtradas, usar la búsqueda original
+            search_query = f'all:{query}'
+        elif len(keywords) == 1:
+            # Una palabra: buscar en título o resumen
+            search_query = f'(title:{keywords[0]} OR abs:{keywords[0]})'
+        elif len(keywords) <= 3:
+            # 2-3 palabras: usar AND para mayor precisión
+            # (title:palabra1 OR abs:palabra1) AND (title:palabra2 OR abs:palabra2)
+            search_parts = []
+            for keyword in keywords:
+                search_parts.append(f"(title:{keyword} OR abs:{keyword})")
+            search_query = ' AND '.join(search_parts)
+        else:
+            # 4+ palabras: usar OR para mayor flexibilidad
+            # (title:palabra1 OR abs:palabra1) OR (title:palabra2 OR abs:palabra2)
+            search_parts = []
+            for keyword in keywords:
+                search_parts.append(f"(title:{keyword} OR abs:{keyword})")
+            search_query = ' OR '.join(search_parts)
         
         params = {
             'search_query': search_query,
