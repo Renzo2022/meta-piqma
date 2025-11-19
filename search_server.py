@@ -323,13 +323,28 @@ def search_arxiv(query: str) -> List[dict]:
     try:
         print(f"[ArXiv] Buscando: {query}")
         
-        # Construir búsqueda
+        # Construir búsqueda con estrategia mejorada
+        # Buscar en título y resumen (más relevante que 'all')
+        # Usar AND para que coincidan múltiples términos
         url = 'http://export.arxiv.org/api/query'
+        
+        # Dividir query en palabras clave
+        keywords = query.strip().split()
+        
+        # Construir búsqueda: buscar en título O resumen, con múltiples términos
+        search_parts = []
+        for keyword in keywords:
+            # Buscar cada palabra en título o resumen
+            search_parts.append(f"(title:{keyword} OR abs:{keyword})")
+        
+        # Unir con AND para mayor relevancia
+        search_query = ' AND '.join(search_parts) if search_parts else f'all:{query}'
+        
         params = {
-            'search_query': f'all:{query}',
+            'search_query': search_query,
             'start': 0,
             'max_results': 100,  # Máximo razonable por consulta
-            'sortBy': 'submittedDate',
+            'sortBy': 'relevance',  # Cambiar a relevancia en lugar de fecha
             'sortOrder': 'descending'
         }
         
@@ -413,7 +428,7 @@ def search_crossref(query: str) -> List[dict]:
         params = {
             'query': query,
             'rows': 100,  # Máximo que Crossref permite por consulta
-            'sort': 'published',
+            'sort': 'relevance',  # Ordenar por relevancia en lugar de fecha
             'order': 'desc'
         }
         
