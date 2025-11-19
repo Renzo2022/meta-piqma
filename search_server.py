@@ -327,17 +327,17 @@ def search_arxiv(query: str) -> List[dict]:
         # Buscar en título y resumen (más relevante que 'all')
         url = 'http://export.arxiv.org/api/query'
         
-        # Estrategia: buscar en título y resumen con AND
-        # Ejemplo: "machine learning" → (title:machine AND title:learning) OR (abs:machine AND abs:learning)
+        # Estrategia: (title:palabra1 OR abs:palabra1) AND (title:palabra2 OR abs:palabra2)
+        # Esto busca en título O resumen, y requiere que TODOS los términos coincidan
         keywords = query.strip().split()
         
-        if len(keywords) > 1:
-            # Múltiples palabras: buscar combinaciones en título y resumen
-            keyword_str = ' AND '.join(keywords)
-            search_query = f'(title:{keyword_str}) OR (abs:{keyword_str})'
-        else:
-            # Una palabra: buscar en título o resumen
-            search_query = f'(title:{query}) OR (abs:{query})'
+        # Construir búsqueda
+        search_parts = []
+        for keyword in keywords:
+            search_parts.append(f"(title:{keyword} OR abs:{keyword})")
+        
+        # Unir con AND para que coincidan todos los términos
+        search_query = ' AND '.join(search_parts) if search_parts else f'all:{query}'
         
         params = {
             'search_query': search_query,
