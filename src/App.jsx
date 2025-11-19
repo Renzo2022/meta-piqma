@@ -2519,10 +2519,15 @@ const Sidebar = () => {
       className="fixed left-0 top-0 h-screen w-64 bg-monokai-sidebar border-r border-monokai-pink border-opacity-20 shadow-lg z-40"
     >
       <div className="p-6 border-b border-monokai-pink border-opacity-20">
-        <h2 className="text-2xl font-bold text-monokai-pink shadow-monokai-pink">
-          MetaPiqma
-        </h2>
-        <p className="text-xs text-monokai-subtle mt-1">v0.1.0</p>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-monokai-pink to-monokai-purple rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-lg">M</span>
+          </div>
+          <h2 className="text-2xl font-bold text-monokai-pink">
+            MetaPiqma
+          </h2>
+        </div>
+        <p className="text-xs text-monokai-subtle ml-11">Systematic Review Tool</p>
       </div>
 
       <nav className="p-4 space-y-2">
