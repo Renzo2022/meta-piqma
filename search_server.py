@@ -574,33 +574,20 @@ async def search(strategies: SearchStrategies):
         arxiv_articles = search_arxiv(strategies.arxiv) if (strategies.use_arxiv and strategies.arxiv) else []
         crossref_articles = search_crossref(strategies.crossref) if (strategies.use_crossref and strategies.crossref) else []
         
-        # Unificar resultados
+        # Unificar resultados (incluir duplicados)
         all_articles = pubmed_articles + semantic_articles + arxiv_articles + crossref_articles
-        
-        # Eliminar duplicados por título (simple deduplicación)
-        seen_titles = set()
-        unique_articles = []
-        for article in all_articles:
-            # Validar que el título no sea None
-            if not article.get('title'):
-                print(f"[WARNING] Artículo sin título válido: {article.get('id', 'unknown')}")
-                continue
-            title_lower = article['title'].lower()
-            if title_lower not in seen_titles:
-                seen_titles.add(title_lower)
-                unique_articles.append(article)
         
         print(f"\n[SEARCH] Resultados:")
         print(f"  - PubMed: {len(pubmed_articles)} artículos")
         print(f"  - Semantic Scholar: {len(semantic_articles)} artículos")
         print(f"  - ArXiv: {len(arxiv_articles)} artículos")
         print(f"  - Crossref: {len(crossref_articles)} artículos")
-        print(f"  - Total (sin duplicados): {len(unique_articles)} artículos")
+        print(f"  - Total (con duplicados): {len(all_articles)} artículos")
         
         return SearchResponse(
             success=True,
-            articles=unique_articles,
-            total_count=len(unique_articles),
+            articles=all_articles,
+            total_count=len(all_articles),
             message="Búsqueda completada exitosamente"
         )
     

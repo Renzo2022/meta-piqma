@@ -2519,15 +2519,9 @@ const Sidebar = () => {
       className="fixed left-0 top-0 h-screen w-64 bg-monokai-sidebar border-r border-monokai-pink border-opacity-20 shadow-lg z-40"
     >
       <div className="p-6 border-b border-monokai-pink border-opacity-20">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-monokai-pink to-monokai-purple rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">M</span>
-          </div>
-          <h2 className="text-2xl font-bold text-monokai-pink">
-            MetaPiqma
-          </h2>
-        </div>
-        <p className="text-xs text-monokai-subtle ml-11">Systematic Review Tool</p>
+        <h2 className="text-2xl font-bold text-monokai-pink">
+          MetaPiqma
+        </h2>
       </div>
 
       <nav className="p-4 space-y-2">
@@ -2566,26 +2560,6 @@ const Sidebar = () => {
 // COMPONENTE HEADER (Barra superior con toggle de sidebar)
 // ============================================================================
 
-const Header = () => {
-  const { state, dispatch } = useProject();
-
-  return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-monokai-sidebar border-b border-monokai-pink border-opacity-20 flex items-center px-6 z-30">
-      <button
-        onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-        className="p-2 hover:bg-monokai-dark rounded-lg transition-colors"
-      >
-        {state.sidebarOpen ? (
-          <X className="w-6 h-6 text-monokai-pink" />
-        ) : (
-          <Menu className="w-6 h-6 text-monokai-pink" />
-        )}
-      </button>
-      <h1 className="ml-4 text-lg font-semibold text-monokai-text">MetaPiqma</h1>
-    </header>
-  );
-};
-
 // ============================================================================
 // COMPONENTE MAIN CONTENT (Área de contenido principal)
 // ============================================================================
@@ -2617,7 +2591,7 @@ const MainContent = () => {
   };
 
   return (
-    <main className="ml-64 mt-16 h-[calc(100vh-64px)] overflow-y-auto">
+    <main className="ml-64 h-screen overflow-y-auto">
       <div className="p-8">
         <AnimatePresence mode="wait">
           {renderModule()}
@@ -2674,7 +2648,6 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-monokai-bg text-monokai-text">
-      <Header />
       <Sidebar />
       <MainContent />
     </div>
