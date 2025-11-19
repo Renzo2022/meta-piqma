@@ -323,39 +323,46 @@ def search_arxiv(query: str) -> List[dict]:
     try:
         print(f"[ArXiv] Buscando: {query}")
         
-        # Construir búsqueda con estrategia mejorada
-        # Buscar en título y resumen (más relevante que 'all')
         url = 'http://export.arxiv.org/api/query'
         
-        # Estrategia: Filtrar palabras muy cortas (números, preposiciones)
-        # y usar búsqueda flexible en título y resumen
-        keywords = query.strip().split()
+        # Detectar si la query ya contiene sintaxis de ArXiv
+        # (contiene title:, abs:, AND, OR, etc.)
+        has_arxiv_syntax = any(keyword in query for keyword in ['title:', 'abs:', ' AND ', ' OR ', '[Mesh]'])
         
-        # Filtrar palabras muy cortas (< 3 caracteres) para evitar ruido
-        # Excepto si es la única palabra
-        if len(keywords) > 1:
-            keywords = [kw for kw in keywords if len(kw) >= 3]
-        
-        if not keywords:
-            # Si todas las palabras fueron filtradas, usar la búsqueda original
-            search_query = f'all:{query}'
-        elif len(keywords) == 1:
-            # Una palabra: buscar en título o resumen
-            search_query = f'(title:{keywords[0]} OR abs:{keywords[0]})'
-        elif len(keywords) <= 3:
-            # 2-3 palabras: usar AND para mayor precisión
-            # (title:palabra1 OR abs:palabra1) AND (title:palabra2 OR abs:palabra2)
-            search_parts = []
-            for keyword in keywords:
-                search_parts.append(f"(title:{keyword} OR abs:{keyword})")
-            search_query = ' AND '.join(search_parts)
+        if has_arxiv_syntax:
+            # La query ya tiene sintaxis de ArXiv, usarla directamente
+            # Pero limpiar caracteres especiales que causan problemas
+            search_query = query.strip()
+            # Remover comillas que causan problemas
+            search_query = search_query.replace('"', '')
         else:
-            # 4+ palabras: usar OR para mayor flexibilidad
-            # (title:palabra1 OR abs:palabra1) OR (title:palabra2 OR abs:palabra2)
-            search_parts = []
-            for keyword in keywords:
-                search_parts.append(f"(title:{keyword} OR abs:{keyword})")
-            search_query = ' OR '.join(search_parts)
+            # Construir búsqueda automáticamente
+            # Estrategia: Filtrar palabras muy cortas (números, preposiciones)
+            keywords = query.strip().split()
+            
+            # Filtrar palabras muy cortas (< 3 caracteres) para evitar ruido
+            # Excepto si es la única palabra
+            if len(keywords) > 1:
+                keywords = [kw for kw in keywords if len(kw) >= 3]
+            
+            if not keywords:
+                # Si todas las palabras fueron filtradas, usar la búsqueda original
+                search_query = f'all:{query}'
+            elif len(keywords) == 1:
+                # Una palabra: buscar en título o resumen
+                search_query = f'(title:{keywords[0]} OR abs:{keywords[0]})'
+            elif len(keywords) <= 3:
+                # 2-3 palabras: usar AND para mayor precisión
+                search_parts = []
+                for keyword in keywords:
+                    search_parts.append(f"(title:{keyword} OR abs:{keyword})")
+                search_query = ' AND '.join(search_parts)
+            else:
+                # 4+ palabras: usar OR para mayor flexibilidad
+                search_parts = []
+                for keyword in keywords:
+                    search_parts.append(f"(title:{keyword} OR abs:{keyword})")
+                search_query = ' OR '.join(search_parts)
         
         params = {
             'search_query': search_query,
