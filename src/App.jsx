@@ -1930,108 +1930,45 @@ const ModuleEligibility = () => {
 
 const ModulePRISMA = () => {
   const { state } = useProject();
-  const [prismaData, setPrismaData] = useState(null);
-  const [svgDiagram, setSvgDiagram] = useState(null);
-  const [validationErrors, setValidationErrors] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [showInputs, setShowInputs] = useState(false);
-  const [editMode, setEditMode] = useState(false);
+  const [prismaData, setPrismaData] = useState({
+    identified_databases: 0,
+    identified_other_methods: 0,
+    duplicates_removed: 0,
+    records_screened: 0,
+    excluded_screening: 0,
+    reports_sought_retrieval: 0,
+    reports_assessed_fulltext: 0,
+    total_excluded: 0,
+    studies_qualitative_synthesis: 0,
+    studies_meta_analysis: 0,
+  });
 
   // Calcular datos PRISMA automáticamente desde artículos
   useEffect(() => {
-    const calculatePRISMAData = () => {
-      const totalIdentified = state.projectArticles.length;
-      const duplicates = state.projectArticles.filter((a) => a.status === 'duplicate').length;
-      const screened = totalIdentified - duplicates;
-      const excludedTitle = state.projectArticles.filter((a) => a.status === 'excluded_title').length;
-      const fullText = state.projectArticles.filter(
-        (a) => a.status === 'included_title' || a.status === 'included_final' || a.status === 'excluded_fulltext'
-      ).length;
-      const excludedFullText = state.projectArticles.filter((a) => a.status === 'excluded_fulltext').length;
-      const includedFinal = state.projectArticles.filter((a) => a.status === 'included_final').length;
+    const totalIdentified = state.projectArticles.length;
+    const duplicates = state.projectArticles.filter((a) => a.status === 'duplicate').length;
+    const screened = totalIdentified - duplicates;
+    const excludedTitle = state.projectArticles.filter((a) => a.status === 'excluded_title').length;
+    const fullText = state.projectArticles.filter(
+      (a) => a.status === 'included_title' || a.status === 'included_final' || a.status === 'excluded_fulltext'
+    ).length;
+    const excludedFullText = state.projectArticles.filter((a) => a.status === 'excluded_fulltext').length;
+    const includedFinal = state.projectArticles.filter((a) => a.status === 'included_final').length;
 
-      const data = {
-        identified_databases: Math.floor(totalIdentified * 0.95),
-        identified_other_methods: Math.floor(totalIdentified * 0.05),
-        duplicates_removed: duplicates,
-        other_removed_before_screening: 0,
-        records_screened: screened,
-        excluded_screening: excludedTitle,
-        reports_sought_retrieval: fullText,
-        reports_not_retrieved: 0,
-        reports_assessed_fulltext: fullText,
-        exclusion_reasons: {
-          no_comparative_data: Math.floor(excludedFullText * 0.4),
-          inadequate_design: Math.floor(excludedFullText * 0.3),
-          prevention_not_treatment: Math.floor(excludedFullText * 0.2),
-          poor_methodology: Math.floor(excludedFullText * 0.1),
-        },
-        total_excluded: excludedFullText,
-        studies_qualitative_synthesis: includedFinal,
-        studies_meta_analysis: Math.floor(includedFinal * 0.8),
-      };
-
-      setPrismaData(data);
-    };
-
-    calculatePRISMAData();
+    setPrismaData({
+      identified_databases: Math.floor(totalIdentified * 0.95),
+      identified_other_methods: Math.floor(totalIdentified * 0.05),
+      duplicates_removed: duplicates,
+      records_screened: screened,
+      excluded_screening: excludedTitle,
+      reports_sought_retrieval: fullText,
+      reports_assessed_fulltext: fullText,
+      total_excluded: excludedFullText,
+      studies_qualitative_synthesis: includedFinal,
+      studies_meta_analysis: Math.floor(includedFinal * 0.8),
+    });
   }, [state.projectArticles]);
-
-  // Generar diagrama PRISMA desde el backend
-  const generateDiagram = async () => {
-    if (!prismaData) {
-      alert('No hay datos PRISMA disponibles');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/v1/prisma-diagram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(prismaData),
-      });
-
-      const result = await response.json();
-      if (result.success && result.svg) {
-        setSvgDiagram(result.svg);
-        setValidationErrors([]);
-      } else {
-        setValidationErrors(result.errors || ['Error generando diagrama']);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      setValidationErrors([`Error: ${error.message}`]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Validar datos PRISMA
-  const validateData = async () => {
-    if (!prismaData) return;
-
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/v1/prisma-validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(prismaData),
-      });
-
-      const result = await response.json();
-      if (result.valid) {
-        setValidationErrors([]);
-      } else {
-        setValidationErrors(result.errors || []);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      setValidationErrors([`Error: ${error.message}`]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Actualizar campo de datos PRISMA
   const handleDataChange = (field, value) => {
@@ -2039,24 +1976,6 @@ const ModulePRISMA = () => {
       ...prev,
       [field]: parseInt(value) || 0,
     }));
-  };
-
-  // Exportar SVG a archivo
-  const handleExportSVG = () => {
-    if (!svgDiagram) {
-      alert('No hay diagrama para exportar');
-      return;
-    }
-
-    const blob = new Blob([svgDiagram], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `prisma-diagram-${new Date().toISOString().split('T')[0]}.svg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   // Función para exportar estadísticas como JSON
@@ -2166,112 +2085,49 @@ const ModulePRISMA = () => {
     >
       <h1 className="text-4xl font-bold text-monokai-orange mb-8">Módulo 5: Reporte PRISMA 2020</h1>
 
-      {/* Sección 0: Controles y Generación */}
+      {/* Sección 1: Controles */}
       <div className="mb-12 bg-monokai-sidebar p-6 rounded-lg border border-monokai-blue border-opacity-30">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-monokai-blue">Generar Diagrama PRISMA</h2>
-          <div className="flex gap-3">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowInputs(!showInputs)}
-              className="flex items-center gap-2 px-4 py-2 bg-monokai-purple text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
-            >
-              <Edit className="w-4 h-4" />
-              {showInputs ? 'Ocultar' : 'Editar'} Datos
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={validateData}
-              disabled={isLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-monokai-yellow text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
-            >
-              {isLoading ? '⏳ Validando...' : '✓ Validar'}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={generateDiagram}
-              disabled={isLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
-            >
-              {isLoading ? '⏳ Generando...' : '🎨 Generar Diagrama'}
-            </motion.button>
-          </div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-monokai-blue">Datos del Diagrama</h2>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowInputs(!showInputs)}
+            className="flex items-center gap-2 px-4 py-2 bg-monokai-purple text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+          >
+            <Edit className="w-4 h-4" />
+            {showInputs ? 'Ocultar' : 'Editar'} Datos
+          </motion.button>
         </div>
 
-        {/* Errores de Validación */}
-        {validationErrors.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-monokai-pink bg-opacity-20 border border-monokai-pink border-opacity-50 rounded-lg"
-          >
-            <p className="text-monokai-pink font-semibold mb-2">⚠️ Errores de Validación:</p>
-            <ul className="space-y-1">
-              {validationErrors.map((error, idx) => (
-                <li key={idx} className="text-monokai-pink text-sm">{error}</li>
-              ))}
-            </ul>
-          </motion.div>
-        )}
-
         {/* Inputs Editable */}
-        {showInputs && prismaData && (
+        {showInputs && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="grid grid-cols-2 gap-4 p-4 bg-monokai-dark rounded-lg border border-monokai-subtle border-opacity-20"
+            className="mt-6 grid grid-cols-2 gap-4 p-4 bg-monokai-dark rounded-lg border border-monokai-subtle border-opacity-20"
           >
-            {Object.entries(prismaData).map(([key, value]) => {
-              if (typeof value === 'object') return null;
-              return (
-                <div key={key}>
-                  <label className="block text-sm font-semibold text-monokai-text mb-2 capitalize">
-                    {key.replace(/_/g, ' ')}
-                  </label>
-                  <input
-                    type="number"
-                    value={value}
-                    onChange={(e) => handleDataChange(key, e.target.value)}
-                    className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue"
-                  />
-                </div>
-              );
-            })}
+            {Object.entries(prismaData).map(([key, value]) => (
+              <div key={key}>
+                <label className="block text-sm font-semibold text-monokai-text mb-2 capitalize">
+                  {key.replace(/_/g, ' ')}
+                </label>
+                <input
+                  type="number"
+                  value={value}
+                  onChange={(e) => handleDataChange(key, e.target.value)}
+                  className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue"
+                />
+              </div>
+            ))}
           </motion.div>
         )}
       </div>
 
-      {/* Sección 1: Diagrama PRISMA Generado */}
-      {svgDiagram && (
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-monokai-green">Diagrama PRISMA 2020 Generado</h2>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleExportSVG}
-              className="flex items-center gap-2 px-4 py-2 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all"
-            >
-              <Download className="w-4 h-4" />
-              Descargar SVG
-            </motion.button>
-          </div>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white p-6 rounded-lg border border-monokai-subtle border-opacity-20 overflow-auto"
-            dangerouslySetInnerHTML={{ __html: svgDiagram }}
-          />
-        </div>
-      )}
-
-      {/* Sección 2: Diagrama PRISMA Visual (Fallback) */}
+      {/* Sección 2: Diagrama PRISMA Visual */}
       <div className="mb-12">
-        <h2 className="text-2xl font-bold text-monokai-purple mb-8">Diagrama de Flujo PRISMA 2020 (Vista Previa)</h2>
+        <h2 className="text-2xl font-bold text-monokai-purple mb-8">Diagrama de Flujo PRISMA 2020</h2>
 
         <div className="space-y-6" id="prisma-diagram">
           {/* Etapa 1: Identificación */}
@@ -2283,10 +2139,10 @@ const ModulePRISMA = () => {
           >
             <h3 className="text-lg font-bold text-monokai-green mb-3">Identificación</h3>
             <p className="text-monokai-text mb-2">
-              Registros identificados en bases de datos (n = <span className="font-bold text-monokai-yellow">{countTotalIdentified}</span>)
+              Registros identificados en bases de datos (n = <span className="font-bold text-monokai-yellow">{prismaData.identified_databases + prismaData.identified_other_methods}</span>)
             </p>
             <p className="text-monokai-subtle text-sm">
-              Resultados de búsqueda en PubMed, Semantic Scholar, ArXiv/Crossref
+              Bases de datos: {prismaData.identified_databases} | Otros métodos: {prismaData.identified_other_methods}
             </p>
           </motion.div>
 
@@ -2310,16 +2166,16 @@ const ModulePRISMA = () => {
             <h3 className="text-lg font-bold text-monokai-yellow mb-3">Cribado</h3>
             <div className="space-y-2">
               <p className="text-monokai-text mb-2">
-                Registros después de eliminar duplicados (n = <span className="font-bold text-monokai-yellow">{countScreened}</span>)
+                Registros después de eliminar duplicados (n = <span className="font-bold text-monokai-yellow">{prismaData.records_screened}</span>)
               </p>
               <p className="text-monokai-subtle text-sm">
-                Duplicados removidos: <span className="font-bold text-monokai-pink">{countDuplicates}</span>
+                Duplicados removidos: <span className="font-bold text-monokai-pink">{prismaData.duplicates_removed}</span>
               </p>
               <p className="text-monokai-text mt-3">
-                Registros excluidos por título/resumen (n = <span className="font-bold text-monokai-pink">{countExcludedTitle}</span>)
+                Registros excluidos por título/resumen (n = <span className="font-bold text-monokai-pink">{prismaData.excluded_screening}</span>)
               </p>
               <p className="text-monokai-subtle text-sm">
-                Registros para revisión de texto completo: <span className="font-bold text-monokai-blue">{countFullText}</span>
+                Registros para revisión de texto completo: <span className="font-bold text-monokai-blue">{prismaData.reports_sought_retrieval}</span>
               </p>
             </div>
           </motion.div>
@@ -2344,10 +2200,10 @@ const ModulePRISMA = () => {
             <h3 className="text-lg font-bold text-monokai-blue mb-3">Elegibilidad</h3>
             <div className="space-y-2">
               <p className="text-monokai-text mb-2">
-                Registros evaluados para elegibilidad (n = <span className="font-bold text-monokai-blue">{countFullText}</span>)
+                Registros evaluados para elegibilidad (n = <span className="font-bold text-monokai-blue">{prismaData.reports_assessed_fulltext}</span>)
               </p>
               <p className="text-monokai-subtle text-sm">
-                Registros excluidos con motivo: <span className="font-bold text-monokai-pink">{countExcludedFullText}</span>
+                Registros excluidos con motivo: <span className="font-bold text-monokai-pink">{prismaData.total_excluded}</span>
               </p>
             </div>
           </motion.div>
@@ -2371,7 +2227,10 @@ const ModulePRISMA = () => {
           >
             <h3 className="text-lg font-bold text-monokai-green mb-3">Incluidos</h3>
             <p className="text-monokai-text">
-              Estudios incluidos en la revisión (n = <span className="font-bold text-monokai-green">{countIncludedFinal}</span>)
+              Estudios incluidos en la revisión (n = <span className="font-bold text-monokai-green">{prismaData.studies_qualitative_synthesis}</span>)
+            </p>
+            <p className="text-monokai-subtle text-sm mt-2">
+              Estudios para meta-análisis: {prismaData.studies_meta_analysis}
             </p>
           </motion.div>
         </div>
@@ -2380,7 +2239,7 @@ const ModulePRISMA = () => {
       {/* Sección 3: Exportación de Datos */}
       <div className="mb-12">
         <h2 className="text-2xl font-bold text-monokai-purple mb-6">Exportar Reporte</h2>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -2402,16 +2261,6 @@ const ModulePRISMA = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={handleExportSVG}
-            disabled={!svgDiagram}
-            className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-yellow text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
-          >
-            <Download className="w-5 h-5" />
-            Diagrama (SVG)
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             onClick={handleExportPNG}
             className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-purple text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
           >
@@ -2424,7 +2273,7 @@ const ModulePRISMA = () => {
       {/* Sección 4: Lista de Estudios Incluidos */}
       <div>
         <h2 className="text-2xl font-bold text-monokai-purple mb-6">
-          Estudios Incluidos en la Revisión (n = <span className="text-monokai-green">{countIncludedFinal}</span>)
+          Estudios Incluidos en la Revisión (n = <span className="text-monokai-green">{prismaData.studies_qualitative_synthesis}</span>)
         </h2>
 
         {includedArticles.length > 0 ? (
