@@ -14,6 +14,7 @@ from datetime import datetime
 import os
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
+from prisma_generator import generate_prisma_diagram, PRISMAData
 
 # ============================================================================
 # CONFIGURACIÓN
@@ -98,7 +99,34 @@ class MetaAnalysisResponse(BaseModel):
     success: bool
     metrics: MetaAnalysisMetrics
     forestPlotUrl: str
-    funnelPlotUrl: str
+
+class PRISMADataRequest(BaseModel):
+    """Solicitud de generación de diagrama PRISMA"""
+    identified_databases: int
+    identified_other_methods: int
+    duplicates_removed: int
+    other_removed_before_screening: int
+    records_screened: int
+    excluded_screening: int
+    reports_sought_retrieval: int
+    reports_not_retrieved: int
+    reports_assessed_fulltext: int
+    exclusion_reasons: dict = {}
+    total_excluded: int = 0
+    studies_qualitative_synthesis: int = 0
+    studies_meta_analysis: int = 0
+
+class PRISMAValidationResponse(BaseModel):
+    """Respuesta de validación PRISMA"""
+    valid: bool
+    errors: List[str] = []
+    warnings: List[str] = []
+
+class PRISMADiagramResponse(BaseModel):
+    """Respuesta de generación de diagrama PRISMA"""
+    success: bool
+    svg: Optional[str] = None
+    errors: List[str] = []
     message: str
 
 # ============================================================================
@@ -804,6 +832,168 @@ async def meta_analysis(request: MetaAnalysisRequest):
             status_code=500,
             detail=f"Error en meta-análisis: {str(e)}"
         )
+
+
+# ============================================================================
+# ENDPOINTS PRISMA 2020
+# ============================================================================
+
+@app.post("/api/v1/prisma-validate", response_model=PRISMAValidationResponse)
+async def prisma_validate(request: PRISMADataRequest):
+    """
+    Validar datos PRISMA 2020.
+    
+    Valida la coherencia de los datos PRISMA y devuelve errores si hay inconsistencias.
+    
+    Args:
+        request: Datos PRISMA a validar
+    
+    Returns:
+        PRISMAValidationResponse con estado de validación y errores
+    
+    Ejemplo:
+    {
+        "identified_databases": 1430,
+        "identified_other_methods": 45,
+        "duplicates_removed": 312,
+        "other_removed_before_screening": 25,
+        "records_screened": 1138,
+        "excluded_screening": 1044,
+        "reports_sought_retrieval": 94,
+        "reports_not_retrieved": 4,
+        "reports_assessed_fulltext": 90,
+        "exclusion_reasons": {...},
+        "total_excluded": 53,
+        "studies_qualitative_synthesis": 37,
+        "studies_meta_analysis": 29
+    }
+    """
+    try:
+        # Convertir request a diccionario
+        data_dict = request.dict()
+        
+        # Intentar crear instancia de PRISMAData
+        prisma_data = PRISMAData.from_dict(data_dict)
+        
+        # Si llega aquí, los datos son válidos
+        print(f"[PRISMA] Validación exitosa")
+        return PRISMAValidationResponse(
+            valid=True,
+            errors=[],
+            warnings=[]
+        )
+    
+    except ValueError as e:
+        # Capturar errores de validación
+        error_messages = str(e).split("\n")
+        print(f"[PRISMA] Errores de validación: {error_messages}")
+        return PRISMAValidationResponse(
+            valid=False,
+            errors=error_messages,
+            warnings=[]
+        )
+    except Exception as e:
+        print(f"[ERROR] Error en validación PRISMA: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en validación PRISMA: {str(e)}"
+        )
+
+
+@app.post("/api/v1/prisma-diagram", response_model=PRISMADiagramResponse)
+async def prisma_diagram(request: PRISMADataRequest):
+    """
+    Generar diagrama PRISMA 2020 en formato SVG.
+    
+    Genera un diagrama PRISMA 2020 profesional basado en los datos proporcionados.
+    
+    Args:
+        request: Datos PRISMA para generar el diagrama
+    
+    Returns:
+        PRISMADiagramResponse con SVG generado
+    
+    Ejemplo de respuesta:
+    {
+        "success": true,
+        "svg": "<svg xmlns=...>...</svg>",
+        "errors": [],
+        "message": "Diagrama PRISMA generado exitosamente"
+    }
+    """
+    try:
+        # Convertir request a diccionario
+        data_dict = request.dict()
+        
+        # Generar diagrama SVG
+        svg = generate_prisma_diagram(data_dict)
+        
+        if svg:
+            print(f"[PRISMA] Diagrama generado exitosamente ({len(svg)} caracteres)")
+            return PRISMADiagramResponse(
+                success=True,
+                svg=svg,
+                errors=[],
+                message="Diagrama PRISMA 2020 generado exitosamente"
+            )
+        else:
+            print(f"[ERROR] Error generando diagrama PRISMA")
+            return PRISMADiagramResponse(
+                success=False,
+                svg=None,
+                errors=["Error generando diagrama PRISMA"],
+                message="Error al generar el diagrama"
+            )
+    
+    except ValueError as e:
+        # Errores de validación
+        error_messages = str(e).split("\n")
+        print(f"[PRISMA] Errores de validación: {error_messages}")
+        return PRISMADiagramResponse(
+            success=False,
+            svg=None,
+            errors=error_messages,
+            message="Error de validación en datos PRISMA"
+        )
+    except Exception as e:
+        print(f"[ERROR] Error generando diagrama PRISMA: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generando diagrama PRISMA: {str(e)}"
+        )
+
+
+@app.get("/api/v1/prisma-example")
+async def prisma_example():
+    """
+    Obtener datos de ejemplo PRISMA 2020.
+    
+    Devuelve un ejemplo de datos PRISMA válidos para pruebas.
+    
+    Returns:
+        Diccionario con datos PRISMA de ejemplo
+    """
+    return {
+        "identified_databases": 1430,
+        "identified_other_methods": 45,
+        "duplicates_removed": 312,
+        "other_removed_before_screening": 25,
+        "records_screened": 1138,
+        "excluded_screening": 1044,
+        "reports_sought_retrieval": 94,
+        "reports_not_retrieved": 4,
+        "reports_assessed_fulltext": 90,
+        "exclusion_reasons": {
+            "no_comparative_data": 22,
+            "inadequate_design": 15,
+            "prevention_not_treatment": 9,
+            "poor_methodology": 4,
+            "duplicate_data": 3,
+        },
+        "total_excluded": 53,
+        "studies_qualitative_synthesis": 37,
+        "studies_meta_analysis": 29,
+    }
 
 # ============================================================================
 # PUNTO DE ENTRADA
