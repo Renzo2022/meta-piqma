@@ -2893,6 +2893,7 @@ const ModuleMetaAnalysis = () => {
   useEffect(() => {
     const loadData = async () => {
       if (state.currentProjectId) {
+        // Cargar datos de extracción desde Supabase
         const data = await apiClient.loadExtractionData(state.currentProjectId);
         const dataMap = {};
         const articleIds = new Set();
@@ -2911,8 +2912,14 @@ const ModuleMetaAnalysis = () => {
         
         setExtractionData(dataMap);
         
+        // Si no hay artículos en el estado, cargar desde Supabase
+        let articlesToUse = state.projectArticles;
+        if (!articlesToUse || articlesToUse.length === 0) {
+          articlesToUse = await apiClient.loadArticles(state.currentProjectId);
+        }
+        
         // Obtener artículos que tienen datos guardados
-        const articlesWithSavedData = state.projectArticles.filter(
+        const articlesWithSavedData = articlesToUse.filter(
           (a) => a.status === 'included_final' || articleIds.has(a.id)
         );
         setArticlesWithData(articlesWithSavedData);
