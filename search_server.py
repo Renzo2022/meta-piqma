@@ -894,16 +894,20 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
     # Calcular altura dinámica basada en número de estudios
     height = 150 + (len(studies) * 40) + 100
     y_start = 100
-    left_margin = 350  # Espacio para títulos
-    graph_width = 600  # Ancho del gráfico
     
-    # Crear SVG con más ancho para títulos
-    svg = f'''<svg width="1400" height="{height}" xmlns="http://www.w3.org/2000/svg">
+    # Layout mejorado: nombres a la izquierda, gráfico a la derecha
+    names_width = 300  # Ancho para nombres y colores
+    graph_start = names_width + 50  # Inicio del gráfico
+    graph_width = 600  # Ancho del gráfico
+    total_width = graph_start + graph_width + 100
+    
+    # Crear SVG con layout mejorado
+    svg = f'''<svg width="{total_width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
     <!-- Fondo -->
-    <rect width="1400" height="{height}" fill="#f8f9fa"/>
+    <rect width="{total_width}" height="{height}" fill="#f8f9fa"/>
     
     <!-- Título -->
-    <text x="700" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#1a1a1a">
+    <text x="{total_width//2}" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#1a1a1a">
         Forest Plot - Meta-Analysis Results
     </text>
     
@@ -911,20 +915,27 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
     <text x="20" y="60" font-size="12" fill="#666">I² = {i2}% | Q = {q} | p-value = {p_value} | N Studies = {len(studies)}</text>
     
     <!-- Línea de referencia (efecto nulo) -->
-    <line x1="{left_margin + graph_width//2}" y1="{y_start}" x2="{left_margin + graph_width//2}" y2="{y_start + len(studies) * 40 + 50}" stroke="#999" stroke-width="2" stroke-dasharray="5,5"/>
-    <text x="{left_margin + graph_width//2}" y="{y_start - 10}" font-size="10" text-anchor="middle" fill="#666">No Effect (1.0)</text>
+    <line x1="{graph_start + graph_width//2}" y1="{y_start}" x2="{graph_start + graph_width//2}" y2="{y_start + len(studies) * 40 + 50}" stroke="#999" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="{graph_start + graph_width//2}" y="{y_start - 10}" font-size="10" text-anchor="middle" fill="#666">No Effect (1.0)</text>
     
     <!-- Estudios -->'''
     
     y_pos = y_start
     for i, study in enumerate(studies):
         # Escala: 1 unidad = 100 pixels
-        center_x = left_margin + graph_width//2 + (study['effect'] - 1.0) * 120
-        left_x = left_margin + graph_width//2 + (study['ci_lower'] - 1.0) * 120
-        right_x = left_margin + graph_width//2 + (study['ci_upper'] - 1.0) * 120
+        center_x = graph_start + graph_width//2 + (study['effect'] - 1.0) * 120
+        left_x = graph_start + graph_width//2 + (study['ci_lower'] - 1.0) * 120
+        right_x = graph_start + graph_width//2 + (study['ci_upper'] - 1.0) * 120
         
         # Obtener color del estudio
         color = study.get('color', '#2196F3')
+        
+        # Rectángulo de color pequeño a la izquierda
+        svg += f'\n    <rect x="10" y="{y_pos - 8}" width="12" height="12" fill="{color}" rx="2"/>'
+        
+        # Nombre del estudio a la izquierda (truncado)
+        name_truncated = study["name"][:35] if len(study["name"]) > 35 else study["name"]
+        svg += f'\n    <text x="28" y="{y_pos + 5}" font-size="9" fill="#333" text-anchor="start">{name_truncated}</text>'
         
         # Línea de intervalo de confianza con color del estudio
         svg += f'\n    <line x1="{left_x}" y1="{y_pos}" x2="{right_x}" y2="{y_pos}" stroke="{color}" stroke-width="2"/>'
@@ -932,30 +943,28 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
         # Punto de efecto con color del estudio
         svg += f'\n    <circle cx="{center_x}" cy="{y_pos}" r="5" fill="{color}"/>'
         
-        # Etiqueta del estudio (título truncado a la izquierda) con color
-        svg += f'\n    <text x="20" y="{y_pos + 5}" font-size="9" fill="{color}" text-anchor="start" font-weight="bold">{study["name"]}</text>'
-        
         # Valores (efecto e IC) a la derecha
-        svg += f'\n    <text x="1150" y="{y_pos + 5}" font-size="9" fill="#666" text-anchor="start">{study["effect"]} [{study["ci_lower"]}, {study["ci_upper"]}]</text>'
+        svg += f'\n    <text x="{graph_start + graph_width + 10}" y="{y_pos + 5}" font-size="9" fill="#666" text-anchor="start">{study["effect"]} [{study["ci_lower"]}, {study["ci_upper"]}]</text>'
         
         y_pos += 40
     
     # Línea de efecto combinado
-    combined_x = left_margin + graph_width//2 + (combined_effect - 1.0) * 120
+    combined_x = graph_start + graph_width//2 + (combined_effect - 1.0) * 120
+    svg += f'\n    <rect x="10" y="{y_pos - 8}" width="12" height="12" fill="#D32F2F" rx="2"/>'
+    svg += f'\n    <text x="28" y="{y_pos + 5}" font-size="11" font-weight="bold" fill="#D32F2F">COMBINED EFFECT</text>'
     svg += f'\n    <line x1="{combined_x - 40}" y1="{y_pos}" x2="{combined_x + 40}" y2="{y_pos}" stroke="#D32F2F" stroke-width="4"/>'
     svg += f'\n    <circle cx="{combined_x}" cy="{y_pos}" r="6" fill="#D32F2F"/>'
-    svg += f'\n    <text x="20" y="{y_pos + 5}" font-size="11" font-weight="bold" fill="#D32F2F">COMBINED EFFECT</text>'
-    svg += f'\n    <text x="1150" y="{y_pos + 5}" font-size="10" font-weight="bold" fill="#D32F2F">{combined_effect}</text>'
+    svg += f'\n    <text x="{graph_start + graph_width + 10}" y="{y_pos + 5}" font-size="10" font-weight="bold" fill="#D32F2F">{combined_effect}</text>'
     
     # Eje X
     x_axis_y = y_pos + 50
-    svg += f'\n    <line x1="{left_margin}" y1="{x_axis_y}" x2="{left_margin + graph_width}" y2="{x_axis_y}" stroke="#333" stroke-width="2"/>'
-    svg += f'\n    <text x="{left_margin}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">0.5</text>'
-    svg += f'\n    <text x="{left_margin + graph_width//6}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">1.0</text>'
-    svg += f'\n    <text x="{left_margin + graph_width//3}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">1.5</text>'
-    svg += f'\n    <text x="{left_margin + graph_width//2}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">2.0</text>'
-    svg += f'\n    <text x="{left_margin + 2*graph_width//3}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">2.5</text>'
-    svg += f'\n    <text x="{left_margin + graph_width}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">3.0</text>'
+    svg += f'\n    <line x1="{graph_start}" y1="{x_axis_y}" x2="{graph_start + graph_width}" y2="{x_axis_y}" stroke="#333" stroke-width="2"/>'
+    svg += f'\n    <text x="{graph_start}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">0.5</text>'
+    svg += f'\n    <text x="{graph_start + graph_width//6}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">1.0</text>'
+    svg += f'\n    <text x="{graph_start + graph_width//3}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">1.5</text>'
+    svg += f'\n    <text x="{graph_start + graph_width//2}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">2.0</text>'
+    svg += f'\n    <text x="{graph_start + 2*graph_width//3}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">2.5</text>'
+    svg += f'\n    <text x="{graph_start + graph_width}" y="{x_axis_y + 20}" font-size="10" text-anchor="middle" fill="#333">3.0</text>'
     
     svg += '\n</svg>'
     
@@ -1005,13 +1014,19 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
                 'se': se
             })
     
+    # Layout mejorado: nombres a la izquierda, gráfico a la derecha
+    names_width = 300
+    graph_start = names_width + 50
+    graph_width = 600
+    total_width = graph_start + graph_width + 100
+    
     # Crear SVG con mejor layout
-    svg = f'''<svg width="1300" height="750" xmlns="http://www.w3.org/2000/svg">
+    svg = f'''<svg width="{total_width}" height="750" xmlns="http://www.w3.org/2000/svg">
     <!-- Fondo -->
-    <rect width="1300" height="750" fill="#f8f9fa"/>
+    <rect width="{total_width}" height="750" fill="#f8f9fa"/>
     
     <!-- Título -->
-    <text x="650" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#1a1a1a">
+    <text x="{total_width//2}" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#1a1a1a">
         Funnel Plot - Publication Bias Assessment
     </text>
     
@@ -1019,57 +1034,57 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
     <text x="20" y="60" font-size="12" fill="#666">I² = {i2}% | Q = {q} | p-value = {p_value} | N Studies = {len(studies)}</text>
     
     <!-- Línea de referencia (efecto nulo) -->
-    <line x1="550" y1="100" x2="550" y2="600" stroke="#999" stroke-width="2" stroke-dasharray="5,5"/>
-    <text x="550" y="90" font-size="10" text-anchor="middle" fill="#666">No Effect</text>
+    <line x1="{graph_start + graph_width//2}" y1="100" x2="{graph_start + graph_width//2}" y2="600" stroke="#999" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="{graph_start + graph_width//2}" y="90" font-size="10" text-anchor="middle" fill="#666">No Effect</text>
     
     <!-- Líneas de confianza (95%) -->
-    <line x1="450" y1="100" x2="550" y2="600" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="3,3"/>
-    <line x1="650" y1="100" x2="550" y2="600" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="{graph_start + graph_width//2 - 100}" y1="100" x2="{graph_start + graph_width//2}" y2="600" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="{graph_start + graph_width//2 + 100}" y1="100" x2="{graph_start + graph_width//2}" y2="600" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="3,3"/>
     
     <!-- Estudios con etiquetas -->'''
     
     for i, study in enumerate(studies):
         # Escala: efecto en X (0.5 a 2.5), SE en Y (0.3 a 0.05)
-        x = 550 + (study['effect'] - 1.5) * 140  # Centrado en 1.5
+        x = graph_start + graph_width//2 + (study['effect'] - 1.5) * 140  # Centrado en 1.5
         y = 600 - (study['se'] - 0.05) * 1400  # Invertido (SE pequeño arriba)
         
         # Obtener color del estudio
         color = study.get('color', '#2196F3')
         
+        # Rectángulo de color pequeño a la izquierda
+        svg += f'\n    <rect x="10" y="{y - 8}" width="12" height="12" fill="{color}" rx="2"/>'
+        
+        # Nombre del estudio a la izquierda (truncado)
+        name_truncated = study["name"][:35] if len(study["name"]) > 35 else study["name"]
+        svg += f'\n    <text x="28" y="{y + 5}" font-size="8" fill="#333" text-anchor="start">{name_truncated}</text>'
+        
         # Punto del estudio con color
         svg += f'\n    <circle cx="{x}" cy="{y}" r="6" fill="{color}" opacity="0.8"/>'
-        
-        # Etiqueta del estudio (título truncado, posicionado mejor) con color
-        # Si está a la izquierda, poner etiqueta a la izquierda
-        if x < 550:
-            svg += f'\n    <text x="{x - 10}" y="{y + 5}" font-size="8" fill="{color}" text-anchor="end" font-weight="bold">{study["name"]}</text>'
-        else:
-            svg += f'\n    <text x="{x + 10}" y="{y + 5}" font-size="8" fill="{color}" text-anchor="start" font-weight="bold">{study["name"]}</text>'
     
-    svg += '''
+    svg += f'''
     <!-- Etiquetas de ejes -->
-    <text x="450" y="550" font-size="12" text-anchor="middle" fill="#333">Effect Size</text>
-    <text x="30" y="300" font-size="12" text-anchor="middle" fill="#333" transform="rotate(-90 30 300)">Standard Error</text>
+    <text x="{graph_start + graph_width//2}" y="650" font-size="12" text-anchor="middle" fill="#333">Effect Size</text>
+    <text x="320" y="300" font-size="12" text-anchor="middle" fill="#333" transform="rotate(-90 320 300)">Standard Error</text>
     
     <!-- Escala X -->
-    <text x="300" y="570" font-size="10" text-anchor="middle" fill="#333">0.5</text>
-    <text x="350" y="570" font-size="10" text-anchor="middle" fill="#333">1.0</text>
-    <text x="400" y="570" font-size="10" text-anchor="middle" fill="#333">1.5</text>
-    <text x="450" y="570" font-size="10" text-anchor="middle" fill="#333">2.0</text>
-    <text x="500" y="570" font-size="10" text-anchor="middle" fill="#333">2.5</text>
+    <text x="{graph_start}" y="650" font-size="10" text-anchor="middle" fill="#333">0.5</text>
+    <text x="{graph_start + graph_width//6}" y="650" font-size="10" text-anchor="middle" fill="#333">1.0</text>
+    <text x="{graph_start + graph_width//3}" y="650" font-size="10" text-anchor="middle" fill="#333">1.5</text>
+    <text x="{graph_start + graph_width//2}" y="650" font-size="10" text-anchor="middle" fill="#333">2.0</text>
+    <text x="{graph_start + 2*graph_width//3}" y="650" font-size="10" text-anchor="middle" fill="#333">2.5</text>
     
     <!-- Escala Y -->
-    <text x="380" y="530" font-size="9" text-anchor="end" fill="#333">0.05</text>
-    <text x="380" y="380" font-size="9" text-anchor="end" fill="#333">0.15</text>
-    <text x="380" y="230" font-size="9" text-anchor="end" fill="#333">0.25</text>
+    <text x="{graph_start - 20}" y="610" font-size="9" text-anchor="end" fill="#333">0.05</text>
+    <text x="{graph_start - 20}" y="460" font-size="9" text-anchor="end" fill="#333">0.15</text>
+    <text x="{graph_start - 20}" y="310" font-size="9" text-anchor="end" fill="#333">0.25</text>
     
     <!-- Leyenda -->
-    <rect x="650" y="100" width="230" height="100" fill="white" stroke="#ccc" stroke-width="1" rx="5"/>
-    <text x="665" y="120" font-size="11" font-weight="bold" fill="#333">Interpretation:</text>
-    <text x="665" y="140" font-size="10" fill="#666">• Symmetric: No bias</text>
-    <text x="665" y="155" font-size="10" fill="#666">• Asymmetric: Possible bias</text>
-    <text x="665" y="170" font-size="10" fill="#666">• I² = {i2}%: Heterogeneity</text>
-    <text x="665" y="185" font-size="10" fill="#666">• p-value = {p_value}</text>
+    <rect x="{graph_start + graph_width + 20}" y="100" width="230" height="100" fill="white" stroke="#ccc" stroke-width="1" rx="5"/>
+    <text x="{graph_start + graph_width + 35}" y="120" font-size="11" font-weight="bold" fill="#333">Interpretation:</text>
+    <text x="{graph_start + graph_width + 35}" y="140" font-size="10" fill="#666">• Symmetric: No bias</text>
+    <text x="{graph_start + graph_width + 35}" y="155" font-size="10" fill="#666">• Asymmetric: Possible bias</text>
+    <text x="{graph_start + graph_width + 35}" y="170" font-size="10" fill="#666">• I² = {i2}%: Heterogeneity</text>
+    <text x="{graph_start + graph_width + 35}" y="185" font-size="10" fill="#666">• p-value = {p_value}</text>
     
     </svg>'''
     
