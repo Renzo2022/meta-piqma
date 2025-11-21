@@ -895,13 +895,17 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
     height = 150 + (len(studies) * 40) + 100
     y_start = 100
     
-    # Layout mejorado: nombres a la izquierda, gráfico a la derecha
-    names_width = 300  # Ancho para nombres y colores
-    graph_start = names_width + 50  # Inicio del gráfico
+    # Layout con dos columnas separadas: recuadro de nombres y gráfico
+    names_box_width = 320  # Ancho del recuadro de nombres
+    names_box_x = 10
+    names_box_y = 80
+    names_box_height = len(studies) * 40 + 60
+    
+    graph_start = names_box_x + names_box_width + 30  # Inicio del gráfico
     graph_width = 600  # Ancho del gráfico
     total_width = graph_start + graph_width + 100
     
-    # Crear SVG con layout mejorado
+    # Crear SVG con layout separado
     svg = f'''<svg width="{total_width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
     <!-- Fondo -->
     <rect width="{total_width}" height="{height}" fill="#f8f9fa"/>
@@ -914,6 +918,10 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
     <!-- Información de métricas -->
     <text x="20" y="60" font-size="12" fill="#666">I² = {i2}% | Q = {q} | p-value = {p_value} | N Studies = {len(studies)}</text>
     
+    <!-- RECUADRO DE NOMBRES (History Box) -->
+    <rect x="{names_box_x}" y="{names_box_y}" width="{names_box_width}" height="{names_box_height}" fill="white" stroke="#ddd" stroke-width="2" rx="8"/>
+    <text x="{names_box_x + 15}" y="{names_box_y + 25}" font-size="12" font-weight="bold" fill="#333">Studies</text>
+    
     <!-- Línea de referencia (efecto nulo) -->
     <line x1="{graph_start + graph_width//2}" y1="{y_start}" x2="{graph_start + graph_width//2}" y2="{y_start + len(studies) * 40 + 50}" stroke="#999" stroke-width="2" stroke-dasharray="5,5"/>
     <text x="{graph_start + graph_width//2}" y="{y_start - 10}" font-size="10" text-anchor="middle" fill="#666">No Effect (1.0)</text>
@@ -921,6 +929,8 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
     <!-- Estudios -->'''
     
     y_pos = y_start
+    names_y_pos = names_box_y + 40
+    
     for i, study in enumerate(studies):
         # Escala: 1 unidad = 100 pixels
         center_x = graph_start + graph_width//2 + (study['effect'] - 1.0) * 120
@@ -930,14 +940,12 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
         # Obtener color del estudio
         color = study.get('color', '#2196F3')
         
-        # Rectángulo de color pequeño a la izquierda
-        svg += f'\n    <rect x="10" y="{y_pos - 8}" width="12" height="12" fill="{color}" rx="2"/>'
+        # EN EL RECUADRO: Rectángulo de color + nombre
+        svg += f'\n    <rect x="{names_box_x + 15}" y="{names_y_pos - 8}" width="12" height="12" fill="{color}" rx="2"/>'
+        name_truncated = study["name"][:30] if len(study["name"]) > 30 else study["name"]
+        svg += f'\n    <text x="{names_box_x + 35}" y="{names_y_pos + 5}" font-size="8" fill="#333" text-anchor="start">{name_truncated}</text>'
         
-        # Nombre del estudio a la izquierda (truncado)
-        name_truncated = study["name"][:35] if len(study["name"]) > 35 else study["name"]
-        svg += f'\n    <text x="28" y="{y_pos + 5}" font-size="9" fill="#333" text-anchor="start">{name_truncated}</text>'
-        
-        # Línea de intervalo de confianza con color del estudio
+        # EN EL GRÁFICO: Línea de intervalo de confianza con color del estudio
         svg += f'\n    <line x1="{left_x}" y1="{y_pos}" x2="{right_x}" y2="{y_pos}" stroke="{color}" stroke-width="2"/>'
         
         # Punto de efecto con color del estudio
@@ -947,11 +955,16 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
         svg += f'\n    <text x="{graph_start + graph_width + 10}" y="{y_pos + 5}" font-size="9" fill="#666" text-anchor="start">{study["effect"]} [{study["ci_lower"]}, {study["ci_upper"]}]</text>'
         
         y_pos += 40
+        names_y_pos += 40
     
     # Línea de efecto combinado
     combined_x = graph_start + graph_width//2 + (combined_effect - 1.0) * 120
-    svg += f'\n    <rect x="10" y="{y_pos - 8}" width="12" height="12" fill="#D32F2F" rx="2"/>'
-    svg += f'\n    <text x="28" y="{y_pos + 5}" font-size="11" font-weight="bold" fill="#D32F2F">COMBINED EFFECT</text>'
+    
+    # EN EL RECUADRO: COMBINED EFFECT
+    svg += f'\n    <rect x="{names_box_x + 15}" y="{names_y_pos - 8}" width="12" height="12" fill="#D32F2F" rx="2"/>'
+    svg += f'\n    <text x="{names_box_x + 35}" y="{names_y_pos + 5}" font-size="9" font-weight="bold" fill="#D32F2F">COMBINED</text>'
+    
+    # EN EL GRÁFICO: Línea de efecto combinado
     svg += f'\n    <line x1="{combined_x - 40}" y1="{y_pos}" x2="{combined_x + 40}" y2="{y_pos}" stroke="#D32F2F" stroke-width="4"/>'
     svg += f'\n    <circle cx="{combined_x}" cy="{y_pos}" r="6" fill="#D32F2F"/>'
     svg += f'\n    <text x="{graph_start + graph_width + 10}" y="{y_pos + 5}" font-size="10" font-weight="bold" fill="#D32F2F">{combined_effect}</text>'
@@ -1014,9 +1027,13 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
                 'se': se
             })
     
-    # Layout mejorado: nombres a la izquierda, gráfico a la derecha
-    names_width = 300
-    graph_start = names_width + 50
+    # Layout con dos columnas separadas: recuadro de nombres y gráfico
+    names_box_width = 320
+    names_box_x = 10
+    names_box_y = 80
+    names_box_height = 500
+    
+    graph_start = names_box_x + names_box_width + 30
     graph_width = 600
     total_width = graph_start + graph_width + 100
     
@@ -1033,6 +1050,10 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
     <!-- Información de métricas -->
     <text x="20" y="60" font-size="12" fill="#666">I² = {i2}% | Q = {q} | p-value = {p_value} | N Studies = {len(studies)}</text>
     
+    <!-- RECUADRO DE NOMBRES (History Box) -->
+    <rect x="{names_box_x}" y="{names_box_y}" width="{names_box_width}" height="{names_box_height}" fill="white" stroke="#ddd" stroke-width="2" rx="8"/>
+    <text x="{names_box_x + 15}" y="{names_box_y + 25}" font-size="12" font-weight="bold" fill="#333">Studies</text>
+    
     <!-- Línea de referencia (efecto nulo) -->
     <line x1="{graph_start + graph_width//2}" y1="100" x2="{graph_start + graph_width//2}" y2="600" stroke="#999" stroke-width="2" stroke-dasharray="5,5"/>
     <text x="{graph_start + graph_width//2}" y="90" font-size="10" text-anchor="middle" fill="#666">No Effect</text>
@@ -1043,6 +1064,7 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
     
     <!-- Estudios con etiquetas -->'''
     
+    names_y_pos = names_box_y + 40
     for i, study in enumerate(studies):
         # Escala: efecto en X (0.5 a 2.5), SE en Y (0.3 a 0.05)
         x = graph_start + graph_width//2 + (study['effect'] - 1.5) * 140  # Centrado en 1.5
@@ -1051,15 +1073,15 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
         # Obtener color del estudio
         color = study.get('color', '#2196F3')
         
-        # Rectángulo de color pequeño a la izquierda
-        svg += f'\n    <rect x="10" y="{y - 8}" width="12" height="12" fill="{color}" rx="2"/>'
+        # EN EL RECUADRO: Rectángulo de color + nombre
+        svg += f'\n    <rect x="{names_box_x + 15}" y="{names_y_pos - 8}" width="12" height="12" fill="{color}" rx="2"/>'
+        name_truncated = study["name"][:30] if len(study["name"]) > 30 else study["name"]
+        svg += f'\n    <text x="{names_box_x + 35}" y="{names_y_pos + 5}" font-size="8" fill="#333" text-anchor="start">{name_truncated}</text>'
         
-        # Nombre del estudio a la izquierda (truncado)
-        name_truncated = study["name"][:35] if len(study["name"]) > 35 else study["name"]
-        svg += f'\n    <text x="28" y="{y + 5}" font-size="8" fill="#333" text-anchor="start">{name_truncated}</text>'
-        
-        # Punto del estudio con color
+        # EN EL GRÁFICO: Punto del estudio con color
         svg += f'\n    <circle cx="{x}" cy="{y}" r="6" fill="{color}" opacity="0.8"/>'
+        
+        names_y_pos += 40
     
     svg += f'''
     <!-- Etiquetas de ejes -->
