@@ -2896,7 +2896,7 @@ const ModuleMetaAnalysis = () => {
         // Cargar datos de extracción desde Supabase
         const data = await apiClient.loadExtractionData(state.currentProjectId);
         const dataMap = {};
-        const articleIds = new Set();
+        const articleIdsWithData = new Set();
         
         data.forEach((row) => {
           dataMap[row.article_id] = {
@@ -2907,26 +2907,44 @@ const ModuleMetaAnalysis = () => {
             mean_control: row.mean_control,
             sd_control: row.sd_control,
           };
-          articleIds.add(row.article_id);
+          articleIdsWithData.add(row.article_id);
         });
         
         setExtractionData(dataMap);
         
-        // Si no hay artículos en el estado, cargar desde Supabase
-        let articlesToUse = state.projectArticles;
-        if (!articlesToUse || articlesToUse.length === 0) {
-          articlesToUse = await apiClient.loadArticles(state.currentProjectId);
-        }
+        // Cargar todos los artículos desde Supabase
+        const allArticles = await apiClient.loadArticles(state.currentProjectId);
         
-        // Obtener artículos que tienen datos guardados
-        const articlesWithSavedData = articlesToUse.filter(
-          (a) => a.status === 'included_final' || articleIds.has(a.id)
+        // Crear artículos "virtuales" para los datos guardados que no están en la lista actual
+        const virtualArticles = Array.from(articleIdsWithData)
+          .filter(articleId => !allArticles.some(a => a.id === articleId))
+          .map(articleId => ({
+            id: articleId,
+            title: articleId, // Usar el ID como título temporal
+            status: 'included_final',
+            source: 'saved_data',
+            year: null,
+            abstract: null,
+            authors: '',
+            url: '',
+          }));
+        
+        // Combinar artículos reales + virtuales (de búsquedas anteriores)
+        const combinedArticles = [
+          ...allArticles.filter((a) => a.status === 'included_final'),
+          ...virtualArticles,
+        ];
+        
+        // Eliminar duplicados por ID
+        const uniqueArticles = Array.from(
+          new Map(combinedArticles.map(a => [a.id, a])).values()
         );
-        setArticlesWithData(articlesWithSavedData);
+        
+        setArticlesWithData(uniqueArticles);
       }
     };
     loadData();
-  }, [state.currentProjectId, state.projectArticles]);
+  }, [state.currentProjectId]);
 
   // Manejar cambio en inputs
   const handleInputChange = async (articleId, field, value) => {
