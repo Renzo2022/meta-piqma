@@ -683,19 +683,61 @@ const apiClient = {
   // Guarda datos de extracción en Supabase (Módulo 6)
   saveExtractionData: async (projectId, articleId, extractionData) => {
     try {
-      // IMPORTANTE: articleId es un string (ej: "crossref_10.14341/2072-0351-3596")
-      // pero la tabla meta_analysis_data espera un bigint
-      // Por ahora, simplemente ignoramos los errores de Supabase
-      // En producción, necesitarías mapear los IDs de string a bigint
-      
       console.log(`[Meta-Analysis] Guardando datos para artículo: ${articleId}`);
       console.log(`[Meta-Analysis] Datos:`, extractionData);
       
-      // Nota: Los datos se guardan en el estado local de React
-      // Los errores de Supabase 400 son esperados porque:
-      // - articleId es string pero la tabla espera bigint
-      // - Solución: Crear una tabla separada con article_id como string
-      // O mapear los IDs correctamente
+      // Verificar si ya existe un registro para este artículo
+      const { data: existing, error: selectError } = await supabase
+        .from('meta_analysis_data')
+        .select('id')
+        .eq('article_id', articleId)
+        .single();
+      
+      if (selectError && selectError.code !== 'PGRST116') {
+        // Error diferente a "no rows found"
+        console.error('Error verificando existencia:', selectError);
+      }
+      
+      if (existing) {
+        // Actualizar registro existente
+        const { error } = await supabase
+          .from('meta_analysis_data')
+          .update({
+            n_intervention: extractionData.n_intervention || null,
+            mean_intervention: extractionData.mean_intervention || null,
+            sd_intervention: extractionData.sd_intervention || null,
+            n_control: extractionData.n_control || null,
+            mean_control: extractionData.mean_control || null,
+            sd_control: extractionData.sd_control || null,
+          })
+          .eq('article_id', articleId);
+        
+        if (error) {
+          console.error('Error actualizando datos de extracción:', error);
+          return false;
+        }
+        console.log(`[Meta-Analysis] ✓ Datos actualizados para: ${articleId}`);
+      } else {
+        // Insertar nuevo registro
+        const { error } = await supabase
+          .from('meta_analysis_data')
+          .insert({
+            project_id: projectId,
+            article_id: articleId,
+            n_intervention: extractionData.n_intervention || null,
+            mean_intervention: extractionData.mean_intervention || null,
+            sd_intervention: extractionData.sd_intervention || null,
+            n_control: extractionData.n_control || null,
+            mean_control: extractionData.mean_control || null,
+            sd_control: extractionData.sd_control || null,
+          });
+        
+        if (error) {
+          console.error('Error guardando datos de extracción:', error);
+          return false;
+        }
+        console.log(`[Meta-Analysis] ✓ Datos guardados para: ${articleId}`);
+      }
       
       return true;
     } catch (err) {
