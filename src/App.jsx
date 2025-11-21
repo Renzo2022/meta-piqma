@@ -2162,15 +2162,19 @@ const ModuleEligibility = () => {
 
   const handleIncludeFinal = async () => {
     if (nextArticle) {
+      console.log('[Eligibility] nextArticle estructura:', nextArticle);
+      console.log('[Eligibility] nextArticle.id:', nextArticle.id, 'tipo:', typeof nextArticle.id);
+      
       // Actualizar en estado local
       dispatch({
         type: 'UPDATE_ARTICLE_STATUS',
         payload: { articleId: nextArticle.uniqueId, newStatus: 'included_final' },
       });
       
-      // Guardar en Supabase
-      await apiClient.updateArticleStatus(nextArticle.id, 'included_final');
-      console.log(`[Eligibility] ✓ Artículo ${nextArticle.id} marcado como included_final en Supabase`);
+      // Guardar en Supabase - usar el ID numérico correcto
+      const articleIdToUpdate = nextArticle.id;
+      await apiClient.updateArticleStatus(articleIdToUpdate, 'included_final');
+      console.log(`[Eligibility] ✓ Artículo ${articleIdToUpdate} marcado como included_final en Supabase`);
     }
   };
 
