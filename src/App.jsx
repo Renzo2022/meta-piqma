@@ -2910,10 +2910,12 @@ const ModuleMetaAnalysis = () => {
     const loadData = async () => {
       if (state.currentProjectId) {
         console.log('[ModuleMetaAnalysis] Cargando datos para proyecto:', state.currentProjectId);
+        console.log('[ModuleMetaAnalysis] Artículos en estado:', state.projectArticles.length);
+        console.log('[ModuleMetaAnalysis] Artículos included_final en estado:', state.projectArticles.filter(a => a.status === 'included_final').length);
         
         // Cargar datos de extracción desde Supabase
         const data = await apiClient.loadExtractionData(state.currentProjectId);
-        console.log('[ModuleMetaAnalysis] Datos de extracción cargados:', data);
+        console.log('[ModuleMetaAnalysis] Datos de extracción cargados:', data.length);
         
         const dataMap = {};
         const articleIdsWithData = new Set();
@@ -2935,8 +2937,9 @@ const ModuleMetaAnalysis = () => {
         
         // Cargar todos los artículos desde Supabase
         const allArticles = await apiClient.loadArticles(state.currentProjectId);
-        console.log('[ModuleMetaAnalysis] Todos los artículos:', allArticles.length);
-        console.log('[ModuleMetaAnalysis] Artículos included_final:', allArticles.filter(a => a.status === 'included_final').length);
+        console.log('[ModuleMetaAnalysis] Todos los artículos desde Supabase:', allArticles.length);
+        console.log('[ModuleMetaAnalysis] Artículos included_final desde Supabase:', allArticles.filter(a => a.status === 'included_final').length);
+        console.log('[ModuleMetaAnalysis] Artículos included_final detalles:', allArticles.filter(a => a.status === 'included_final').map(a => ({ id: a.id, title: a.title, status: a.status })));
         
         // Obtener artículos included_final
         const includedFinalArticles = allArticles.filter((a) => a.status === 'included_final');
@@ -2972,6 +2975,7 @@ const ModuleMetaAnalysis = () => {
         );
         
         console.log('[ModuleMetaAnalysis] Artículos únicos finales:', uniqueArticles.length);
+        console.log('[ModuleMetaAnalysis] Artículos finales:', uniqueArticles.map(a => ({ id: a.id, title: a.title })));
         setArticlesWithData(uniqueArticles);
       }
     };
