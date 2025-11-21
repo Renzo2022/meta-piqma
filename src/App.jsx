@@ -20,6 +20,7 @@ import {
   Plus,
   Share2,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 import CytoscapeComponent from 'react-cytoscapejs';
 import { createClient } from '@supabase/supabase-js';
