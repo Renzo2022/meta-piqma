@@ -1090,7 +1090,7 @@ async def run_meta_analysis(request: RunMetaAnalysisRequest):
     print(f"[META-ANALYSIS] Leyendo datos desde Supabase...")
     
     try:
-        # Usar datos reales enviados desde React (con títulos de artículos)
+        # Usar datos enviados desde React (con títulos de artículos)
         extraction_data = request.extractionData if request.extractionData else []
         
         print(f"[META-ANALYSIS] Datos recibidos: {len(extraction_data)} estudios")
@@ -1100,8 +1100,12 @@ async def run_meta_analysis(request: RunMetaAnalysisRequest):
             for i, study in enumerate(extraction_data, 1):
                 title = study.get('title', f'Study {i}')[:60]
                 print(f"  {i}. {title}")
-                print(f"     Intervención: n={study.get('n_intervention')}, media={study.get('mean_intervention')}")
-                print(f"     Control: n={study.get('n_control')}, media={study.get('mean_control')}")
+                n_int = study.get('n_intervention')
+                mean_int = study.get('mean_intervention')
+                n_ctrl = study.get('n_control')
+                mean_ctrl = study.get('mean_control')
+                print(f"     Intervención: n={n_int}, media={mean_int}")
+                print(f"     Control: n={n_ctrl}, media={mean_ctrl}")
         
         # Calcular métricas reales basadas en los datos
         if extraction_data and len(extraction_data) > 0:
