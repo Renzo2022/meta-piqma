@@ -518,23 +518,14 @@ const apiClient = {
         updateData.exclusion_reason = reason;
       }
 
-      // Intentar actualizar por ID numérico primero
-      let result = await supabase
+      // El articleId es el source_id (string), así que actualizar por source_id
+      const { error } = await supabase
         .from('articles')
         .update(updateData)
-        .eq('id', parseInt(articleId));
+        .eq('source_id', articleId);
       
-      // Si falla, intentar por source_id (string)
-      if (result.error && result.error.code === '400') {
-        console.log('[updateArticleStatus] Reintentando con source_id:', articleId);
-        result = await supabase
-          .from('articles')
-          .update(updateData)
-          .eq('source_id', articleId);
-      }
-      
-      if (result.error) {
-        console.error('Error actualizando artículo:', result.error);
+      if (error) {
+        console.error('Error actualizando artículo:', error);
         return false;
       }
       
