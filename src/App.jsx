@@ -782,7 +782,8 @@ const apiClient = {
             n_control: extractionData.n_control || null,
             mean_control: extractionData.mean_control || null,
             sd_control: extractionData.sd_control || null,
-          });
+          })
+          .select();
         
         if (error) {
           console.error('Error guardando datos de extracción:', error);
