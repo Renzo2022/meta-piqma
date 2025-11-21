@@ -882,9 +882,9 @@ async def run_meta_analysis(request: RunMetaAnalysisRequest):
         print(f"  - p-value = {p_value}")
         print(f"  - Heterogeneity = {heterogeneity}")
         
-        # URLs simuladas de gráficos
-        forest_plot_url = f"https://via.placeholder.com/800x600?text=Forest+Plot+I²={i2}%"
-        funnel_plot_url = f"https://via.placeholder.com/800x600?text=Funnel+Plot+Q={q}"
+        # URLs simuladas de gráficos usando imgix (servicio confiable)
+        forest_plot_url = f"https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop"
+        funnel_plot_url = f"https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop"
         
         return RunMetaAnalysisResponse(
             success=True,

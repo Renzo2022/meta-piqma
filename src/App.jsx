@@ -3112,7 +3112,6 @@ const ModuleGraphAnalysis = () => {
         'background-color': '#FF6188',
         'width': '45px',
         'height': '45px',
-        'shape': 'circle',
       },
     },
     {
@@ -3121,7 +3120,6 @@ const ModuleGraphAnalysis = () => {
         'background-color': '#FFD866',
         'width': '55px',
         'height': '55px',
-        'shape': 'circle',
         'font-weight': 'bold',
         'font-size': '12px',
         'color': '#272822',
