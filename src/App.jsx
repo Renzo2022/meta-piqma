@@ -730,15 +730,18 @@ const apiClient = {
   // Guarda datos de extracción en Supabase (Módulo 6)
   saveExtractionData: async (projectId, articleId, extractionData) => {
     try {
-      console.log(`[Meta-Analysis] Guardando datos para artículo ID: ${articleId}`);
-      console.log(`[Meta-Analysis] Tipo de articleId:`, typeof articleId);
+      // Convertir articleId a string para que coincida con article_id TEXT en Supabase
+      const articleIdStr = String(articleId);
+      
+      console.log(`[Meta-Analysis] Guardando datos para artículo ID: ${articleIdStr}`);
+      console.log(`[Meta-Analysis] Tipo de articleId:`, typeof articleIdStr);
       console.log(`[Meta-Analysis] Datos:`, extractionData);
       
       // Verificar si ya existe un registro para este artículo
       const { data: existing, error: selectError } = await supabase
         .from('meta_analysis_data')
         .select('id')
-        .eq('article_id', articleId)
+        .eq('article_id', articleIdStr)
         .single();
       
       if (selectError && selectError.code !== 'PGRST116') {
@@ -758,20 +761,20 @@ const apiClient = {
             mean_control: extractionData.mean_control || null,
             sd_control: extractionData.sd_control || null,
           })
-          .eq('article_id', articleId);
+          .eq('article_id', articleIdStr);
         
         if (error) {
           console.error('Error actualizando datos de extracción:', error);
           return false;
         }
-        console.log(`[Meta-Analysis] ✓ Datos actualizados para artículo: ${articleId}`);
+        console.log(`[Meta-Analysis] ✓ Datos actualizados para artículo: ${articleIdStr}`);
       } else {
         // Insertar nuevo registro
         const { error } = await supabase
           .from('meta_analysis_data')
           .insert({
             project_id: projectId,
-            article_id: articleId,
+            article_id: articleIdStr,
             n_intervention: extractionData.n_intervention || null,
             mean_intervention: extractionData.mean_intervention || null,
             sd_intervention: extractionData.sd_intervention || null,
@@ -784,7 +787,7 @@ const apiClient = {
           console.error('Error guardando datos de extracción:', error);
           return false;
         }
-        console.log(`[Meta-Analysis] ✓ Datos guardados para artículo: ${articleId}`);
+        console.log(`[Meta-Analysis] ✓ Datos guardados para artículo: ${articleIdStr}`);
       }
       
       return true;
