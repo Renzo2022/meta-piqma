@@ -2144,20 +2144,26 @@ const ModuleEligibility = () => {
   const excluded = state.projectArticles.filter((a) => a.status === 'excluded_fulltext');
   const nextArticle = forReview.length > 0 ? forReview[0] : null;
 
-  const handleIncludeFinal = () => {
+  const handleIncludeFinal = async () => {
     if (nextArticle) {
+      // Actualizar en estado local
       dispatch({
         type: 'UPDATE_ARTICLE_STATUS',
         payload: { articleId: nextArticle.uniqueId, newStatus: 'included_final' },
       });
+      
+      // Guardar en Supabase
+      await apiClient.updateArticleStatus(nextArticle.id, 'included_final');
+      console.log(`[Eligibility] ✓ Artículo ${nextArticle.id} marcado como included_final en Supabase`);
     }
   };
 
-  const handleExcludeWithReason = (reason) => {
+  const handleExcludeWithReason = async (reason) => {
     if (reason === 'Otro') {
       setShowOtherReasonModal(true);
     } else {
       if (nextArticle) {
+        // Actualizar en estado local
         dispatch({
           type: 'UPDATE_ARTICLE_STATUS',
           payload: {
@@ -2166,12 +2172,17 @@ const ModuleEligibility = () => {
             reason,
           },
         });
+        
+        // Guardar en Supabase
+        await apiClient.updateArticleStatus(nextArticle.id, 'excluded_fulltext', reason);
+        console.log(`[Eligibility] ✓ Artículo ${nextArticle.id} excluido en Supabase`);
       }
     }
   };
 
-  const handleAcceptOtherReason = () => {
+  const handleAcceptOtherReason = async () => {
     if (otherReason.trim() && nextArticle) {
+      // Actualizar en estado local
       dispatch({
         type: 'UPDATE_ARTICLE_STATUS',
         payload: {
@@ -2180,6 +2191,11 @@ const ModuleEligibility = () => {
           reason: otherReason,
         },
       });
+      
+      // Guardar en Supabase
+      await apiClient.updateArticleStatus(nextArticle.id, 'excluded_fulltext', otherReason);
+      console.log(`[Eligibility] ✓ Artículo ${nextArticle.id} excluido con razón personalizada en Supabase`);
+      
       setOtherReason('');
       setShowOtherReasonModal(false);
     }
