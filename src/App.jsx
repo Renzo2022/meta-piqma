@@ -520,7 +520,7 @@ const apiClient = {
   // Actualiza el estado de un artículo específico
   updateArticleStatus: async (articleId, newStatus, reason = null) => {
     try {
-      console.log('[updateArticleStatus] Intentando actualizar artículo:', articleId, 'a status:', newStatus);
+      console.log('[updateArticleStatus] Intentando actualizar artículo ID:', articleId, 'a status:', newStatus);
       
       const updateData = {
         status: newStatus,
@@ -530,11 +530,11 @@ const apiClient = {
         updateData.exclusion_reason = reason;
       }
 
-      // El articleId es el source_id (string), así que actualizar por source_id
+      // El articleId es el ID numérico de Supabase
       const { error } = await supabase
         .from('articles')
         .update(updateData)
-        .eq('source_id', articleId);
+        .eq('id', articleId);
       
       if (error) {
         console.error('Error actualizando artículo:', error);
