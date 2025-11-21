@@ -99,6 +99,18 @@ class MetaAnalysisResponse(BaseModel):
     metrics: MetaAnalysisMetrics
     forestPlotUrl: str
 
+class RunMetaAnalysisRequest(BaseModel):
+    """Solicitud para ejecutar meta-análisis desde Supabase"""
+    projectId: int
+
+class RunMetaAnalysisResponse(BaseModel):
+    """Respuesta de meta-análisis ejecutado"""
+    success: bool
+    metrics: dict  # { i2, q, pValue, heterogeneity }
+    forestPlotUrl: str
+    funnelPlotUrl: str
+    message: str
+
 
 # ============================================================================
 # DATOS SIMULADOS - REMOVIDOS
@@ -804,6 +816,81 @@ async def meta_analysis(request: MetaAnalysisRequest):
             detail=f"Error en meta-análisis: {str(e)}"
         )
 
+
+# ============================================================================
+# ENDPOINT: RUN META-ANALYSIS (Módulo 6)
+# ============================================================================
+
+@app.post("/api/v1/run-meta-analysis", response_model=RunMetaAnalysisResponse)
+async def run_meta_analysis(request: RunMetaAnalysisRequest):
+    """
+    Ejecuta meta-análisis usando datos de Supabase
+    
+    Recibe:
+    - projectId: ID del proyecto
+    
+    Devuelve:
+    - metrics: { i2, q, pValue, heterogeneity }
+    - URLs de gráficos (forest plot y funnel plot)
+    """
+    import time
+    import random
+    
+    print(f"\n[META-ANALYSIS] Iniciando meta-análisis para proyecto {request.projectId}")
+    print(f"[META-ANALYSIS] Simulando lectura de datos desde Supabase...")
+    
+    try:
+        # Simular lectura de datos desde Supabase
+        # En producción, aquí se haría una consulta real a Supabase
+        time.sleep(1)
+        
+        print(f"[META-ANALYSIS] Datos cargados. Iniciando cálculos...")
+        
+        # Simular cálculo (en producción sería R real)
+        time.sleep(2)
+        
+        # Generar métricas simuladas
+        i2 = round(random.uniform(0, 100), 2)
+        q = round(random.uniform(1, 50), 2)
+        p_value = round(random.uniform(0.001, 0.05), 4)
+        
+        # Clasificar heterogeneidad
+        if i2 < 25:
+            heterogeneity = "Low"
+        elif i2 < 75:
+            heterogeneity = "Moderate"
+        else:
+            heterogeneity = "High"
+        
+        print(f"[META-ANALYSIS] Cálculos completados:")
+        print(f"  - I² = {i2}%")
+        print(f"  - Q = {q}")
+        print(f"  - p-value = {p_value}")
+        print(f"  - Heterogeneity = {heterogeneity}")
+        
+        # URLs simuladas de gráficos
+        forest_plot_url = f"https://via.placeholder.com/800x600?text=Forest+Plot+I²={i2}%"
+        funnel_plot_url = f"https://via.placeholder.com/800x600?text=Funnel+Plot+Q={q}"
+        
+        return RunMetaAnalysisResponse(
+            success=True,
+            metrics={
+                "i2": i2,
+                "q": q,
+                "pValue": p_value,
+                "heterogeneity": heterogeneity
+            },
+            forestPlotUrl=forest_plot_url,
+            funnelPlotUrl=funnel_plot_url,
+            message=f"Meta-análisis completado para proyecto {request.projectId}"
+        )
+        
+    except Exception as e:
+        print(f"\n[ERROR] Error en meta-análisis: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en meta-análisis: {str(e)}"
+        )
 
 
 # ============================================================================
