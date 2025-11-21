@@ -2436,77 +2436,73 @@ const ModulePRISMA = () => {
             exit={{ opacity: 0, height: 0 }}
             className="mt-6 grid grid-cols-2 gap-4 p-4 bg-monokai-dark rounded-lg border border-monokai-subtle border-opacity-20"
           >
-            {Object.entries(prismaData).map(([key, value]) => {
-              const labels = {
-                previous_studies: 'Estudios incluidos en versión previa',
-                previous_reports: 'Reportes de estudios en versión previa',
-                identified_databases: 'Registros identificados en bases de datos',
-                identified_databases_records: 'Registros identificados en registros',
-                identified_websites: 'Registros identificados en sitios web',
-                identified_organizations: 'Registros identificados en organizaciones',
-                identified_citations: 'Registros identificados en búsqueda de citaciones',
-                duplicates_removed: 'Registros duplicados eliminados',
-                marked_ineligible_automation: 'Registros marcados como inelegibles por automatización',
-                removed_other_reasons: 'Registros eliminados por otras razones',
-                records_screened: 'Registros cribados',
-                excluded_screening: 'Registros excluidos en cribado',
-                reports_sought_retrieval: 'Reportes buscados para recuperación (BD)',
-                reports_not_retrieved: 'Reportes no recuperados (BD)',
-                reports_assessed_fulltext: 'Reportes evaluados para elegibilidad (BD)',
-                exclusion_reasons_db: 'Razones de exclusión (Bases de datos)',
-                reports_sought_retrieval_other: 'Reportes buscados para recuperación (Otros)',
-                reports_not_retrieved_other: 'Reportes no recuperados (Otros)',
-                reports_assessed_fulltext_other: 'Reportes evaluados para elegibilidad (Otros)',
-                exclusion_reasons_other: 'Razones de exclusión (Otros métodos)',
-                new_studies_included: 'Nuevos estudios incluidos',
-                new_studies_reports: 'Reportes de nuevos estudios incluidos',
-                total_studies_included: 'Total de estudios incluidos',
-                total_studies_reports: 'Total de reportes incluidos',
-              };
+            {/* Estudios Previos */}
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Estudios incluidos en versión previa</label>
+              <input type="number" value={prismaData.previous_studies} onChange={(e) => handleDataChange('previous_studies', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
 
-              const subLabels = {
-                reason_1: 'Razón 1',
-                reason_2: 'Razón 2',
-                reason_3: 'Razón 3',
-              };
+            {/* Identificación - Bases de datos */}
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">PubMed</label>
+              <input type="number" value={prismaData.identified_pubmed || 0} onChange={(e) => handleDataChange('identified_pubmed', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Semantic Scholar</label>
+              <input type="number" value={prismaData.identified_semantic || 0} onChange={(e) => handleDataChange('identified_semantic', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">ArXiv</label>
+              <input type="number" value={prismaData.identified_arxiv || 0} onChange={(e) => handleDataChange('identified_arxiv', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Crossref</label>
+              <input type="number" value={prismaData.identified_crossref || 0} onChange={(e) => handleDataChange('identified_crossref', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
 
-              if (typeof value === 'object' && value !== null) {
-                // Mostrar campos anidados
-                return (
-                  <div key={key} className="col-span-2">
-                    <p className="text-sm font-semibold text-monokai-blue mb-2">{labels[key] || key}</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {Object.entries(value).map(([subKey, subValue]) => (
-                        <div key={subKey}>
-                          <label className="block text-xs font-semibold text-monokai-text mb-1">
-                            {subLabels[subKey] || subKey}
-                          </label>
-                          <input
-                            type="number"
-                            value={subValue}
-                            onChange={(e) => handleDataChange(`${key}.${subKey}`, e.target.value)}
-                            className="w-full px-2 py-1 text-sm bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-              return (
-                <div key={key}>
-                  <label className="block text-sm font-semibold text-monokai-text mb-2">
-                    {labels[key] || key}
-                  </label>
-                  <input
-                    type="number"
-                    value={value}
-                    onChange={(e) => handleDataChange(key, e.target.value)}
-                    className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue"
-                  />
-                </div>
-              );
-            })}
+            {/* Identificación - Otros métodos */}
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Sitios Web</label>
+              <input type="number" value={prismaData.identified_websites} onChange={(e) => handleDataChange('identified_websites', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Organizaciones</label>
+              <input type="number" value={prismaData.identified_organizations} onChange={(e) => handleDataChange('identified_organizations', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Búsqueda de citaciones</label>
+              <input type="number" value={prismaData.identified_citations} onChange={(e) => handleDataChange('identified_citations', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+
+            {/* Cribado */}
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Registros duplicados eliminados</label>
+              <input type="number" value={prismaData.duplicates_removed} onChange={(e) => handleDataChange('duplicates_removed', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Eliminar sin Abstract</label>
+              <input type="number" value={prismaData.without_abstract || 0} onChange={(e) => handleDataChange('without_abstract', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Registros cribados</label>
+              <input type="number" value={prismaData.records_screened} onChange={(e) => handleDataChange('records_screened', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Registros excluidos en cribado</label>
+              <input type="number" value={prismaData.excluded_screening} onChange={(e) => handleDataChange('excluded_screening', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+
+            {/* Elegibilidad - Bases de datos */}
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Reportes evaluados para elegibilidad (BD)</label>
+              <input type="number" value={prismaData.reports_assessed_fulltext} onChange={(e) => handleDataChange('reports_assessed_fulltext', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
+
+            {/* Incluidos */}
+            <div>
+              <label className="block text-sm font-semibold text-monokai-text mb-2">Estudios incluidos en la revisión</label>
+              <input type="number" value={prismaData.new_studies_included} onChange={(e) => handleDataChange('new_studies_included', e.target.value)} className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue" />
+            </div>
           </motion.div>
         )}
       </div>
