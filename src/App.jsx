@@ -3017,6 +3017,8 @@ const ModuleMetaAnalysis = () => {
 
   // Manejar cambio en inputs
   const handleInputChange = async (articleId, field, value) => {
+    console.log(`[handleInputChange] Cambio detectado - articleId: ${articleId}, field: ${field}, value: ${value}`);
+    
     const newData = {
       ...extractionData,
       [articleId]: {
@@ -3028,11 +3030,15 @@ const ModuleMetaAnalysis = () => {
 
     // Auto-guardar a Supabase
     if (state.currentProjectId) {
-      await apiClient.saveExtractionData(
+      console.log(`[handleInputChange] Llamando a saveExtractionData con projectId: ${state.currentProjectId}`);
+      const result = await apiClient.saveExtractionData(
         state.currentProjectId,
         articleId,
         newData[articleId]
       );
+      console.log(`[handleInputChange] Resultado de saveExtractionData:`, result);
+    } else {
+      console.warn('[handleInputChange] No hay projectId, no se puede guardar');
     }
   };
 
