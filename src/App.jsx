@@ -533,6 +533,27 @@ const apiClient = {
     }
   },
 
+  // Elimina todos los artículos de un proyecto en Supabase
+  deleteAllArticles: async (projectId) => {
+    try {
+      const { error } = await supabase
+        .from('articles')
+        .delete()
+        .eq('project_id', projectId);
+      
+      if (error) {
+        console.error('Error eliminando artículos:', error);
+        return false;
+      }
+      
+      console.log(`[Articles] ✓ Todos los artículos del proyecto ${projectId} fueron eliminados`);
+      return true;
+    } catch (err) {
+      console.error('Error en deleteAllArticles:', err);
+      return false;
+    }
+  },
+
   // Búsqueda real usando servidor Python
   async runRealSearch(strategies) {
     try {
@@ -1546,9 +1567,22 @@ const ModuleSearch = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  if (confirm('¿Estás seguro de que deseas limpiar la tabla de artículos?')) {
-                    dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: [] });
+                onClick={async () => {
+                  if (confirm('¿Estás seguro de que deseas limpiar la tabla de artículos? Esto eliminará todos los artículos de Supabase.')) {
+                    try {
+                      if (state.currentProjectId) {
+                        const success = await apiClient.deleteAllArticles(state.currentProjectId);
+                        if (success) {
+                          dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: [] });
+                          alert('Tabla limpiada correctamente');
+                        } else {
+                          alert('Error al limpiar la tabla');
+                        }
+                      }
+                    } catch (error) {
+                      console.error('Error:', error);
+                      alert('Error al limpiar la tabla: ' + error.message);
+                    }
                   }
                 }}
                 className="flex items-center gap-2 px-6 py-3 bg-monokai-red text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
