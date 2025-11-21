@@ -459,14 +459,26 @@ const apiClient = {
       const { data, error } = await supabase
         .from('articles')
         .select('*')
+        .eq('project_id', projectId)
+        .limit(1);
+      
+      if (data && data.length > 0) {
+        console.log('[loadArticles] Estructura de artículo:', Object.keys(data[0]));
+        console.log('[loadArticles] Primer artículo:', data[0]);
+      }
+      
+      // Cargar todos sin límite
+      const { data: allData, error: allError } = await supabase
+        .from('articles')
+        .select('*')
         .eq('project_id', projectId);
       
-      if (error) {
-        console.error('Error cargando artículos:', error);
+      if (allError) {
+        console.error('Error cargando artículos:', allError);
         return [];
       }
       
-      return data || [];
+      return allData || [];
     } catch (err) {
       console.error('Error en loadArticles:', err);
       return [];
