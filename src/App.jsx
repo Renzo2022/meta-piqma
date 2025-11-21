@@ -3099,7 +3099,7 @@ const ModuleMetaAnalysis = () => {
               </thead>
               <tbody className="divide-y divide-monokai-subtle divide-opacity-30">
                 {articlesWithData.map((article) => (
-                  <tr key={article.title} className="hover:bg-monokai-dark transition-colors">
+                  <tr key={article.id} className="hover:bg-monokai-dark transition-colors">
                     <td className="px-4 py-3">
                       <span className="text-monokai-text truncate block max-w-xs" title={article.title}>
                         {article.title}
