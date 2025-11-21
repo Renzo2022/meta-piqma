@@ -65,6 +65,7 @@ const initialState = {
     crossref: true,
   },
   projectArticles: [],
+  totalOriginalArticles: 0,
   exclusionReasons: [
     'Outcome incorrecto',
     'Población incorrecta',
@@ -136,7 +137,11 @@ const projectReducer = (state, action) => {
         uniqueId: crypto.randomUUID(),
         status: 'unscreened',
       }));
-      return { ...state, projectArticles: articlesWithIds };
+      return { 
+        ...state, 
+        projectArticles: articlesWithIds,
+        totalOriginalArticles: action.payload.length,
+      };
     case 'UPDATE_ARTICLE_STATUS':
       return {
         ...state,
@@ -150,27 +155,118 @@ const projectReducer = (state, action) => {
             : article
         ),
       };
-    case 'REMOVE_ARTICLES':
+    case 'REMOVE_ARTICLES': {
+      const ids = Array.isArray(action.payload) ? action.payload : action.payload.ids;
+      const reason = Array.isArray(action.payload) ? 'removed' : action.payload.reason;
       return {
         ...state,
-        projectArticles: state.projectArticles.filter(
-          (article) => !action.payload.includes(article.uniqueId)
+        projectArticles: state.projectArticles.map((article) =>
+          ids.includes(article.uniqueId)
+            ? { ...article, status: reason }
+            : article
         ),
       };
-    case 'MARK_DUPLICATES':
-      // Simula búsqueda de duplicados por similitud de títulos
-      const duplicateMap = new Map();
-      const articlesWithDuplicates = state.projectArticles.map((article) => {
-        // Normalizar título para comparación
-        const normalizedTitle = article.title.toLowerCase().trim();
+    }
+    case 'MARK_DUPLICATES': {
+      // Función para calcular similitud entre dos strings (Levenshtein distance)
+      const calculateSimilarity = (str1, str2) => {
+        // Validar que sean strings
+        if (!str1 || !str2) return 0;
+        if (typeof str1 !== 'string') str1 = String(str1);
+        if (typeof str2 !== 'string') str2 = String(str2);
         
-        if (duplicateMap.has(normalizedTitle)) {
-          return { ...article, status: 'duplicate' };
+        const s1 = str1.toLowerCase().trim();
+        const s2 = str2.toLowerCase().trim();
+        
+        if (s1 === s2) return 1; // Exacto
+        
+        const longer = s1.length > s2.length ? s1 : s2;
+        const shorter = s1.length > s2.length ? s2 : s1;
+        
+        if (longer.length === 0) return 1;
+        
+        const editDistance = getEditDistance(longer, shorter);
+        return (longer.length - editDistance) / longer.length;
+      };
+
+      // Calcular distancia de edición (Levenshtein)
+      const getEditDistance = (s1, s2) => {
+        const costs = [];
+        for (let i = 0; i <= s1.length; i++) {
+          let lastValue = i;
+          for (let j = 0; j <= s2.length; j++) {
+            if (i === 0) {
+              costs[j] = j;
+            } else if (j > 0) {
+              let newValue = costs[j - 1];
+              if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+                newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+              }
+              costs[j - 1] = lastValue;
+              lastValue = newValue;
+            }
+          }
+          if (i > 0) costs[s2.length] = lastValue;
         }
-        duplicateMap.set(normalizedTitle, true);
+        return costs[s2.length];
+      };
+
+      // Función para extraer primer autor
+      const getFirstAuthor = (authors) => {
+        if (!authors) return '';
+        
+        // Si es un array, tomar el primer elemento
+        if (Array.isArray(authors)) {
+          return authors[0]?.toLowerCase().trim() || '';
+        }
+        
+        // Si es un string, dividir por coma
+        if (typeof authors === 'string') {
+          return authors.split(',')[0].trim().toLowerCase();
+        }
+        
+        return '';
+      };
+
+      // Función para verificar si dos artículos son duplicados
+      const isDuplicate = (article1, article2) => {
+        // Validar que ambos artículos tengan título
+        if (!article1.title || !article2.title) return false;
+        
+        // Comparar títulos con similitud >= 95% (muy estricto)
+        const titleSimilarity = calculateSimilarity(article1.title, article2.title);
+        if (titleSimilarity >= 0.95) {
+          return true;
+        }
+
+        // Comparar: mismo primer autor + mismo año + título IDÉNTICO (100%)
+        const firstAuthor1 = getFirstAuthor(article1.authors);
+        const firstAuthor2 = getFirstAuthor(article2.authors);
+        
+        const sameFirstAuthor = firstAuthor1 && firstAuthor2 && firstAuthor1 === firstAuthor2;
+        const sameYear = article1.year && article2.year && article1.year === article2.year;
+        const identicalTitle = titleSimilarity === 1.0; // Exactamente igual
+
+        if (sameFirstAuthor && sameYear && identicalTitle) {
+          return true;
+        }
+
+        return false;
+      };
+
+      // Marcar duplicados
+      const articlesWithDuplicates = state.projectArticles.map((article, index) => {
+        // Verificar si este artículo es duplicado de alguno anterior
+        for (let i = 0; i < index; i++) {
+          if (isDuplicate(article, state.projectArticles[i])) {
+            return { ...article, status: 'duplicate' };
+          }
+        }
         return article;
       });
+
       return { ...state, projectArticles: articlesWithDuplicates };
+    }
     case 'ADD_EXTRACTION_ROW':
       const newRow = {
         id: `row_${Date.now()}`,
@@ -1294,10 +1390,13 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
-                    const articlesWithoutTitle = state.projectArticles.filter((a) => !a.title || a.title.trim() === '');
+                    const articlesWithoutTitle = state.projectArticles.filter((a) => (!a.title || a.title.trim() === '') && !a.status.startsWith('removed_'));
+                    console.log('[DEBUG] Artículos sin título encontrados:', articlesWithoutTitle.length);
+                    console.log('[DEBUG] Primeros 3 artículos sin título:', articlesWithoutTitle.slice(0, 3));
+                    console.log('[DEBUG] Todos los artículos actuales:', state.projectArticles.map(a => ({ title: a.title ? a.title.substring(0, 30) : 'SIN TÍTULO', status: a.status })));
                     dispatch({
                       type: 'REMOVE_ARTICLES',
-                      payload: articlesWithoutTitle.map((a) => a.uniqueId),
+                      payload: { ids: articlesWithoutTitle.map((a) => a.uniqueId), reason: 'removed_without_title' },
                     });
                     alert(`${articlesWithoutTitle.length} artículos sin título eliminados`);
                   }}
@@ -1311,10 +1410,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
-                    const articlesWithoutAuthors = state.projectArticles.filter((a) => !a.authors || a.authors.length === 0);
+                    const articlesWithoutAuthors = state.projectArticles.filter((a) => (!a.authors || a.authors.length === 0) && !a.status.startsWith('removed_'));
                     dispatch({
                       type: 'REMOVE_ARTICLES',
-                      payload: articlesWithoutAuthors.map((a) => a.uniqueId),
+                      payload: { ids: articlesWithoutAuthors.map((a) => a.uniqueId), reason: 'removed_without_authors' },
                     });
                     alert(`${articlesWithoutAuthors.length} artículos sin autores eliminados`);
                   }}
@@ -1328,10 +1427,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
-                    const articlesWithoutYear = state.projectArticles.filter((a) => !a.year);
+                    const articlesWithoutYear = state.projectArticles.filter((a) => !a.year && !a.status.startsWith('removed_'));
                     dispatch({
                       type: 'REMOVE_ARTICLES',
-                      payload: articlesWithoutYear.map((a) => a.uniqueId),
+                      payload: { ids: articlesWithoutYear.map((a) => a.uniqueId), reason: 'removed_without_year' },
                     });
                     alert(`${articlesWithoutYear.length} artículos sin año eliminados`);
                   }}
@@ -1345,10 +1444,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
-                    const articlesWithoutURL = state.projectArticles.filter((a) => !a.url || a.url.trim() === '');
+                    const articlesWithoutURL = state.projectArticles.filter((a) => (!a.url || a.url.trim() === '') && !a.status.startsWith('removed_'));
                     dispatch({
                       type: 'REMOVE_ARTICLES',
-                      payload: articlesWithoutURL.map((a) => a.uniqueId),
+                      payload: { ids: articlesWithoutURL.map((a) => a.uniqueId), reason: 'removed_without_url' },
                     });
                     alert(`${articlesWithoutURL.length} artículos sin URL eliminados`);
                   }}
@@ -1365,7 +1464,7 @@ const ModuleSearch = () => {
                     const articlesWithoutAbstract = state.projectArticles.filter((a) => !a.abstract || a.abstract.trim() === '');
                     dispatch({
                       type: 'REMOVE_ARTICLES',
-                      payload: articlesWithoutAbstract.map((a) => a.uniqueId),
+                      payload: { ids: articlesWithoutAbstract.map((a) => a.uniqueId), reason: 'removed_without_abstract' },
                     });
                     alert(`${articlesWithoutAbstract.length} artículos sin abstract eliminados`);
                   }}
@@ -1475,10 +1574,10 @@ const ModuleSearch = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
-                      const articlesWithoutTitle = state.projectArticles.filter((a) => !a.title || a.title.trim() === '');
+                      const articlesWithoutTitle = state.projectArticles.filter((a) => (!a.title || a.title.trim() === '') && !a.status.startsWith('removed_'));
                       dispatch({
                         type: 'REMOVE_ARTICLES',
-                        payload: articlesWithoutTitle.map((a) => a.uniqueId),
+                        payload: { ids: articlesWithoutTitle.map((a) => a.uniqueId), reason: 'removed_without_title' },
                       });
                       alert(`${articlesWithoutTitle.length} artículos sin título eliminados`);
                     }}
@@ -1492,10 +1591,10 @@ const ModuleSearch = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
-                      const articlesWithoutAuthors = state.projectArticles.filter((a) => !a.authors || a.authors.length === 0);
+                      const articlesWithoutAuthors = state.projectArticles.filter((a) => (!a.authors || a.authors.length === 0) && !a.status.startsWith('removed_'));
                       dispatch({
                         type: 'REMOVE_ARTICLES',
-                        payload: articlesWithoutAuthors.map((a) => a.uniqueId),
+                        payload: { ids: articlesWithoutAuthors.map((a) => a.uniqueId), reason: 'removed_without_authors' },
                       });
                       alert(`${articlesWithoutAuthors.length} artículos sin autores eliminados`);
                     }}
@@ -1509,10 +1608,10 @@ const ModuleSearch = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
-                      const articlesWithoutYear = state.projectArticles.filter((a) => !a.year);
+                      const articlesWithoutYear = state.projectArticles.filter((a) => !a.year && !a.status.startsWith('removed_'));
                       dispatch({
                         type: 'REMOVE_ARTICLES',
-                        payload: articlesWithoutYear.map((a) => a.uniqueId),
+                        payload: { ids: articlesWithoutYear.map((a) => a.uniqueId), reason: 'removed_without_year' },
                       });
                       alert(`${articlesWithoutYear.length} artículos sin año eliminados`);
                     }}
@@ -1526,10 +1625,10 @@ const ModuleSearch = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
-                      const articlesWithoutURL = state.projectArticles.filter((a) => !a.url || a.url.trim() === '');
+                      const articlesWithoutURL = state.projectArticles.filter((a) => (!a.url || a.url.trim() === '') && !a.status.startsWith('removed_'));
                       dispatch({
                         type: 'REMOVE_ARTICLES',
-                        payload: articlesWithoutURL.map((a) => a.uniqueId),
+                        payload: { ids: articlesWithoutURL.map((a) => a.uniqueId), reason: 'removed_without_url' },
                       });
                       alert(`${articlesWithoutURL.length} artículos sin URL eliminados`);
                     }}
@@ -1543,10 +1642,10 @@ const ModuleSearch = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
-                      const articlesWithoutAbstract = state.projectArticles.filter((a) => !a.abstract || a.abstract.trim() === '');
+                      const articlesWithoutAbstract = state.projectArticles.filter((a) => (!a.abstract || a.abstract.trim() === '') && !a.status.startsWith('removed_'));
                       dispatch({
                         type: 'REMOVE_ARTICLES',
-                        payload: articlesWithoutAbstract.map((a) => a.uniqueId),
+                        payload: { ids: articlesWithoutAbstract.map((a) => a.uniqueId), reason: 'removed_without_abstract' },
                       });
                       alert(`${articlesWithoutAbstract.length} artículos sin abstract eliminados`);
                     }}
@@ -1813,6 +1912,8 @@ const ModuleScreening = () => {
 
 const ModuleEligibility = () => {
   const { state, dispatch } = useProject();
+  const [showOtherReasonModal, setShowOtherReasonModal] = useState(false);
+  const [otherReason, setOtherReason] = useState('');
 
   // Calcular estadísticas
   const forReview = state.projectArticles.filter((a) => a.status === 'included_title');
@@ -1830,15 +1931,34 @@ const ModuleEligibility = () => {
   };
 
   const handleExcludeWithReason = (reason) => {
-    if (nextArticle) {
+    if (reason === 'Otro') {
+      setShowOtherReasonModal(true);
+    } else {
+      if (nextArticle) {
+        dispatch({
+          type: 'UPDATE_ARTICLE_STATUS',
+          payload: {
+            articleId: nextArticle.uniqueId,
+            newStatus: 'excluded_fulltext',
+            reason,
+          },
+        });
+      }
+    }
+  };
+
+  const handleAcceptOtherReason = () => {
+    if (otherReason.trim() && nextArticle) {
       dispatch({
         type: 'UPDATE_ARTICLE_STATUS',
         payload: {
           articleId: nextArticle.uniqueId,
           newStatus: 'excluded_fulltext',
-          reason,
+          reason: otherReason,
         },
       });
+      setOtherReason('');
+      setShowOtherReasonModal(false);
     }
   };
 
@@ -1897,7 +2017,7 @@ const ModuleEligibility = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleExcludeWithReason(reason)}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-monokai-pink transition-all"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-monokai-pink transition-all"
                 >
                   <X className="w-5 h-5" />
                   {reason}
@@ -1905,6 +2025,57 @@ const ModuleEligibility = () => {
               ))}
             </div>
           </div>
+
+          {/* Modal para "Otro" */}
+          <AnimatePresence>
+            {showOtherReasonModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                onClick={() => setShowOtherReasonModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-monokai-sidebar p-8 rounded-lg border-2 border-monokai-pink max-w-md w-full mx-4"
+                >
+                  <h3 className="text-xl font-bold text-monokai-pink mb-4">Especifica el motivo de exclusión</h3>
+                  <input
+                    type="text"
+                    placeholder="Escribe el motivo..."
+                    value={otherReason}
+                    onChange={(e) => setOtherReason(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAcceptOtherReason()}
+                    autoFocus
+                    className="w-full px-4 py-3 mb-6 bg-monokai-dark border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-pink"
+                  />
+                  <div className="flex gap-3">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowOtherReasonModal(false)}
+                      className="flex-1 px-4 py-2 bg-monokai-subtle text-monokai-text font-semibold rounded-lg hover:bg-monokai-subtle hover:bg-opacity-80 transition-all"
+                    >
+                      Cancelar
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleAcceptOtherReason}
+                      disabled={!otherReason.trim()}
+                      className="flex-1 px-4 py-2 bg-monokai-pink text-monokai-text font-semibold rounded-lg hover:shadow-monokai-pink transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Aceptar
+                    </motion.button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ) : (
         <div className="text-center py-16 bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
@@ -1932,50 +2103,207 @@ const ModulePRISMA = () => {
   const { state } = useProject();
   const [showInputs, setShowInputs] = useState(false);
   const [prismaData, setPrismaData] = useState({
+    // Estudios previos
+    previous_studies: 0,
+    previous_reports: 0,
+    
+    // Identificación - Bases de datos
     identified_databases: 0,
-    identified_other_methods: 0,
+    identified_databases_records: 0,
+    
+    // Identificación - Otros métodos
+    identified_websites: 0,
+    identified_organizations: 0,
+    identified_citations: 0,
+    
+    // Cribado - Eliminados antes
     duplicates_removed: 0,
+    marked_ineligible_automation: 0,
+    removed_other_reasons: 0,
+    
+    // Cribado
     records_screened: 0,
     excluded_screening: 0,
+    
+    // Elegibilidad - Bases de datos
     reports_sought_retrieval: 0,
+    reports_not_retrieved: 0,
     reports_assessed_fulltext: 0,
-    total_excluded: 0,
-    studies_qualitative_synthesis: 0,
-    studies_meta_analysis: 0,
+    exclusion_reasons_db: {
+      reason_1: 0,
+      reason_2: 0,
+      reason_3: 0,
+    },
+    
+    // Elegibilidad - Otros métodos
+    reports_sought_retrieval_other: 0,
+    reports_not_retrieved_other: 0,
+    reports_assessed_fulltext_other: 0,
+    exclusion_reasons_other: {
+      reason_1: 0,
+      reason_2: 0,
+      reason_3: 0,
+    },
+    
+    // Incluidos
+    new_studies_included: 0,
+    new_studies_reports: 0,
+    total_studies_included: 0,
+    total_studies_reports: 0,
+    
+    // Otros
+    other_exclusion_reason: '',
   });
 
   // Calcular datos PRISMA automáticamente desde artículos
   useEffect(() => {
-    const totalIdentified = state.projectArticles.length;
+    // Usar el total original de artículos (antes de filtros)
+    const totalIdentified = state.totalOriginalArticles || state.projectArticles.length;
     const duplicates = state.projectArticles.filter((a) => a.status === 'duplicate').length;
-    const screened = totalIdentified - duplicates;
+    const withoutTitle = state.projectArticles.filter((a) => a.status === 'removed_without_title').length;
+    const withoutAuthors = state.projectArticles.filter((a) => a.status === 'removed_without_authors').length;
+    const withoutYear = state.projectArticles.filter((a) => a.status === 'removed_without_year').length;
+    const withoutUrl = state.projectArticles.filter((a) => a.status === 'removed_without_url').length;
+    const withoutAbstract = state.projectArticles.filter((a) => a.status === 'removed_without_abstract').length;
+    
+    // Debug log
+    console.log('[PRISMA] Contadores calculados:', {
+      totalIdentified,
+      duplicates,
+      withoutTitle,
+      withoutAuthors,
+      withoutYear,
+      withoutUrl,
+      withoutAbstract,
+    });
+    
+    // Debug: mostrar todos los status únicos
+    const uniqueStatuses = [...new Set(state.projectArticles.map(a => a.status))];
+    console.log('[PRISMA] Status únicos en artículos:', uniqueStatuses);
+    
+    // Artículos eliminados antes del cribado
+    const eliminatedBefore = duplicates + withoutTitle + withoutAuthors + withoutYear + withoutUrl + withoutAbstract;
+    
+    // Artículos que llegan al cribado
+    const screened = totalIdentified - eliminatedBefore;
+    
     const excludedTitle = state.projectArticles.filter((a) => a.status === 'excluded_title').length;
-    const fullText = state.projectArticles.filter(
-      (a) => a.status === 'included_title' || a.status === 'included_final' || a.status === 'excluded_fulltext'
-    ).length;
+    const includedTitle = state.projectArticles.filter((a) => a.status === 'included_title').length;
     const excludedFullText = state.projectArticles.filter((a) => a.status === 'excluded_fulltext').length;
     const includedFinal = state.projectArticles.filter((a) => a.status === 'included_final').length;
+    
+    // Total que pasó a evaluación de texto completo
+    const fullTextEvaluation = includedTitle + excludedFullText + includedFinal;
+
+    // Contar artículos por fuente (excluyendo eliminados)
+    const pubmedCount = state.projectArticles.filter((a) => a.source === 'PubMed' && !a.status.startsWith('removed_')).length;
+    const semanticCount = state.projectArticles.filter((a) => a.source === 'Semantic Scholar' && !a.status.startsWith('removed_')).length;
+    const arxivCount = state.projectArticles.filter((a) => a.source === 'ArXiv' && !a.status.startsWith('removed_')).length;
+    const crossrefCount = state.projectArticles.filter((a) => a.source === 'Crossref' && !a.status.startsWith('removed_')).length;
+
+    // Contar artículos excluidos por cada razón
+    const exclusionReasonsCounts = {};
+    const customReasons = new Set();
+    
+    // Extraer motivos personalizados únicos
+    state.projectArticles.forEach((a) => {
+      if (a.status === 'excluded_fulltext' && 
+          a.exclusionReason && 
+          !state.exclusionReasons.includes(a.exclusionReason)) {
+        customReasons.add(a.exclusionReason);
+      }
+    });
+    
+    // Contar razones predefinidas
+    state.exclusionReasons.forEach((reason, index) => {
+      if (reason !== 'Otro') {
+        const count = state.projectArticles.filter(
+          (a) => a.status === 'excluded_fulltext' && a.exclusionReason === reason
+        ).length;
+        exclusionReasonsCounts[`reason_${index + 1}`] = count;
+      }
+    });
+    
+    // Agregar motivos personalizados
+    const customReasonsArray = Array.from(customReasons);
+    customReasonsArray.forEach((customReason, index) => {
+      const count = state.projectArticles.filter(
+        (a) => a.status === 'excluded_fulltext' && a.exclusionReason === customReason
+      ).length;
+      exclusionReasonsCounts[`custom_${index + 1}`] = { reason: customReason, count };
+    });
 
     setPrismaData({
-      identified_databases: Math.floor(totalIdentified * 0.95),
-      identified_other_methods: Math.floor(totalIdentified * 0.05),
+      // Estudios previos - TOMAN EL TOTAL IDENTIFICADO
+      previous_studies: totalIdentified,
+      previous_reports: totalIdentified,
+      
+      // Identificación - Bases de datos por fuente
+      identified_pubmed: pubmedCount,
+      identified_semantic: semanticCount,
+      identified_arxiv: arxivCount,
+      identified_crossref: crossrefCount,
+      
+      // Identificación - Otros métodos - COMIENZAN EN 0
+      identified_websites: 0,
+      identified_organizations: 0,
+      identified_citations: 0,
+      
+      // Cribado - Eliminados antes
       duplicates_removed: duplicates,
+      without_title: withoutTitle,
+      without_authors: withoutAuthors,
+      without_year: withoutYear,
+      without_url: withoutUrl,
+      without_abstract: withoutAbstract,
+      
+      // Cribado
       records_screened: screened,
       excluded_screening: excludedTitle,
-      reports_sought_retrieval: fullText,
-      reports_assessed_fulltext: fullText,
-      total_excluded: excludedFullText,
-      studies_qualitative_synthesis: includedFinal,
-      studies_meta_analysis: Math.floor(includedFinal * 0.8),
+      
+      // Elegibilidad - Bases de datos
+      reports_sought_retrieval: 0,
+      reports_not_retrieved: 0,
+      reports_assessed_fulltext: includedTitle,
+      exclusion_reasons_db: exclusionReasonsCounts,
+      
+      // Elegibilidad - Otros métodos
+      reports_sought_retrieval_other: 0,
+      reports_not_retrieved_other: 0,
+      reports_assessed_fulltext_other: 0,
+      exclusion_reasons_other: {
+        reason_1: 0,
+        reason_2: 0,
+        reason_3: 0,
+      },
+      
+      // Incluidos
+      new_studies_included: includedFinal,
+      new_studies_reports: includedFinal,
+      total_studies_included: includedFinal,
+      total_studies_reports: includedFinal,
     });
-  }, [state.projectArticles]);
+  }, [state.projectArticles, state.exclusionReasons]);
 
   // Actualizar campo de datos PRISMA
   const handleDataChange = (field, value) => {
-    setPrismaData((prev) => ({
-      ...prev,
-      [field]: parseInt(value) || 0,
-    }));
+    setPrismaData((prev) => {
+      if (field.includes('.')) {
+        // Manejar campos anidados como exclusion_reasons.reason_1
+        const [parent, child] = field.split('.');
+        return {
+          ...prev,
+          [parent]: {
+            ...prev[parent],
+            [child]: parseInt(value) || 0,
+          },
+        };
+      }
+      return {
+        ...prev,
+        [field]: parseInt(value) || 0,
+      };
+    });
   };
 
   // Función para exportar estadísticas como JSON
@@ -2108,19 +2436,77 @@ const ModulePRISMA = () => {
             exit={{ opacity: 0, height: 0 }}
             className="mt-6 grid grid-cols-2 gap-4 p-4 bg-monokai-dark rounded-lg border border-monokai-subtle border-opacity-20"
           >
-            {Object.entries(prismaData).map(([key, value]) => (
-              <div key={key}>
-                <label className="block text-sm font-semibold text-monokai-text mb-2 capitalize">
-                  {key.replace(/_/g, ' ')}
-                </label>
-                <input
-                  type="number"
-                  value={value}
-                  onChange={(e) => handleDataChange(key, e.target.value)}
-                  className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue"
-                />
-              </div>
-            ))}
+            {Object.entries(prismaData).map(([key, value]) => {
+              const labels = {
+                previous_studies: 'Estudios incluidos en versión previa',
+                previous_reports: 'Reportes de estudios en versión previa',
+                identified_databases: 'Registros identificados en bases de datos',
+                identified_databases_records: 'Registros identificados en registros',
+                identified_websites: 'Registros identificados en sitios web',
+                identified_organizations: 'Registros identificados en organizaciones',
+                identified_citations: 'Registros identificados en búsqueda de citaciones',
+                duplicates_removed: 'Registros duplicados eliminados',
+                marked_ineligible_automation: 'Registros marcados como inelegibles por automatización',
+                removed_other_reasons: 'Registros eliminados por otras razones',
+                records_screened: 'Registros cribados',
+                excluded_screening: 'Registros excluidos en cribado',
+                reports_sought_retrieval: 'Reportes buscados para recuperación (BD)',
+                reports_not_retrieved: 'Reportes no recuperados (BD)',
+                reports_assessed_fulltext: 'Reportes evaluados para elegibilidad (BD)',
+                exclusion_reasons_db: 'Razones de exclusión (Bases de datos)',
+                reports_sought_retrieval_other: 'Reportes buscados para recuperación (Otros)',
+                reports_not_retrieved_other: 'Reportes no recuperados (Otros)',
+                reports_assessed_fulltext_other: 'Reportes evaluados para elegibilidad (Otros)',
+                exclusion_reasons_other: 'Razones de exclusión (Otros métodos)',
+                new_studies_included: 'Nuevos estudios incluidos',
+                new_studies_reports: 'Reportes de nuevos estudios incluidos',
+                total_studies_included: 'Total de estudios incluidos',
+                total_studies_reports: 'Total de reportes incluidos',
+              };
+
+              const subLabels = {
+                reason_1: 'Razón 1',
+                reason_2: 'Razón 2',
+                reason_3: 'Razón 3',
+              };
+
+              if (typeof value === 'object' && value !== null) {
+                // Mostrar campos anidados
+                return (
+                  <div key={key} className="col-span-2">
+                    <p className="text-sm font-semibold text-monokai-blue mb-2">{labels[key] || key}</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {Object.entries(value).map(([subKey, subValue]) => (
+                        <div key={subKey}>
+                          <label className="block text-xs font-semibold text-monokai-text mb-1">
+                            {subLabels[subKey] || subKey}
+                          </label>
+                          <input
+                            type="number"
+                            value={subValue}
+                            onChange={(e) => handleDataChange(`${key}.${subKey}`, e.target.value)}
+                            className="w-full px-2 py-1 text-sm bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div key={key}>
+                  <label className="block text-sm font-semibold text-monokai-text mb-2">
+                    {labels[key] || key}
+                  </label>
+                  <input
+                    type="number"
+                    value={value}
+                    onChange={(e) => handleDataChange(key, e.target.value)}
+                    className="w-full px-3 py-2 bg-monokai-sidebar border border-monokai-subtle rounded-lg text-monokai-text focus:outline-none focus:border-monokai-blue"
+                  />
+                </div>
+              );
+            })}
           </motion.div>
         )}
       </div>
@@ -2129,110 +2515,88 @@ const ModulePRISMA = () => {
       <div className="mb-12">
         <h2 className="text-2xl font-bold text-monokai-purple mb-8">Diagrama de Flujo PRISMA 2020</h2>
 
-        <div className="space-y-6" id="prisma-diagram">
-          {/* Etapa 1: Identificación */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0 }}
-            className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-green"
-          >
-            <h3 className="text-lg font-bold text-monokai-green mb-3">Identificación</h3>
-            <p className="text-monokai-text mb-2">
-              Registros identificados en bases de datos (n = <span className="font-bold text-monokai-yellow">{prismaData.identified_databases + prismaData.identified_other_methods}</span>)
-            </p>
-            <p className="text-monokai-subtle text-sm">
-              Bases de datos: {prismaData.identified_databases} | Otros métodos: {prismaData.identified_other_methods}
-            </p>
-          </motion.div>
-
-          {/* Flecha 1 */}
-          <div className="flex justify-center">
-            <motion.div
-              animate={{ y: [0, 10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <ArrowDown className="w-6 h-6 text-monokai-green" />
-            </motion.div>
-          </div>
-
-          {/* Etapa 2: Cribado */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-yellow"
-          >
-            <h3 className="text-lg font-bold text-monokai-yellow mb-3">Cribado</h3>
-            <div className="space-y-2">
-              <p className="text-monokai-text mb-2">
-                Registros después de eliminar duplicados (n = <span className="font-bold text-monokai-yellow">{prismaData.records_screened}</span>)
-              </p>
-              <p className="text-monokai-subtle text-sm">
-                Duplicados removidos: <span className="font-bold text-monokai-pink">{prismaData.duplicates_removed}</span>
-              </p>
-              <p className="text-monokai-text mt-3">
-                Registros excluidos por título/resumen (n = <span className="font-bold text-monokai-pink">{prismaData.excluded_screening}</span>)
-              </p>
-              <p className="text-monokai-subtle text-sm">
-                Registros para revisión de texto completo: <span className="font-bold text-monokai-blue">{prismaData.reports_sought_retrieval}</span>
-              </p>
+        <div id="prisma-diagram" className="space-y-8">
+          {/* ESTUDIOS PREVIOS */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-pink">
+            <h3 className="text-lg font-bold text-monokai-pink mb-4">Estudios Previos</h3>
+            <div className="space-y-2 text-sm">
+              <p className="text-monokai-text">Estudios incluidos en la versión previa de la revisión (n = <span className="font-bold">{prismaData.previous_studies}</span>)</p>
             </div>
           </motion.div>
 
-          {/* Flecha 2 */}
-          <div className="flex justify-center">
-            <motion.div
-              animate={{ y: [0, 10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}
-            >
-              <ArrowDown className="w-6 h-6 text-monokai-yellow" />
+          {/* IDENTIFICACIÓN */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Bases de datos */}
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-green">
+              <h3 className="text-lg font-bold text-monokai-green mb-4">Identificación de nuevos estudios a través de las bases de datos y registros</h3>
+              <div className="space-y-2 text-sm">
+                <p className="text-monokai-text">Registros o citas identificados desde:</p>
+                <p className="text-monokai-subtle">PubMed (n = <span className="font-bold">{prismaData.identified_pubmed || 0}</span>)</p>
+                <p className="text-monokai-subtle">Semantic Scholar (n = <span className="font-bold">{prismaData.identified_semantic || 0}</span>)</p>
+                <p className="text-monokai-subtle">ArXiv (n = <span className="font-bold">{prismaData.identified_arxiv || 0}</span>)</p>
+                <p className="text-monokai-subtle">Crossref (n = <span className="font-bold">{prismaData.identified_crossref || 0}</span>)</p>
+                
+                <p className="text-monokai-text mt-4">Registros eliminados por falta de datos:</p>
+                <p className="text-monokai-subtle">Eliminar sin Abstract (n = <span className="font-bold">{prismaData.without_abstract || 0}</span>)</p>
+              </div>
+            </motion.div>
+
+            {/* Otros métodos */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue">
+              <h3 className="text-lg font-bold text-monokai-blue mb-4">Identificación de nuevos estudios a través de otros métodos</h3>
+              <div className="space-y-2 text-sm">
+                <p className="text-monokai-text">Registros o citas identificados a partir de:</p>
+                <p className="text-monokai-subtle">Sitios Web (n = <span className="font-bold">{prismaData.identified_websites}</span>)</p>
+                <p className="text-monokai-subtle">Organizaciones (n = <span className="font-bold">{prismaData.identified_organizations}</span>)</p>
+                <p className="text-monokai-subtle">Búsqueda de citaciones (n = <span className="font-bold">{prismaData.identified_citations}</span>)</p>
+              </div>
             </motion.div>
           </div>
 
-          {/* Etapa 3: Elegibilidad */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue"
-          >
-            <h3 className="text-lg font-bold text-monokai-blue mb-3">Elegibilidad</h3>
-            <div className="space-y-2">
-              <p className="text-monokai-text mb-2">
-                Registros evaluados para elegibilidad (n = <span className="font-bold text-monokai-blue">{prismaData.reports_assessed_fulltext}</span>)
-              </p>
-              <p className="text-monokai-subtle text-sm">
-                Registros excluidos con motivo: <span className="font-bold text-monokai-pink">{prismaData.total_excluded}</span>
-              </p>
+          {/* CRIBADO */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-yellow">
+            <h3 className="text-lg font-bold text-monokai-yellow mb-4">Cribado</h3>
+            <div className="space-y-2 text-sm">
+              <p className="text-monokai-text">Registros o citas duplicados (n = <span className="font-bold">{prismaData.duplicates_removed}</span>)</p>
+              <p className="text-monokai-text">Registros o citas excluidos (n = <span className="font-bold">{prismaData.excluded_screening}</span>)</p>
             </div>
           </motion.div>
 
-          {/* Flecha 3 */}
-          <div className="flex justify-center">
-            <motion.div
-              animate={{ y: [0, 10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, delay: 0.4 }}
-            >
-              <ArrowDown className="w-6 h-6 text-monokai-blue" />
+          {/* ELEGIBILIDAD */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Bases de datos */}
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-green">
+              <h3 className="text-lg font-bold text-monokai-green mb-4">Elegibilidad (Bases de datos)</h3>
+              <div className="space-y-2 text-sm">
+                <p className="text-monokai-text">Reportes buscados para su recuperación (n = <span className="font-bold">{prismaData.reports_sought_retrieval}</span>)</p>
+                <p className="text-monokai-text">Reportes no recuperados (n = <span className="font-bold">{prismaData.reports_not_retrieved}</span>)</p>
+                <p className="text-monokai-text mt-4">Reportes evaluados para decidir su elegibilidad (n = <span className="font-bold">{prismaData.reports_assessed_fulltext}</span>)</p>
+                <p className="text-monokai-text">Reportes excluidos:</p>
+                {state.exclusionReasons.map((reason, index) => 
+                  reason !== 'Otro' && (
+                    <p key={reason} className="text-monokai-subtle">
+                      {reason} (n = <span className="font-bold">{prismaData.exclusion_reasons_db[`reason_${index + 1}`] || 0}</span>)
+                    </p>
+                  )
+                )}
+                {Object.keys(prismaData.exclusion_reasons_db).map((key) => 
+                  key.startsWith('custom_') && (
+                    <p key={key} className="text-monokai-subtle">
+                      {prismaData.exclusion_reasons_db[key].reason} (n = <span className="font-bold">{prismaData.exclusion_reasons_db[key].count}</span>)
+                    </p>
+                  )
+                )}
+              </div>
+            </motion.div>
+
+            {/* INCLUIDOS */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-green">
+              <h3 className="text-lg font-bold text-monokai-green mb-4">Incluidos</h3>
+              <div className="space-y-2 text-sm">
+                <p className="text-monokai-text">Estudios incluidos en la revisión (n = <span className="font-bold">{prismaData.new_studies_included}</span>)</p>
+              </div>
             </motion.div>
           </div>
-
-          {/* Etapa 4: Incluidos */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-green"
-          >
-            <h3 className="text-lg font-bold text-monokai-green mb-3">Incluidos</h3>
-            <p className="text-monokai-text">
-              Estudios incluidos en la revisión (n = <span className="font-bold text-monokai-green">{prismaData.studies_qualitative_synthesis}</span>)
-            </p>
-            <p className="text-monokai-subtle text-sm mt-2">
-              Estudios para meta-análisis: {prismaData.studies_meta_analysis}
-            </p>
-          </motion.div>
         </div>
       </div>
 
