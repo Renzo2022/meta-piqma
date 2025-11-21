@@ -2967,8 +2967,9 @@ const ModuleMetaAnalysis = () => {
         console.log('[ModuleMetaAnalysis] Artículos included_final desde Supabase:', allArticles.filter(a => a.status === 'included_final').length);
         console.log('[ModuleMetaAnalysis] Artículos included_final detalles:', allArticles.filter(a => a.status === 'included_final').map(a => ({ id: a.id, title: a.title, status: a.status })));
         
-        // Obtener artículos included_final
+        // Obtener artículos included_final DESDE SUPABASE (con IDs correctos BIGINT)
         const includedFinalArticles = allArticles.filter((a) => a.status === 'included_final');
+        console.log('[ModuleMetaAnalysis] Artículos included_final con IDs BIGINT:', includedFinalArticles.map(a => ({ id: a.id, type: typeof a.id, title: a.title })));
         
         // Crear artículos "virtuales" para los datos guardados que no están en la lista actual
         // (datos de búsquedas anteriores que fueron eliminados)
