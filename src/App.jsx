@@ -1541,16 +1541,32 @@ const ModuleSearch = () => {
               </div>
             </div>
 
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleSearchPICO}
-              disabled={state.isLoading}
-              className="flex items-center gap-2 px-6 py-3 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-monokai-green transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Search className="w-5 h-5" />
-              {state.isLoading ? 'Buscando...' : 'Buscar usando Estrategias PICO'}
-            </motion.button>
+            <div className="flex gap-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (confirm('¿Estás seguro de que deseas limpiar la tabla de artículos?')) {
+                    dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: [] });
+                  }
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-monokai-red text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+              >
+                <Trash2 className="w-5 h-5" />
+                Limpiar Tabla
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSearchPICO}
+                disabled={state.isLoading}
+                className="flex items-center gap-2 px-6 py-3 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-monokai-green transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Search className="w-5 h-5" />
+                {state.isLoading ? 'Buscando...' : 'Buscar usando Estrategias PICO'}
+              </motion.button>
+            </div>
 
             {/* Filtros de Datos en Búsqueda PICO */}
             <div className="mt-6 bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30">
