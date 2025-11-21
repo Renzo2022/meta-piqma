@@ -770,7 +770,8 @@ const apiClient = {
         console.log(`[Meta-Analysis] ✓ Datos actualizados para artículo: ${articleIdStr}`);
       } else {
         // Insertar nuevo registro
-        const { error } = await supabase
+        console.log(`[Meta-Analysis] Insertando nuevo registro para artículo: ${articleIdStr}`);
+        const { data: insertedData, error } = await supabase
           .from('meta_analysis_data')
           .insert({
             project_id: projectId,
@@ -785,9 +786,11 @@ const apiClient = {
         
         if (error) {
           console.error('Error guardando datos de extracción:', error);
+          console.error('Detalles del error:', JSON.stringify(error));
           return false;
         }
         console.log(`[Meta-Analysis] ✓ Datos guardados para artículo: ${articleIdStr}`);
+        console.log(`[Meta-Analysis] Datos insertados:`, insertedData);
       }
       
       return true;
