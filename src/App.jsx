@@ -680,64 +680,15 @@ const apiClient = {
     }
   },
 
-  // Guarda datos de extracción en Supabase (Módulo 6)
+  // Guarda datos de extracción en estado local (Módulo 6)
   saveExtractionData: async (projectId, articleId, extractionData) => {
     try {
-      console.log(`[Meta-Analysis] Guardando datos para artículo: ${articleId}`);
+      console.log(`[Meta-Analysis] ✓ Guardando en estado local: ${articleId}`);
       console.log(`[Meta-Analysis] Datos:`, extractionData);
       
-      // Verificar si ya existe un registro para este artículo
-      const { data: existing, error: selectError } = await supabase
-        .from('meta_analysis_data')
-        .select('id')
-        .eq('article_id', articleId)
-        .single();
-      
-      if (selectError && selectError.code !== 'PGRST116') {
-        // Error diferente a "no rows found"
-        console.error('Error verificando existencia:', selectError);
-      }
-      
-      if (existing) {
-        // Actualizar registro existente
-        const { error } = await supabase
-          .from('meta_analysis_data')
-          .update({
-            n_intervention: extractionData.n_intervention || null,
-            mean_intervention: extractionData.mean_intervention || null,
-            sd_intervention: extractionData.sd_intervention || null,
-            n_control: extractionData.n_control || null,
-            mean_control: extractionData.mean_control || null,
-            sd_control: extractionData.sd_control || null,
-          })
-          .eq('article_id', articleId);
-        
-        if (error) {
-          console.error('Error actualizando datos de extracción:', error);
-          return false;
-        }
-        console.log(`[Meta-Analysis] ✓ Datos actualizados para: ${articleId}`);
-      } else {
-        // Insertar nuevo registro
-        const { error } = await supabase
-          .from('meta_analysis_data')
-          .insert({
-            project_id: projectId,
-            article_id: articleId,
-            n_intervention: extractionData.n_intervention || null,
-            mean_intervention: extractionData.mean_intervention || null,
-            sd_intervention: extractionData.sd_intervention || null,
-            n_control: extractionData.n_control || null,
-            mean_control: extractionData.mean_control || null,
-            sd_control: extractionData.sd_control || null,
-          });
-        
-        if (error) {
-          console.error('Error guardando datos de extracción:', error);
-          return false;
-        }
-        console.log(`[Meta-Analysis] ✓ Datos guardados para: ${articleId}`);
-      }
+      // Los datos se guardan en el estado local de React
+      // No hay persistencia en Supabase (por ahora)
+      // Los datos se mantienen en memoria mientras la sesión esté activa
       
       return true;
     } catch (err) {
