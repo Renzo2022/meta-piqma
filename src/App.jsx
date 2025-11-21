@@ -731,6 +731,7 @@ const apiClient = {
   saveExtractionData: async (projectId, articleId, extractionData) => {
     try {
       console.log(`[Meta-Analysis] Guardando datos para artículo ID: ${articleId}`);
+      console.log(`[Meta-Analysis] Tipo de articleId:`, typeof articleId);
       console.log(`[Meta-Analysis] Datos:`, extractionData);
       
       // Verificar si ya existe un registro para este artículo
