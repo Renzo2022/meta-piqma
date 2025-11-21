@@ -518,9 +518,9 @@ const apiClient = {
   },
 
   // Actualiza el estado de un artículo específico
-  updateArticleStatus: async (articleId, newStatus, reason = null) => {
+  updateArticleStatus: async (articleId, newStatus, reason = null, articleTitle = null) => {
     try {
-      console.log('[updateArticleStatus] Intentando actualizar artículo ID:', articleId, 'a status:', newStatus);
+      console.log('[updateArticleStatus] Intentando actualizar artículo:', articleId, 'a status:', newStatus);
       
       const updateData = {
         status: newStatus,
@@ -530,14 +530,23 @@ const apiClient = {
         updateData.exclusion_reason = reason;
       }
 
-      // El articleId es el ID numérico de Supabase
-      const { error } = await supabase
+      // Intentar actualizar por ID numérico primero
+      let result = await supabase
         .from('articles')
         .update(updateData)
-        .eq('id', articleId);
+        .eq('id', parseInt(articleId));
       
-      if (error) {
-        console.error('Error actualizando artículo:', error);
+      // Si falla (porque articleId es un string), intentar por title
+      if (result.error && articleTitle) {
+        console.log('[updateArticleStatus] Reintentando con title:', articleTitle);
+        result = await supabase
+          .from('articles')
+          .update(updateData)
+          .eq('title', articleTitle);
+      }
+      
+      if (result.error) {
+        console.error('Error actualizando artículo:', result.error);
         return false;
       }
       
@@ -2162,19 +2171,15 @@ const ModuleEligibility = () => {
 
   const handleIncludeFinal = async () => {
     if (nextArticle) {
-      console.log('[Eligibility] nextArticle estructura:', nextArticle);
-      console.log('[Eligibility] nextArticle.id:', nextArticle.id, 'tipo:', typeof nextArticle.id);
-      
       // Actualizar en estado local
       dispatch({
         type: 'UPDATE_ARTICLE_STATUS',
         payload: { articleId: nextArticle.uniqueId, newStatus: 'included_final' },
       });
       
-      // Guardar en Supabase - usar el ID numérico correcto
-      const articleIdToUpdate = nextArticle.id;
-      await apiClient.updateArticleStatus(articleIdToUpdate, 'included_final');
-      console.log(`[Eligibility] ✓ Artículo ${articleIdToUpdate} marcado como included_final en Supabase`);
+      // Guardar en Supabase - pasar title como fallback
+      await apiClient.updateArticleStatus(nextArticle.id, 'included_final', null, nextArticle.title);
+      console.log(`[Eligibility] ✓ Artículo ${nextArticle.title} marcado como included_final en Supabase`);
     }
   };
 
@@ -2193,9 +2198,9 @@ const ModuleEligibility = () => {
           },
         });
         
-        // Guardar en Supabase
-        await apiClient.updateArticleStatus(nextArticle.id, 'excluded_fulltext', reason);
-        console.log(`[Eligibility] ✓ Artículo ${nextArticle.id} excluido en Supabase`);
+        // Guardar en Supabase - pasar title como fallback
+        await apiClient.updateArticleStatus(nextArticle.id, 'excluded_fulltext', reason, nextArticle.title);
+        console.log(`[Eligibility] ✓ Artículo ${nextArticle.title} excluido en Supabase`);
       }
     }
   };
@@ -2212,9 +2217,9 @@ const ModuleEligibility = () => {
         },
       });
       
-      // Guardar en Supabase
-      await apiClient.updateArticleStatus(nextArticle.id, 'excluded_fulltext', otherReason);
-      console.log(`[Eligibility] ✓ Artículo ${nextArticle.id} excluido con razón personalizada en Supabase`);
+      // Guardar en Supabase - pasar title como fallback
+      await apiClient.updateArticleStatus(nextArticle.id, 'excluded_fulltext', otherReason, nextArticle.title);
+      console.log(`[Eligibility] ✓ Artículo ${nextArticle.title} excluido con razón personalizada en Supabase`);
       
       setOtherReason('');
       setShowOtherReasonModal(false);
