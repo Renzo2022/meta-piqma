@@ -2893,8 +2893,12 @@ const ModuleMetaAnalysis = () => {
   useEffect(() => {
     const loadData = async () => {
       if (state.currentProjectId) {
+        console.log('[ModuleMetaAnalysis] Cargando datos para proyecto:', state.currentProjectId);
+        
         // Cargar datos de extracción desde Supabase
         const data = await apiClient.loadExtractionData(state.currentProjectId);
+        console.log('[ModuleMetaAnalysis] Datos de extracción cargados:', data);
+        
         const dataMap = {};
         const articleIdsWithData = new Set();
         
@@ -2910,10 +2914,12 @@ const ModuleMetaAnalysis = () => {
           articleIdsWithData.add(row.article_id);
         });
         
+        console.log('[ModuleMetaAnalysis] Article IDs con datos:', Array.from(articleIdsWithData));
         setExtractionData(dataMap);
         
         // Cargar todos los artículos desde Supabase
         const allArticles = await apiClient.loadArticles(state.currentProjectId);
+        console.log('[ModuleMetaAnalysis] Todos los artículos:', allArticles.length);
         
         // Crear artículos "virtuales" para los datos guardados que no están en la lista actual
         const virtualArticles = Array.from(articleIdsWithData)
@@ -2929,17 +2935,22 @@ const ModuleMetaAnalysis = () => {
             url: '',
           }));
         
+        console.log('[ModuleMetaAnalysis] Artículos virtuales creados:', virtualArticles.length);
+        
         // Combinar artículos reales + virtuales (de búsquedas anteriores)
         const combinedArticles = [
           ...allArticles.filter((a) => a.status === 'included_final'),
           ...virtualArticles,
         ];
         
+        console.log('[ModuleMetaAnalysis] Artículos combinados:', combinedArticles.length);
+        
         // Eliminar duplicados por ID
         const uniqueArticles = Array.from(
           new Map(combinedArticles.map(a => [a.id, a])).values()
         );
         
+        console.log('[ModuleMetaAnalysis] Artículos únicos finales:', uniqueArticles.length);
         setArticlesWithData(uniqueArticles);
       }
     };
