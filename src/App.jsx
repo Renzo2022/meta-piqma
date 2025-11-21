@@ -508,6 +508,8 @@ const apiClient = {
   // Actualiza el estado de un artículo específico
   updateArticleStatus: async (articleId, newStatus, reason = null) => {
     try {
+      console.log('[updateArticleStatus] Intentando actualizar artículo:', articleId, 'a status:', newStatus);
+      
       const updateData = {
         status: newStatus,
       };
@@ -516,16 +518,27 @@ const apiClient = {
         updateData.exclusion_reason = reason;
       }
 
-      const { error } = await supabase
+      // Intentar actualizar por ID numérico primero
+      let result = await supabase
         .from('articles')
         .update(updateData)
-        .eq('id', articleId);
+        .eq('id', parseInt(articleId));
       
-      if (error) {
-        console.error('Error actualizando artículo:', error);
+      // Si falla, intentar por source_id (string)
+      if (result.error && result.error.code === '400') {
+        console.log('[updateArticleStatus] Reintentando con source_id:', articleId);
+        result = await supabase
+          .from('articles')
+          .update(updateData)
+          .eq('source_id', articleId);
+      }
+      
+      if (result.error) {
+        console.error('Error actualizando artículo:', result.error);
         return false;
       }
       
+      console.log('[updateArticleStatus] ✓ Artículo actualizado correctamente');
       return true;
     } catch (err) {
       console.error('Error en updateArticleStatus:', err);
