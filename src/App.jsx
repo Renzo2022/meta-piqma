@@ -680,64 +680,15 @@ const apiClient = {
     }
   },
 
-  // Guarda datos de extracción en Supabase (Módulo 6)
+  // Guarda datos de extracción en estado local (Módulo 6)
   saveExtractionData: async (projectId, articleId, extractionData) => {
     try {
-      console.log(`[Meta-Analysis] Guardando datos para artículo: ${articleId}`);
+      console.log(`[Meta-Analysis] ✓ Guardando en estado local: ${articleId}`);
       console.log(`[Meta-Analysis] Datos:`, extractionData);
       
-      // Verificar si ya existe un registro para este artículo
-      const { data: existing, error: selectError } = await supabase
-        .from('meta_analysis_data')
-        .select('id')
-        .eq('article_id', articleId)
-        .single();
-      
-      if (selectError && selectError.code !== 'PGRST116') {
-        // Error diferente a "no rows found"
-        console.error('Error verificando existencia:', selectError);
-      }
-      
-      if (existing) {
-        // Actualizar registro existente
-        const { error } = await supabase
-          .from('meta_analysis_data')
-          .update({
-            n_intervention: extractionData.n_intervention || null,
-            mean_intervention: extractionData.mean_intervention || null,
-            sd_intervention: extractionData.sd_intervention || null,
-            n_control: extractionData.n_control || null,
-            mean_control: extractionData.mean_control || null,
-            sd_control: extractionData.sd_control || null,
-          })
-          .eq('article_id', articleId);
-        
-        if (error) {
-          console.error('Error actualizando datos de extracción:', error);
-          return false;
-        }
-        console.log(`[Meta-Analysis] ✓ Datos actualizados para: ${articleId}`);
-      } else {
-        // Insertar nuevo registro
-        const { error } = await supabase
-          .from('meta_analysis_data')
-          .insert({
-            project_id: projectId,
-            article_id: articleId,
-            n_intervention: extractionData.n_intervention || null,
-            mean_intervention: extractionData.mean_intervention || null,
-            sd_intervention: extractionData.sd_intervention || null,
-            n_control: extractionData.n_control || null,
-            mean_control: extractionData.mean_control || null,
-            sd_control: extractionData.sd_control || null,
-          });
-        
-        if (error) {
-          console.error('Error guardando datos de extracción:', error);
-          return false;
-        }
-        console.log(`[Meta-Analysis] ✓ Datos guardados para: ${articleId}`);
-      }
+      // Los datos se guardan en el estado local de React
+      // No hay persistencia en Supabase (por ahora)
+      // Los datos se mantienen en memoria mientras la sesión esté activa
       
       return true;
     } catch (err) {
@@ -747,19 +698,20 @@ const apiClient = {
   },
 
   // Ejecuta meta-análisis usando el nuevo endpoint (Módulo 6)
-  async runMetaAnalysisFromSupabase(projectId) {
+  async runMetaAnalysisFromSupabase(projectId, extractionData = []) {
     try {
       const SEARCH_SERVER_URL = import.meta.env.VITE_SEARCH_SERVER_URL || 'http://localhost:8000';
       
       console.log(`[Meta-Analysis] Conectando a: ${SEARCH_SERVER_URL}/api/v1/run-meta-analysis`);
       console.log(`[Meta-Analysis] Proyecto ID: ${projectId}`);
+      console.log(`[Meta-Analysis] Estudios a analizar: ${extractionData.length}`);
       
       const response = await fetch(`${SEARCH_SERVER_URL}/api/v1/run-meta-analysis`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ projectId }),
+        body: JSON.stringify({ projectId, extractionData }),
       });
       
       if (!response.ok) {
@@ -2886,9 +2838,32 @@ const ModuleMetaAnalysis = () => {
       return;
     }
 
+    // Preparar datos de extracción con títulos de artículos
+    const dataToAnalyze = includedArticles
+      .filter((article) => extractionData[article.id]) // Solo artículos con datos
+      .map((article) => ({
+        title: article.title,
+        n_intervention: extractionData[article.id]?.n_intervention,
+        mean_intervention: extractionData[article.id]?.mean_intervention,
+        sd_intervention: extractionData[article.id]?.sd_intervention,
+        n_control: extractionData[article.id]?.n_control,
+        mean_control: extractionData[article.id]?.mean_control,
+        sd_control: extractionData[article.id]?.sd_control,
+      }));
+
+    if (dataToAnalyze.length === 0) {
+      alert('Por favor ingresa datos de extracción para al menos un estudio');
+      return;
+    }
+
+    console.log(`[Meta-Analysis] Enviando ${dataToAnalyze.length} estudios al análisis`);
+    dataToAnalyze.forEach((study, i) => {
+      console.log(`  ${i + 1}. ${study.title}`);
+    });
+
     setIsLoading(true);
     try {
-      const results = await apiClient.runMetaAnalysisFromSupabase(state.currentProjectId);
+      const results = await apiClient.runMetaAnalysisFromSupabase(state.currentProjectId, dataToAnalyze);
       setMetaAnalysisResults(results);
     } catch (error) {
       console.error('Error en meta-análisis:', error);

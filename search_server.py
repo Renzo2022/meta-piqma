@@ -102,6 +102,7 @@ class MetaAnalysisResponse(BaseModel):
 class RunMetaAnalysisRequest(BaseModel):
     """Solicitud para ejecutar meta-análisis desde Supabase"""
     projectId: int
+    extractionData: Optional[List[dict]] = []
 
 class RunMetaAnalysisResponse(BaseModel):
     """Respuesta de meta-análisis ejecutado"""
@@ -836,7 +837,7 @@ async def meta_analysis(request: MetaAnalysisRequest):
 # ============================================================================
 
 def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value: float, combined_effect: float) -> str:
-    """Genera un SVG de Forest Plot basado en los datos REALES del meta-análisis"""
+    """Genera un SVG de Forest Plot basado en los datos REALES del meta-análisis con títulos de estudios"""
     
     # Usar datos reales de extracción o generar datos simulados si está vacío
     studies = []
@@ -844,6 +845,12 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
     if extraction_data and len(extraction_data) > 0:
         # Usar datos reales
         for i, study in enumerate(extraction_data, 1):
+            # Obtener título del estudio
+            title = study.get('title', f'Study {i}')
+            # Truncar título si es muy largo
+            if len(title) > 50:
+                title = title[:47] + '...'
+            
             if study.get('mean_intervention') and study.get('mean_control'):
                 effect_size = round(study['mean_intervention'] - study['mean_control'], 2)
                 se = 0.5
@@ -855,7 +862,7 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
                 ci_upper = round(effect_size + 0.3, 2)
             
             studies.append({
-                'name': f'Study {i}',
+                'name': title,
                 'effect': effect_size,
                 'ci_lower': ci_lower,
                 'ci_upper': ci_upper
@@ -879,60 +886,65 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
         
         combined_effect = round(sum(s['effect'] for s in studies) / len(studies), 2)
     
+    # Calcular altura dinámica basada en número de estudios
+    height = 150 + (len(studies) * 35) + 100
+    y_start = 100
+    
     # Crear SVG
-    svg = f'''<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+    svg = f'''<svg width="1200" height="{height}" xmlns="http://www.w3.org/2000/svg">
     <!-- Fondo -->
-    <rect width="900" height="600" fill="#f8f9fa"/>
+    <rect width="1200" height="{height}" fill="#f8f9fa"/>
     
     <!-- Título -->
-    <text x="450" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#1a1a1a">
+    <text x="600" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#1a1a1a">
         Forest Plot - Meta-Analysis Results
     </text>
     
     <!-- Información de métricas -->
-    <text x="20" y="60" font-size="12" fill="#666">I² = {i2}% | Q = {q} | p-value = {p_value}</text>
+    <text x="20" y="60" font-size="12" fill="#666">I² = {i2}% | Q = {q} | p-value = {p_value} | N Studies = {len(studies)}</text>
     
     <!-- Línea de referencia (efecto nulo) -->
-    <line x1="400" y1="100" x2="400" y2="550" stroke="#999" stroke-width="2" stroke-dasharray="5,5"/>
-    <text x="400" y="95" font-size="10" text-anchor="middle" fill="#666">No Effect (1.0)</text>
+    <line x1="500" y1="{y_start}" x2="500" y2="{y_start + len(studies) * 35 + 50}" stroke="#999" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="500" y="{y_start - 10}" font-size="10" text-anchor="middle" fill="#666">No Effect (1.0)</text>
     
     <!-- Estudios -->'''
     
-    y_pos = 120
+    y_pos = y_start
     for i, study in enumerate(studies):
-        # Escala: 1 unidad = 50 pixels
-        center_x = 400 + (study['effect'] - 1.0) * 100
-        left_x = 400 + (study['ci_lower'] - 1.0) * 100
-        right_x = 400 + (study['ci_upper'] - 1.0) * 100
+        # Escala: 1 unidad = 100 pixels
+        center_x = 500 + (study['effect'] - 1.0) * 150
+        left_x = 500 + (study['ci_lower'] - 1.0) * 150
+        right_x = 500 + (study['ci_upper'] - 1.0) * 150
         
         # Línea de intervalo de confianza
         svg += f'\n    <line x1="{left_x}" y1="{y_pos}" x2="{right_x}" y2="{y_pos}" stroke="#2196F3" stroke-width="2"/>'
         
         # Punto de efecto
-        svg += f'\n    <circle cx="{center_x}" cy="{y_pos}" r="4" fill="#1976D2"/>'
+        svg += f'\n    <circle cx="{center_x}" cy="{y_pos}" r="5" fill="#1976D2"/>'
         
-        # Etiqueta del estudio
-        svg += f'\n    <text x="20" y="{y_pos + 4}" font-size="11" fill="#333">{study["name"]}</text>'
+        # Etiqueta del estudio (título truncado)
+        svg += f'\n    <text x="20" y="{y_pos + 5}" font-size="10" fill="#333">{study["name"]}</text>'
         
-        # Valores
-        svg += f'\n    <text x="750" y="{y_pos + 4}" font-size="10" fill="#666">{study["effect"]} [{study["ci_lower"]}, {study["ci_upper"]}]</text>'
+        # Valores (efecto e IC)
+        svg += f'\n    <text x="1000" y="{y_pos + 5}" font-size="9" fill="#666">{study["effect"]} [{study["ci_lower"]}, {study["ci_upper"]}]</text>'
         
         y_pos += 35
     
     # Línea de efecto combinado
-    combined_x = 400 + (combined_effect - 1.0) * 100
-    svg += f'\n    <line x1="{combined_x - 30}" y1="{y_pos}" x2="{combined_x + 30}" y2="{y_pos}" stroke="#D32F2F" stroke-width="3"/>'
-    svg += f'\n    <circle cx="{combined_x}" cy="{y_pos}" r="5" fill="#D32F2F"/>'
-    svg += f'\n    <text x="20" y="{y_pos + 4}" font-size="12" font-weight="bold" fill="#D32F2F">Combined Effect</text>'
-    svg += f'\n    <text x="750" y="{y_pos + 4}" font-size="11" font-weight="bold" fill="#D32F2F">{combined_effect}</text>'
+    combined_x = 500 + (combined_effect - 1.0) * 150
+    svg += f'\n    <line x1="{combined_x - 40}" y1="{y_pos}" x2="{combined_x + 40}" y2="{y_pos}" stroke="#D32F2F" stroke-width="4"/>'
+    svg += f'\n    <circle cx="{combined_x}" cy="{y_pos}" r="6" fill="#D32F2F"/>'
+    svg += f'\n    <text x="20" y="{y_pos + 5}" font-size="12" font-weight="bold" fill="#D32F2F">COMBINED EFFECT</text>'
+    svg += f'\n    <text x="1000" y="{y_pos + 5}" font-size="11" font-weight="bold" fill="#D32F2F">{combined_effect}</text>'
     
     # Eje X
-    svg += f'\n    <line x1="350" y1="570" x2="650" y2="570" stroke="#333" stroke-width="2"/>'
-    svg += f'\n    <text x="350" y="590" font-size="10" text-anchor="middle" fill="#333">0.5</text>'
-    svg += f'\n    <text x="400" y="590" font-size="10" text-anchor="middle" fill="#333">1.0</text>'
-    svg += f'\n    <text x="450" y="590" font-size="10" text-anchor="middle" fill="#333">1.5</text>'
-    svg += f'\n    <text x="500" y="590" font-size="10" text-anchor="middle" fill="#333">2.0</text>'
-    svg += f'\n    <text x="550" y="590" font-size="10" text-anchor="middle" fill="#333">2.5</text>'
+    svg += f'\n    <line x1="350" y1="{y_pos + 50}" x2="750" y2="{y_pos + 50}" stroke="#333" stroke-width="2"/>'
+    svg += f'\n    <text x="350" y="{y_pos + 70}" font-size="10" text-anchor="middle" fill="#333">0.5</text>'
+    svg += f'\n    <text x="425" y="{y_pos + 70}" font-size="10" text-anchor="middle" fill="#333">1.0</text>'
+    svg += f'\n    <text x="500" y="{y_pos + 70}" font-size="10" text-anchor="middle" fill="#333">1.5</text>'
+    svg += f'\n    <text x="575" y="{y_pos + 70}" font-size="10" text-anchor="middle" fill="#333">2.0</text>'
+    svg += f'\n    <text x="650" y="{y_pos + 70}" font-size="10" text-anchor="middle" fill="#333">2.5</text>'
+    svg += f'\n    <text x="750" y="{y_pos + 70}" font-size="10" text-anchor="middle" fill="#333">3.0</text>'
     
     svg += '\n</svg>'
     
@@ -940,7 +952,7 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
 
 
 def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value: float) -> str:
-    """Genera un SVG de Funnel Plot basado en los datos REALES del meta-análisis"""
+    """Genera un SVG de Funnel Plot basado en los datos REALES del meta-análisis con títulos"""
     
     # Usar datos reales de extracción o generar datos simulados si está vacío
     studies = []
@@ -948,6 +960,12 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
     if extraction_data and len(extraction_data) > 0:
         # Usar datos reales
         for i, study in enumerate(extraction_data, 1):
+            # Obtener título del estudio
+            title = study.get('title', f'Study {i}')
+            # Truncar título si es muy largo
+            if len(title) > 40:
+                title = title[:37] + '...'
+            
             if study.get('mean_intervention') and study.get('mean_control'):
                 effect_size = round(study['mean_intervention'] - study['mean_control'], 2)
                 n = study.get('n_intervention', 100)
@@ -957,7 +975,7 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
                 se = round(0.05 + (i * 0.02), 3)
             
             studies.append({
-                'name': f'Study {i}',
+                'name': title,
                 'effect': effect_size,
                 'se': se
             })
@@ -974,35 +992,38 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
             })
     
     # Crear SVG
-    svg = f'''<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+    svg = f'''<svg width="1100" height="700" xmlns="http://www.w3.org/2000/svg">
     <!-- Fondo -->
-    <rect width="900" height="600" fill="#f8f9fa"/>
+    <rect width="1100" height="700" fill="#f8f9fa"/>
     
     <!-- Título -->
-    <text x="450" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#1a1a1a">
+    <text x="550" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#1a1a1a">
         Funnel Plot - Publication Bias Assessment
     </text>
     
     <!-- Información de métricas -->
-    <text x="20" y="60" font-size="12" fill="#666">I² = {i2}% | Q = {q} | p-value = {p_value}</text>
+    <text x="20" y="60" font-size="12" fill="#666">I² = {i2}% | Q = {q} | p-value = {p_value} | N Studies = {len(studies)}</text>
     
     <!-- Línea de referencia (efecto nulo) -->
-    <line x1="400" y1="80" x2="400" y2="520" stroke="#999" stroke-width="2" stroke-dasharray="5,5"/>
-    <text x="400" y="75" font-size="10" text-anchor="middle" fill="#666">No Effect</text>
+    <line x1="500" y1="100" x2="500" y2="550" stroke="#999" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="500" y="90" font-size="10" text-anchor="middle" fill="#666">No Effect</text>
     
     <!-- Líneas de confianza (95%) -->
-    <line x1="350" y1="80" x2="400" y2="520" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="3,3"/>
-    <line x1="450" y1="80" x2="400" y2="520" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="420" y1="100" x2="500" y2="550" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="580" y1="100" x2="500" y2="550" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="3,3"/>
     
-    <!-- Estudios -->'''
+    <!-- Estudios con etiquetas -->'''
     
-    for study in studies:
+    for i, study in enumerate(studies):
         # Escala: efecto en X (0.5 a 2.5), SE en Y (0.3 a 0.05)
-        x = 400 + (study['effect'] - 1.5) * 100  # Centrado en 1.5
-        y = 520 - (study['se'] - 0.05) * 1000  # Invertido (SE pequeño arriba)
+        x = 500 + (study['effect'] - 1.5) * 120  # Centrado en 1.5
+        y = 550 - (study['se'] - 0.05) * 1200  # Invertido (SE pequeño arriba)
         
         # Punto del estudio
-        svg += f'\n    <circle cx="{x}" cy="{y}" r="5" fill="#2196F3" opacity="0.7"/>'
+        svg += f'\n    <circle cx="{x}" cy="{y}" r="6" fill="#2196F3" opacity="0.8"/>'
+        
+        # Etiqueta del estudio (título truncado)
+        svg += f'\n    <text x="{x + 15}" y="{y + 5}" font-size="8" fill="#333">{study["name"]}</text>'
     
     svg += '''
     <!-- Etiquetas de ejes -->
@@ -1062,23 +1083,18 @@ async def run_meta_analysis(request: RunMetaAnalysisRequest):
     print(f"[META-ANALYSIS] Leyendo datos desde Supabase...")
     
     try:
-        # Intentar leer datos reales de Supabase
-        extraction_data = []
+        # Usar datos reales enviados desde React
+        extraction_data = request.extractionData if request.extractionData else []
         
-        # NOTA: Aquí iría la lectura real de Supabase
-        # Por ahora usamos datos simulados pero con estructura real
-        # En producción: 
-        # response = supabase.table('meta_analysis_data').select('*').eq('project_id', request.projectId).execute()
-        # extraction_data = response.data
+        print(f"[META-ANALYSIS] Datos recibidos: {len(extraction_data)} estudios")
         
-        # Simular algunos datos para demostración
-        extraction_data = [
-            {'n_intervention': 100, 'mean_intervention': 5.2, 'sd_intervention': 1.5, 'n_control': 95, 'mean_control': 4.8, 'sd_control': 1.6},
-            {'n_intervention': 120, 'mean_intervention': 5.8, 'sd_intervention': 1.8, 'n_control': 110, 'mean_control': 5.1, 'sd_control': 1.7},
-            {'n_intervention': 85, 'mean_intervention': 5.5, 'sd_intervention': 1.4, 'n_control': 88, 'mean_control': 5.0, 'sd_control': 1.5},
-        ]
-        
-        print(f"[META-ANALYSIS] Datos cargados: {len(extraction_data)} estudios")
+        # Si hay datos, mostrar información
+        if extraction_data:
+            for i, study in enumerate(extraction_data, 1):
+                title = study.get('title', f'Study {i}')[:50]
+                print(f"  {i}. {title}")
+                print(f"     Intervención: n={study.get('n_intervention')}, media={study.get('mean_intervention')}")
+                print(f"     Control: n={study.get('n_control')}, media={study.get('mean_control')}")
         
         # Calcular métricas reales basadas en los datos
         if extraction_data and len(extraction_data) > 0:
