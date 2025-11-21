@@ -2163,6 +2163,36 @@ const ModuleEligibility = () => {
   const [showOtherReasonModal, setShowOtherReasonModal] = useState(false);
   const [otherReason, setOtherReason] = useState('');
 
+  // Cargar artículos de Supabase para obtener IDs correctos
+  useEffect(() => {
+    const loadArticlesFromSupabase = async () => {
+      if (state.currentProjectId && state.projectArticles.length > 0) {
+        // Cargar artículos de Supabase
+        const supabaseArticles = await apiClient.loadArticles(state.currentProjectId);
+        
+        if (supabaseArticles.length > 0) {
+          // Mapear artículos del estado con los de Supabase por título
+          const updatedArticles = state.projectArticles.map((article) => {
+            const supabaseArticle = supabaseArticles.find((sa) => sa.title === article.title);
+            if (supabaseArticle) {
+              // Usar el ID de Supabase (BIGINT)
+              return {
+                ...article,
+                id: supabaseArticle.id, // ✅ BIGINT de Supabase
+              };
+            }
+            return article;
+          });
+          
+          // Actualizar estado con IDs correctos
+          dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: updatedArticles });
+        }
+      }
+    };
+    
+    loadArticlesFromSupabase();
+  }, [state.currentProjectId]);
+
   // Calcular estadísticas
   const forReview = state.projectArticles.filter((a) => a.status === 'included_title');
   const included = state.projectArticles.filter((a) => a.status === 'included_final');
