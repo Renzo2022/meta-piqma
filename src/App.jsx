@@ -2920,8 +2920,13 @@ const ModuleMetaAnalysis = () => {
         // Cargar todos los artículos desde Supabase
         const allArticles = await apiClient.loadArticles(state.currentProjectId);
         console.log('[ModuleMetaAnalysis] Todos los artículos:', allArticles.length);
+        console.log('[ModuleMetaAnalysis] Artículos included_final:', allArticles.filter(a => a.status === 'included_final').length);
+        
+        // Obtener artículos included_final
+        const includedFinalArticles = allArticles.filter((a) => a.status === 'included_final');
         
         // Crear artículos "virtuales" para los datos guardados que no están en la lista actual
+        // (datos de búsquedas anteriores que fueron eliminados)
         const virtualArticles = Array.from(articleIdsWithData)
           .filter(articleId => !allArticles.some(a => a.id === articleId))
           .map(articleId => ({
@@ -2937,9 +2942,9 @@ const ModuleMetaAnalysis = () => {
         
         console.log('[ModuleMetaAnalysis] Artículos virtuales creados:', virtualArticles.length);
         
-        // Combinar artículos reales + virtuales (de búsquedas anteriores)
+        // Combinar: artículos included_final + artículos virtuales (de búsquedas anteriores)
         const combinedArticles = [
-          ...allArticles.filter((a) => a.status === 'included_final'),
+          ...includedFinalArticles,
           ...virtualArticles,
         ];
         
