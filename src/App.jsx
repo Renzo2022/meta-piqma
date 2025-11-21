@@ -2884,6 +2884,7 @@ const ModuleMetaAnalysis = () => {
   const [extractionData, setExtractionData] = useState({});
   const [metaAnalysisResults, setMetaAnalysisResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [articlesWithData, setArticlesWithData] = useState([]);
 
   // Artículos incluidos finales
   const includedArticles = state.projectArticles.filter((a) => a.status === 'included_final');
@@ -2894,6 +2895,8 @@ const ModuleMetaAnalysis = () => {
       if (state.currentProjectId) {
         const data = await apiClient.loadExtractionData(state.currentProjectId);
         const dataMap = {};
+        const articleIds = new Set();
+        
         data.forEach((row) => {
           dataMap[row.article_id] = {
             n_intervention: row.n_intervention,
@@ -2903,12 +2906,20 @@ const ModuleMetaAnalysis = () => {
             mean_control: row.mean_control,
             sd_control: row.sd_control,
           };
+          articleIds.add(row.article_id);
         });
+        
         setExtractionData(dataMap);
+        
+        // Obtener artículos que tienen datos guardados
+        const articlesWithSavedData = state.projectArticles.filter(
+          (a) => a.status === 'included_final' || articleIds.has(a.id)
+        );
+        setArticlesWithData(articlesWithSavedData);
       }
     };
     loadData();
-  }, [state.currentProjectId]);
+  }, [state.currentProjectId, state.projectArticles]);
 
   // Manejar cambio en inputs
   const handleInputChange = async (articleId, field, value) => {
@@ -2986,7 +2997,7 @@ const ModuleMetaAnalysis = () => {
       <div className="mb-12">
         <h2 className="text-2xl font-bold text-monokai-orange mb-6">Extracción de Datos de Estudios Incluidos</h2>
 
-        {includedArticles.length > 0 ? (
+        {articlesWithData.length > 0 ? (
           <div className="overflow-x-auto bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
             <table className="w-full divide-y divide-monokai-subtle divide-opacity-30 text-sm">
               <thead className="bg-monokai-dark">
@@ -3001,7 +3012,7 @@ const ModuleMetaAnalysis = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-monokai-subtle divide-opacity-30">
-                {includedArticles.map((article) => (
+                {articlesWithData.map((article) => (
                   <tr key={article.id} className="hover:bg-monokai-dark transition-colors">
                     <td className="px-4 py-3">
                       <span className="text-monokai-text truncate block max-w-xs" title={article.title}>
