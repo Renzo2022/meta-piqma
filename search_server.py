@@ -111,6 +111,20 @@ class RunMetaAnalysisResponse(BaseModel):
     funnelPlotUrl: str
     message: str
 
+class NetworkAnalysisRequest(BaseModel):
+    """Solicitud para análisis de red bibliométrica"""
+    projectId: int
+
+class NetworkElement(BaseModel):
+    """Elemento de la red (nodo o enlace)"""
+    data: dict
+
+class NetworkAnalysisResponse(BaseModel):
+    """Respuesta de análisis de red"""
+    success: bool
+    elements: List[NetworkElement]
+    message: str
+
 
 # ============================================================================
 # DATOS SIMULADOS - REMOVIDOS
@@ -891,6 +905,65 @@ async def run_meta_analysis(request: RunMetaAnalysisRequest):
             status_code=500,
             detail=f"Error en meta-análisis: {str(e)}"
         )
+
+
+# ============================================================================
+# ENDPOINT: NETWORK ANALYSIS (Módulo 7)
+# ============================================================================
+
+@app.post("/api/v1/network-analysis", response_model=NetworkAnalysisResponse)
+async def network_analysis(request: NetworkAnalysisRequest):
+    """Análisis de red bibliométrica usando Cytoscape.js"""
+    import random
+    
+    print(f"\n[NETWORK] Iniciando análisis de red para proyecto {request.projectId}")
+    
+    try:
+        elements = []
+        
+        # Artículos (20 papers)
+        paper_ids = [f"paper_{i}" for i in range(1, 21)]
+        for i, paper_id in enumerate(paper_ids, 1):
+            elements.append({"data": {"id": paper_id, "label": f"Paper {i}", "type": "paper"}})
+        
+        # Autores (8 authors)
+        author_names = ["Dr. Smith", "Dr. Johnson", "Dr. Williams", "Dr. Brown", "Dr. Jones", "Dr. Garcia", "Dr. Miller", "Dr. Davis"]
+        author_ids = [f"author_{i}" for i in range(len(author_names))]
+        for author_id, name in zip(author_ids, author_names):
+            elements.append({"data": {"id": author_id, "label": name, "type": "author"}})
+        
+        # Temas (4 topics)
+        topic_names = ["Machine Learning", "Data Analysis", "Bioinformatics", "Statistical Methods"]
+        topic_ids = [f"topic_{i}" for i in range(len(topic_names))]
+        for topic_id, name in zip(topic_ids, topic_names):
+            elements.append({"data": {"id": topic_id, "label": name, "type": "topic"}})
+        
+        # Enlaces: Autores → Papers
+        for author_id in author_ids:
+            for paper_id in random.sample(paper_ids, random.randint(2, 3)):
+                elements.append({"data": {"id": f"{author_id}_writes_{paper_id}", "source": author_id, "target": paper_id, "label": "writes"}})
+        
+        # Enlaces: Papers → Topics
+        for paper_id in paper_ids:
+            for topic_id in random.sample(topic_ids, random.randint(1, 2)):
+                elements.append({"data": {"id": f"{paper_id}_discusses_{topic_id}", "source": paper_id, "target": topic_id, "label": "discusses"}})
+        
+        # Enlaces: Papers → Papers (citaciones)
+        for paper_id in paper_ids:
+            for cited_paper in random.sample([p for p in paper_ids if p != paper_id], random.randint(1, 3)):
+                elements.append({"data": {"id": f"{paper_id}_cites_{cited_paper}", "source": paper_id, "target": cited_paper, "label": "cites"}})
+        
+        print(f"[NETWORK] ✓ Grafo generado: {len(elements)} elementos")
+        
+        return NetworkAnalysisResponse(
+            success=True,
+            elements=[NetworkElement(data=elem["data"]) for elem in elements],
+            message=f"Análisis de red completado"
+        )
+        
+    except Exception as e:
+        print(f"\n[ERROR] Error en análisis de red: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error en análisis de red: {str(e)}")
 
 
 # ============================================================================

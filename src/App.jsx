@@ -784,6 +784,43 @@ const apiClient = {
     }
   },
 
+  // Análisis de red bibliométrica (Módulo 7)
+  async runNetworkAnalysis(projectId) {
+    try {
+      const SEARCH_SERVER_URL = import.meta.env.VITE_SEARCH_SERVER_URL || 'http://localhost:8000';
+      
+      console.log(`[Network] Conectando a: ${SEARCH_SERVER_URL}/api/v1/network-analysis`);
+      console.log(`[Network] Proyecto ID: ${projectId}`);
+      
+      const response = await fetch(`${SEARCH_SERVER_URL}/api/v1/network-analysis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ projectId }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Error en análisis de red: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Error en análisis de red');
+      }
+      
+      console.log(`[Network] ✓ Análisis completado`);
+      console.log(`[Network] Elementos totales: ${data.elements.length}`);
+      
+      return data.elements.map((elem) => ({ data: elem.data }));
+    } catch (error) {
+      console.error('[Network] Error:', error);
+      throw error;
+    }
+  },
+
   async mockGraphAPI() {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const elements = [
@@ -3044,9 +3081,11 @@ const ModuleMetaAnalysis = () => {
 };
 
 const ModuleGraphAnalysis = () => {
-  const { state, dispatch } = useProject();
+  const { state } = useProject();
+  const [isLoading, setIsLoading] = useState(false);
+  const [graphElements, setGraphElements] = useState([]);
 
-  // Estilos Monokai para Cytoscape
+  // Estilos Monokai para Cytoscape - Profesional tipo VOSviewer
   const graphStylesheet = [
     {
       selector: 'node',
@@ -3054,31 +3093,57 @@ const ModuleGraphAnalysis = () => {
         'background-color': '#78DCE8',
         'label': 'data(label)',
         'color': '#F8F8F2',
-        'font-size': '12px',
+        'font-size': '11px',
         'text-valign': 'center',
         'text-halign': 'center',
-        'width': '40px',
-        'height': '40px',
+        'width': '35px',
+        'height': '35px',
         'border-width': '2px',
         'border-color': '#75715E',
+        'text-opacity': 1,
+        'text-background-opacity': 0.8,
+        'text-background-color': '#272822',
+        'text-background-padding': '3px',
       },
     },
     {
       selector: 'node[type="author"]',
       style: {
         'background-color': '#FF6188',
-        'width': '50px',
-        'height': '50px',
+        'width': '45px',
+        'height': '45px',
+        'shape': 'circle',
+      },
+    },
+    {
+      selector: 'node[type="topic"]',
+      style: {
+        'background-color': '#FFD866',
+        'width': '55px',
+        'height': '55px',
+        'shape': 'circle',
+        'font-weight': 'bold',
+        'font-size': '12px',
+        'color': '#272822',
       },
     },
     {
       selector: 'edge',
       style: {
-        'width': 2,
+        'width': 1.5,
         'line-color': '#75715E',
+        'opacity': 0.6,
         'curve-style': 'bezier',
         'target-arrow-color': '#75715E',
         'target-arrow-shape': 'none',
+      },
+    },
+    {
+      selector: 'edge[label="cites"]',
+      style: {
+        'width': 2,
+        'opacity': 0.8,
+        'line-color': '#A1EFE4',
       },
     },
   ];
@@ -3087,22 +3152,33 @@ const ModuleGraphAnalysis = () => {
   const graphLayout = {
     name: 'cose',
     animate: true,
+    animationDuration: 1000,
     fit: true,
-    padding: 20,
-    nodeSpacing: 10,
-    gravity: 1,
+    padding: 30,
+    nodeSpacing: 15,
+    gravity: 0.5,
     friction: 0.8,
+    numIter: 1000,
+    initialTemp: 200,
+    coolingFactor: 0.95,
+    minTemp: 1.0,
   };
 
-  const handleGenerateGraph = async () => {
-    dispatch({ type: 'SET_LOADING_GRAPH', payload: true });
+  const handleGenerateNetwork = async () => {
+    if (!state.currentProjectId) {
+      alert('No hay proyecto seleccionado');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      const elements = await apiClient.mockGraphAPI();
-      dispatch({ type: 'SET_GRAPH_ELEMENTS', payload: elements });
+      const elements = await apiClient.runNetworkAnalysis(state.currentProjectId);
+      setGraphElements(elements);
     } catch (error) {
-      console.error('Error generando grafo:', error);
+      console.error('Error generando red:', error);
+      alert('Error generando red: ' + error.message);
     } finally {
-      dispatch({ type: 'SET_LOADING_GRAPH', payload: false });
+      setIsLoading(false);
     }
   };
 
@@ -3115,29 +3191,55 @@ const ModuleGraphAnalysis = () => {
     >
       <h1 className="text-4xl font-bold text-monokai-blue mb-8">Módulo 7: Análisis de Redes Bibliométricas</h1>
 
-      {/* Sección 1: Controles */}
-      <div className="mb-8">
+      <div className="mb-8 bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30">
+        <p className="text-monokai-text mb-4">
+          Visualiza la red de relaciones entre artículos, autores y temas usando un algoritmo de física dirigida (COSE).
+          Los nodos se organizan automáticamente para revelar patrones y clusters en tu investigación.
+        </p>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={handleGenerateGraph}
-          disabled={state.isLoadingGraph}
-          className="flex items-center justify-center gap-2 px-6 py-4 bg-monokai-blue text-monokai-text font-bold rounded-lg hover:shadow-lg transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleGenerateNetwork}
+          disabled={isLoading}
+          className="flex items-center justify-center gap-2 px-6 py-3 bg-monokai-blue text-monokai-text font-bold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Share2 className="w-6 h-6" />
-          Generar Grafo de Co-autores (Simulado)
+          <Network className="w-5 h-5" />
+          {isLoading ? 'Generando Red Bibliométrica...' : 'Generar Red Bibliométrica'}
         </motion.button>
       </div>
 
-      {/* Sección 2: Visualización del Grafo */}
-      <div className="relative w-full h-[70vh] bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30 overflow-hidden">
-        {state.isLoadingGraph ? (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-monokai-dark bg-opacity-50">
+      <div className="mb-8 grid grid-cols-3 gap-4">
+        <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-6 h-6 rounded-full bg-cyan-400" />
+            <span className="font-semibold text-monokai-text">Artículos</span>
+          </div>
+          <p className="text-sm text-monokai-subtle">Nodos azul cian (20)</p>
+        </div>
+        <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-6 h-6 rounded-full bg-pink-400" />
+            <span className="font-semibold text-monokai-text">Autores</span>
+          </div>
+          <p className="text-sm text-monokai-subtle">Nodos rosa (8)</p>
+        </div>
+        <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-6 h-6 rounded-full bg-yellow-400" />
+            <span className="font-semibold text-monokai-text">Temas</span>
+          </div>
+          <p className="text-sm text-monokai-subtle">Nodos amarillo (4, hubs)</p>
+        </div>
+      </div>
+
+      <div className="relative w-full h-[600px] bg-monokai-dark rounded-lg border border-monokai-subtle border-opacity-30 overflow-hidden">
+        {isLoading ? (
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-monokai-dark bg-opacity-80">
             <LoadingSpinner />
           </div>
-        ) : state.graphElements.length > 0 ? (
+        ) : graphElements.length > 0 ? (
           <CytoscapeComponent
-            elements={state.graphElements}
+            elements={graphElements}
             style={{ width: '100%', height: '100%' }}
             stylesheet={graphStylesheet}
             layout={graphLayout}
@@ -3145,12 +3247,48 @@ const ModuleGraphAnalysis = () => {
           />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <p className="text-monokai-subtle">
-              Haz clic en "Generar Grafo" para visualizar la red de co-autores
-            </p>
+            <div className="text-center">
+              <Network className="w-12 h-12 text-monokai-subtle mx-auto mb-4" />
+              <p className="text-monokai-subtle">
+                Haz clic en "Generar Red Bibliométrica" para visualizar la red
+              </p>
+            </div>
           </div>
         )}
       </div>
+
+      {graphElements.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-8 bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30"
+        >
+          <h3 className="text-lg font-bold text-monokai-orange mb-4">Información de la Red</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-monokai-subtle mb-1">Elementos Totales</p>
+              <p className="text-2xl font-bold text-monokai-yellow">{graphElements.length}</p>
+            </div>
+            <div>
+              <p className="text-sm text-monokai-subtle mb-1">Nodos</p>
+              <p className="text-2xl font-bold text-monokai-yellow">
+                {graphElements.filter((e) => !e.data.source).length}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-monokai-subtle mb-1">Enlaces</p>
+              <p className="text-2xl font-bold text-monokai-yellow">
+                {graphElements.filter((e) => e.data.source).length}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-monokai-subtle mb-1">Algoritmo</p>
+              <p className="text-lg font-bold text-monokai-green">COSE (Física Dirigida)</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 };
