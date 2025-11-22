@@ -3036,7 +3036,9 @@ const ModuleMetaAnalysis = () => {
         
         console.log('[ModuleMetaAnalysis] Artículos únicos finales:', uniqueArticles.length);
         console.log('[ModuleMetaAnalysis] Artículos finales:', uniqueArticles.map(a => ({ id: a.id, title: a.title })));
+        console.log('[ModuleMetaAnalysis] ✓ Actualizando state con setArticlesWithData');
         setArticlesWithData(uniqueArticles);
+        console.log('[ModuleMetaAnalysis] ✓ State actualizado');
       }
     };
     loadData();
@@ -3128,6 +3130,7 @@ const ModuleMetaAnalysis = () => {
       {/* Sección 1: Tabla de Extracción */}
       <div className="mb-12">
         <h2 className="text-2xl font-bold text-monokai-orange mb-6">Extracción de Datos de Estudios Incluidos</h2>
+        {console.log('[ModuleMetaAnalysis RENDER] articlesWithData.length:', articlesWithData.length)}
 
         {articlesWithData.length > 0 ? (
           <div className="overflow-x-auto bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
