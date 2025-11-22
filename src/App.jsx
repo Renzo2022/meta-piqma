@@ -3084,17 +3084,21 @@ const ModuleMetaAnalysis = () => {
     }
 
     // Preparar datos de extracción con títulos de artículos
-    const dataToAnalyze = includedArticles
-      .filter((article) => extractionData[article.id]) // Solo artículos con datos
+    const dataToAnalyze = articlesWithData
+      .filter((article) => extractionData[String(article.id)]) // Solo artículos con datos (convertir a string)
       .map((article) => ({
         title: article.title,
-        n_intervention: extractionData[article.id]?.n_intervention,
-        mean_intervention: extractionData[article.id]?.mean_intervention,
-        sd_intervention: extractionData[article.id]?.sd_intervention,
-        n_control: extractionData[article.id]?.n_control,
-        mean_control: extractionData[article.id]?.mean_control,
-        sd_control: extractionData[article.id]?.sd_control,
+        n_intervention: extractionData[String(article.id)]?.n_intervention,
+        mean_intervention: extractionData[String(article.id)]?.mean_intervention,
+        sd_intervention: extractionData[String(article.id)]?.sd_intervention,
+        n_control: extractionData[String(article.id)]?.n_control,
+        mean_control: extractionData[String(article.id)]?.mean_control,
+        sd_control: extractionData[String(article.id)]?.sd_control,
       }));
+
+    console.log('[Meta-Analysis] articlesWithData:', articlesWithData.length);
+    console.log('[Meta-Analysis] extractionData keys:', Object.keys(extractionData));
+    console.log('[Meta-Analysis] dataToAnalyze:', dataToAnalyze.length);
 
     if (dataToAnalyze.length === 0) {
       alert('Por favor ingresa datos de extracción para al menos un estudio');
