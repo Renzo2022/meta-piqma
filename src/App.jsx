@@ -728,13 +728,12 @@ const apiClient = {
   },
 
   // Guarda datos de extracción en Supabase (Módulo 6)
-  saveExtractionData: async (projectId, articleId, extractionData) => {
+  saveExtractionData: async (projectId, articleId, articleTitle, extractionData) => {
     try {
       // Convertir articleId a string para que coincida con article_id TEXT en Supabase
       const articleIdStr = String(articleId);
       
-      console.log(`[Meta-Analysis] Guardando datos para artículo ID: ${articleIdStr}`);
-      console.log(`[Meta-Analysis] Tipo de articleId:`, typeof articleIdStr);
+      console.log(`[Meta-Analysis] Guardando datos para artículo ID: ${articleIdStr}, Título: ${articleTitle}`);
       console.log(`[Meta-Analysis] Datos:`, extractionData);
       
       // Verificar si ya existe un registro para este artículo
@@ -754,6 +753,7 @@ const apiClient = {
         const { error } = await supabase
           .from('meta_analysis_data')
           .update({
+            article_title: articleTitle,
             n_intervention: extractionData.n_intervention || null,
             mean_intervention: extractionData.mean_intervention || null,
             sd_intervention: extractionData.sd_intervention || null,
@@ -776,6 +776,7 @@ const apiClient = {
           .insert({
             project_id: projectId,
             article_id: articleIdStr,
+            article_title: articleTitle,
             n_intervention: extractionData.n_intervention || null,
             mean_intervention: extractionData.mean_intervention || null,
             sd_intervention: extractionData.sd_intervention || null,
@@ -3031,10 +3032,15 @@ const ModuleMetaAnalysis = () => {
 
     // Auto-guardar a Supabase
     if (state.currentProjectId) {
+      // Encontrar el artículo para obtener su título
+      const article = articlesWithData.find(a => a.id === articleId);
+      const articleTitle = article?.title || `Article ${articleId}`;
+      
       console.log(`[handleInputChange] Llamando a saveExtractionData con projectId: ${state.currentProjectId}`);
       const result = await apiClient.saveExtractionData(
         state.currentProjectId,
         articleId,
+        articleTitle,
         newData[articleId]
       );
       console.log(`[handleInputChange] Resultado de saveExtractionData:`, result);
