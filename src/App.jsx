@@ -530,19 +530,29 @@ const apiClient = {
         updateData.exclusion_reason = reason;
       }
 
-      // Intentar actualizar por ID numérico primero
-      let result = await supabase
-        .from('articles')
-        .update(updateData)
-        .eq('id', parseInt(articleId));
+      // Verificar si articleId es un número válido
+      const numericId = parseInt(articleId);
+      const isValidNumericId = !isNaN(numericId) && numericId > 0;
       
-      // Si falla (porque articleId es un string), intentar por title
-      if (result.error && articleTitle) {
-        console.log('[updateArticleStatus] Reintentando con title:', articleTitle);
+      let result;
+      
+      if (isValidNumericId) {
+        // Si es un ID numérico válido, actualizar por ID
+        console.log('[updateArticleStatus] Actualizando por ID numérico:', numericId);
+        result = await supabase
+          .from('articles')
+          .update(updateData)
+          .eq('id', numericId);
+      } else if (articleTitle) {
+        // Si no es un ID válido pero tenemos título, actualizar por título directamente
+        console.log('[updateArticleStatus] ID inválido, actualizando por title:', articleTitle);
         result = await supabase
           .from('articles')
           .update(updateData)
           .eq('title', articleTitle);
+      } else {
+        console.error('[updateArticleStatus] No hay ID válido ni título disponible');
+        return false;
       }
       
       if (result.error) {
