@@ -3157,7 +3157,7 @@ const ModuleMetaAnalysis = () => {
                     <td className="px-4 py-3">
                       <input
                         type="number"
-                        value={extractionData[article.id]?.n_intervention || ''}
+                        value={extractionData[String(article.id)]?.n_intervention || ''}
                         onChange={(e) => handleInputChange(article.id, 'n_intervention', e.target.value)}
                         placeholder="N"
                         className="w-20 bg-monokai-sidebar text-monokai-text rounded px-2 py-1 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-blue focus:ring-opacity-30"
@@ -3167,7 +3167,7 @@ const ModuleMetaAnalysis = () => {
                       <input
                         type="number"
                         step="0.01"
-                        value={extractionData[article.id]?.mean_intervention || ''}
+                        value={extractionData[String(article.id)]?.mean_intervention || ''}
                         onChange={(e) => handleInputChange(article.id, 'mean_intervention', e.target.value)}
                         placeholder="Media"
                         className="w-20 bg-monokai-sidebar text-monokai-text rounded px-2 py-1 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-blue focus:ring-opacity-30"
@@ -3177,7 +3177,7 @@ const ModuleMetaAnalysis = () => {
                       <input
                         type="number"
                         step="0.01"
-                        value={extractionData[article.id]?.sd_intervention || ''}
+                        value={extractionData[String(article.id)]?.sd_intervention || ''}
                         onChange={(e) => handleInputChange(article.id, 'sd_intervention', e.target.value)}
                         placeholder="DE"
                         className="w-20 bg-monokai-sidebar text-monokai-text rounded px-2 py-1 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-blue focus:ring-opacity-30"
@@ -3186,7 +3186,7 @@ const ModuleMetaAnalysis = () => {
                     <td className="px-4 py-3">
                       <input
                         type="number"
-                        value={extractionData[article.id]?.n_control || ''}
+                        value={extractionData[String(article.id)]?.n_control || ''}
                         onChange={(e) => handleInputChange(article.id, 'n_control', e.target.value)}
                         placeholder="N"
                         className="w-20 bg-monokai-sidebar text-monokai-text rounded px-2 py-1 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-blue focus:ring-opacity-30"
@@ -3196,7 +3196,7 @@ const ModuleMetaAnalysis = () => {
                       <input
                         type="number"
                         step="0.01"
-                        value={extractionData[article.id]?.mean_control || ''}
+                        value={extractionData[String(article.id)]?.mean_control || ''}
                         onChange={(e) => handleInputChange(article.id, 'mean_control', e.target.value)}
                         placeholder="Media"
                         className="w-20 bg-monokai-sidebar text-monokai-text rounded px-2 py-1 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-blue focus:ring-opacity-30"
@@ -3206,7 +3206,7 @@ const ModuleMetaAnalysis = () => {
                       <input
                         type="number"
                         step="0.01"
-                        value={extractionData[article.id]?.sd_control || ''}
+                        value={extractionData[String(article.id)]?.sd_control || ''}
                         onChange={(e) => handleInputChange(article.id, 'sd_control', e.target.value)}
                         placeholder="DE"
                         className="w-20 bg-monokai-sidebar text-monokai-text rounded px-2 py-1 border border-monokai-subtle border-opacity-30 focus:border-opacity-100 focus:outline-none focus:ring-2 focus:ring-monokai-blue focus:ring-opacity-30"
