@@ -488,8 +488,29 @@ const apiClient = {
   // Guarda (inserta) múltiples artículos en Supabase
   saveArticles: async (projectId, articles) => {
     try {
+      // Cargar artículos existentes del proyecto
+      const { data: existingArticles, error: loadError } = await supabase
+        .from('articles')
+        .select('title')
+        .eq('project_id', projectId);
+      
+      if (loadError) {
+        console.error('Error cargando artículos existentes:', loadError);
+        return false;
+      }
+      
+      const existingTitles = new Set(existingArticles?.map(a => a.title) || []);
+      
+      // Filtrar artículos que no existen
+      const newArticles = articles.filter(article => !existingTitles.has(article.title));
+      
+      if (newArticles.length === 0) {
+        console.log('[saveArticles] Todos los artículos ya existen, no hay nada que insertar');
+        return true;
+      }
+      
       // Mapear artículos para agregar project_id
-      const articlesToInsert = articles.map((article) => ({
+      const articlesToInsert = newArticles.map((article) => ({
         project_id: projectId,
         title: article.title,
         authors: article.authors?.join(', ') || '',
@@ -501,6 +522,8 @@ const apiClient = {
         exclusion_reason: null,
       }));
 
+      console.log(`[saveArticles] Insertando ${articlesToInsert.length} artículos nuevos (${articles.length - newArticles.length} ya existían)`);
+
       const { error } = await supabase
         .from('articles')
         .insert(articlesToInsert);
@@ -510,6 +533,7 @@ const apiClient = {
         return false;
       }
       
+      console.log(`[saveArticles] ✓ ${articlesToInsert.length} artículos guardados correctamente`);
       return true;
     } catch (err) {
       console.error('Error en saveArticles:', err);
