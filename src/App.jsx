@@ -2429,16 +2429,16 @@ const ModuleEligibility = () => {
         <div className="text-center py-16 bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
           <p className="text-2xl font-bold text-monokai-blue mb-2">¡Revisión de elegibilidad completada!</p>
           <p className="text-monokai-subtle mb-6">
-            Se han revisado {included.length + excluded.length} de {state.projectArticles.length} artículos.
+            Se han revisado {stats.included + stats.excluded} de {stats.total} artículos.
           </p>
           <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
             <div className="bg-monokai-dark p-4 rounded-lg">
               <p className="text-sm text-monokai-subtle mb-1">Incluidos</p>
-              <p className="text-2xl font-bold text-monokai-green">{included.length}</p>
+              <p className="text-2xl font-bold text-monokai-green">{stats.included}</p>
             </div>
             <div className="bg-monokai-dark p-4 rounded-lg">
               <p className="text-sm text-monokai-subtle mb-1">Excluidos</p>
-              <p className="text-2xl font-bold text-monokai-pink">{excluded.length}</p>
+              <p className="text-2xl font-bold text-monokai-pink">{stats.excluded}</p>
             </div>
           </div>
         </div>
