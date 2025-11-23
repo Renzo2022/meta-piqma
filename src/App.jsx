@@ -2014,21 +2014,38 @@ const ModuleScreening = () => {
   const unscreened = state.projectArticles.filter((a) => a.status === 'unscreened');
   const nextArticle = unscreened.length > 0 ? unscreened[0] : null;
 
-  const handleInclude = () => {
+  const handleMarkDuplicates = async () => {
+    // Marcar duplicados en estado local
+    dispatch({ type: 'MARK_DUPLICATES' });
+    
+    // Guardar duplicados en Supabase
+    const duplicatesInState = state.projectArticles.filter((a) => a.status === 'duplicate');
+    for (const dup of duplicatesInState) {
+      await apiClient.updateArticleStatus(dup.id, 'duplicate', null, dup.title);
+    }
+  };
+
+  const handleInclude = async () => {
     if (nextArticle) {
+      // Actualizar estado local
       dispatch({
         type: 'UPDATE_ARTICLE_STATUS',
         payload: { articleId: nextArticle.uniqueId, newStatus: 'included_title' },
       });
+      // Guardar en Supabase
+      await apiClient.updateArticleStatus(nextArticle.id, 'included_title', null, nextArticle.title);
     }
   };
 
-  const handleExclude = () => {
+  const handleExclude = async () => {
     if (nextArticle) {
+      // Actualizar estado local
       dispatch({
         type: 'UPDATE_ARTICLE_STATUS',
         payload: { articleId: nextArticle.uniqueId, newStatus: 'excluded_title' },
       });
+      // Guardar en Supabase
+      await apiClient.updateArticleStatus(nextArticle.id, 'excluded_title', null, nextArticle.title);
     }
   };
 
@@ -2083,7 +2100,7 @@ const ModuleScreening = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => dispatch({ type: 'MARK_DUPLICATES' })}
+              onClick={handleMarkDuplicates}
               className="flex items-center gap-2 px-6 py-3 bg-monokai-yellow text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all mb-6"
             >
               <Search className="w-5 h-5" />
@@ -2203,9 +2220,30 @@ const ModuleEligibility = () => {
   // Cargar artículos para revisar
   useEffect(() => {
     const loadArticles = async () => {
-      if (!state.currentProjectId) return;
+      if (!state.currentProjectId) {
+        console.log('[Eligibility] No hay projectId');
+        return;
+      }
       
+      console.log('[Eligibility] Cargando artículos con projectId:', state.currentProjectId);
       setLoading(true);
+      
+      // Primero, cargar TODOS los artículos para ver qué hay
+      const { data: allData, error: allError } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('project_id', state.currentProjectId);
+      
+      console.log('[Eligibility] TODOS los artículos:', allData?.length || 0);
+      if (allData) {
+        const statusCounts = {};
+        allData.forEach(a => {
+          statusCounts[a.status] = (statusCounts[a.status] || 0) + 1;
+        });
+        console.log('[Eligibility] Conteo por status:', statusCounts);
+      }
+      
+      // Ahora, cargar solo los con status = 'included_title'
       const { data, error } = await supabase
         .from('articles')
         .select('*')
@@ -2216,7 +2254,10 @@ const ModuleEligibility = () => {
       if (error) {
         console.error('[Eligibility] Error cargando artículos:', error);
       } else {
-        console.log(`[Eligibility] Cargados ${data?.length || 0} artículos para revisar`);
+        console.log(`[Eligibility] Cargados ${data?.length || 0} artículos con status='included_title'`);
+        if (data && data.length > 0) {
+          console.log('[Eligibility] Primer artículo:', data[0]);
+        }
         setArticles(data || []);
         setCurrentIndex(0);
       }
