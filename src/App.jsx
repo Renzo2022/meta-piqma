@@ -2194,70 +2194,120 @@ const ModuleScreening = () => {
 
 const ModuleEligibility = () => {
   const { state, dispatch } = useProject();
+  const [articles, setArticles] = useState([]); // Artículos para revisar (status = 'included_title')
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [showOtherReasonModal, setShowOtherReasonModal] = useState(false);
   const [otherReason, setOtherReason] = useState('');
 
-  // Calcular estadísticas
-  const forReview = state.projectArticles.filter((a) => a.status === 'included_title');
-  const included = state.projectArticles.filter((a) => a.status === 'included_final');
-  const excluded = state.projectArticles.filter((a) => a.status === 'excluded_fulltext');
-  const nextArticle = forReview.length > 0 ? forReview[0] : null;
-
-  const handleIncludeFinal = async () => {
-    if (nextArticle) {
-      // Actualizar en estado local
-      dispatch({
-        type: 'UPDATE_ARTICLE_STATUS',
-        payload: { articleId: nextArticle.uniqueId, newStatus: 'included_final' },
-      });
+  // Cargar artículos para revisar
+  useEffect(() => {
+    const loadArticles = async () => {
+      if (!state.currentProjectId) return;
       
-      // Guardar en Supabase - pasar title como fallback
-      await apiClient.updateArticleStatus(nextArticle.id, 'included_final', null, nextArticle.title);
-      console.log(`[Eligibility] ✓ Artículo ${nextArticle.title} marcado como included_final en Supabase`);
-    }
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('project_id', state.currentProjectId)
+        .eq('status', 'included_title')
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('[Eligibility] Error cargando artículos:', error);
+      } else {
+        console.log(`[Eligibility] Cargados ${data?.length || 0} artículos para revisar`);
+        setArticles(data || []);
+        setCurrentIndex(0);
+      }
+      setLoading(false);
+    };
+    
+    loadArticles();
+  }, [state.currentProjectId]);
+
+  // Artículo actual
+  const currentArticle = articles[currentIndex];
+
+  // Estadísticas
+  const stats = {
+    forReview: articles.length - currentIndex,
+    included: state.projectArticles.filter((a) => a.status === 'included_final').length,
+    excluded: state.projectArticles.filter((a) => a.status === 'excluded_fulltext').length,
+    total: state.projectArticles.length,
   };
 
+  // Incluir artículo
+  const handleIncludeFinal = async () => {
+    if (!currentArticle) return;
+    
+    setLoading(true);
+    const { error } = await supabase
+      .from('articles')
+      .update({ status: 'included_final' })
+      .eq('id', currentArticle.id);
+    
+    if (error) {
+      console.error('[Eligibility] Error actualizando artículo:', error);
+      alert('Error al guardar. Intenta de nuevo.');
+    } else {
+      console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} marcado como included_final`);
+      setCurrentIndex(prev => prev + 1);
+    }
+    setLoading(false);
+  };
+
+  // Excluir artículo
   const handleExcludeWithReason = async (reason) => {
+    if (!currentArticle) return;
+    
     if (reason === 'Otro') {
       setShowOtherReasonModal(true);
-    } else {
-      if (nextArticle) {
-        // Actualizar en estado local
-        dispatch({
-          type: 'UPDATE_ARTICLE_STATUS',
-          payload: {
-            articleId: nextArticle.uniqueId,
-            newStatus: 'excluded_fulltext',
-            reason,
-          },
-        });
-        
-        // Guardar en Supabase - pasar title como fallback
-        await apiClient.updateArticleStatus(nextArticle.id, 'excluded_fulltext', reason, nextArticle.title);
-        console.log(`[Eligibility] ✓ Artículo ${nextArticle.title} excluido en Supabase`);
-      }
+      return;
     }
+    
+    setLoading(true);
+    const { error } = await supabase
+      .from('articles')
+      .update({ 
+        status: 'excluded_fulltext',
+        exclusion_reason: reason 
+      })
+      .eq('id', currentArticle.id);
+    
+    if (error) {
+      console.error('[Eligibility] Error actualizando artículo:', error);
+      alert('Error al guardar. Intenta de nuevo.');
+    } else {
+      console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} excluido: ${reason}`);
+      setCurrentIndex(prev => prev + 1);
+    }
+    setLoading(false);
   };
 
+  // Excluir con razón personalizada
   const handleAcceptOtherReason = async () => {
-    if (otherReason.trim() && nextArticle) {
-      // Actualizar en estado local
-      dispatch({
-        type: 'UPDATE_ARTICLE_STATUS',
-        payload: {
-          articleId: nextArticle.uniqueId,
-          newStatus: 'excluded_fulltext',
-          reason: otherReason,
-        },
-      });
-      
-      // Guardar en Supabase - pasar title como fallback
-      await apiClient.updateArticleStatus(nextArticle.id, 'excluded_fulltext', otherReason, nextArticle.title);
-      console.log(`[Eligibility] ✓ Artículo ${nextArticle.title} excluido con razón personalizada en Supabase`);
-      
+    if (!otherReason.trim() || !currentArticle) return;
+    
+    setLoading(true);
+    const { error } = await supabase
+      .from('articles')
+      .update({ 
+        status: 'excluded_fulltext',
+        exclusion_reason: otherReason 
+      })
+      .eq('id', currentArticle.id);
+    
+    if (error) {
+      console.error('[Eligibility] Error actualizando artículo:', error);
+      alert('Error al guardar. Intenta de nuevo.');
+    } else {
+      console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} excluido: ${otherReason}`);
+      setCurrentIndex(prev => prev + 1);
       setOtherReason('');
       setShowOtherReasonModal(false);
     }
+    setLoading(false);
   };
 
   return (
@@ -2273,26 +2323,26 @@ const ModuleEligibility = () => {
       <div className="grid grid-cols-4 gap-4 mb-8">
         <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
           <p className="text-sm text-monokai-subtle mb-1">Para revisión</p>
-          <p className="text-3xl font-bold text-monokai-blue">{forReview.length}</p>
+          <p className="text-3xl font-bold text-monokai-blue">{stats.forReview}</p>
         </div>
         <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
           <p className="text-sm text-monokai-subtle mb-1">Incluidos</p>
-          <p className="text-3xl font-bold text-monokai-green">{included.length}</p>
+          <p className="text-3xl font-bold text-monokai-green">{stats.included}</p>
         </div>
         <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
           <p className="text-sm text-monokai-subtle mb-1">Excluidos</p>
-          <p className="text-3xl font-bold text-monokai-pink">{excluded.length}</p>
+          <p className="text-3xl font-bold text-monokai-pink">{stats.excluded}</p>
         </div>
         <div className="bg-monokai-sidebar p-4 rounded-lg border border-monokai-subtle border-opacity-30">
           <p className="text-sm text-monokai-subtle mb-1">Total</p>
-          <p className="text-3xl font-bold text-monokai-yellow">{state.projectArticles.length}</p>
+          <p className="text-3xl font-bold text-monokai-yellow">{stats.total}</p>
         </div>
       </div>
 
       {/* Artículo para Revisión */}
-      {nextArticle ? (
+      {currentArticle ? (
         <div className="space-y-6">
-          <ArticleCard article={nextArticle} />
+          <ArticleCard article={currentArticle} />
 
           {/* Botón Incluir */}
           <motion.button
