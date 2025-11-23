@@ -2661,13 +2661,8 @@ const ModuleMetaAnalysis = () => {
   useEffect(() => {
     const loadData = async () => {
       if (state.currentProjectId) {
-        console.log('[ModuleMetaAnalysis] Cargando datos para proyecto:', state.currentProjectId);
-        console.log('[ModuleMetaAnalysis] Artículos en estado:', state.projectArticles.length);
-        console.log('[ModuleMetaAnalysis] Artículos included_final en estado:', state.projectArticles.filter(a => a.status === 'included_final').length);
-        
         // Cargar datos de extracción desde Supabase
         const data = await apiClient.loadExtractionData(state.currentProjectId);
-        console.log('[ModuleMetaAnalysis] Datos de extracción cargados:', data.length);
         
         const dataMap = {};
         const articleIdsWithData = new Set();
@@ -2684,26 +2679,20 @@ const ModuleMetaAnalysis = () => {
           articleIdsWithData.add(row.article_id);
         });
         
-        console.log('[ModuleMetaAnalysis] Article IDs con datos:', Array.from(articleIdsWithData));
         setExtractionData(dataMap);
         
         // Cargar todos los artículos desde Supabase
         const allArticles = await apiClient.loadArticles(state.currentProjectId);
-        console.log('[ModuleMetaAnalysis] Todos los artículos desde Supabase:', allArticles.length);
-        console.log('[ModuleMetaAnalysis] Artículos included_final desde Supabase:', allArticles.filter(a => a.status === 'included_final').length);
-        console.log('[ModuleMetaAnalysis] Artículos included_final detalles:', allArticles.filter(a => a.status === 'included_final').map(a => ({ id: a.id, title: a.title, status: a.status })));
         
-        // Obtener artículos included_final DESDE SUPABASE (con IDs correctos BIGINT)
+        // Obtener artículos included_final
         const includedFinalArticles = allArticles.filter((a) => a.status === 'included_final');
-        console.log('[ModuleMetaAnalysis] Artículos included_final con IDs BIGINT:', includedFinalArticles.map(a => ({ id: a.id, type: typeof a.id, title: a.title })));
         
-        // Crear artículos "virtuales" para los datos guardados que no están en la lista actual
-        // (datos de búsquedas anteriores que fueron eliminados)
+        // Crear artículos "virtuales" para datos guardados sin artículo actual
         const virtualArticles = Array.from(articleIdsWithData)
           .filter(articleId => !allArticles.some(a => a.id === articleId))
           .map(articleId => ({
             id: articleId,
-            title: articleId, // Usar el ID como título temporal
+            title: `Article ${articleId}`,
             status: 'included_final',
             source: 'saved_data',
             year: null,
@@ -2712,26 +2701,17 @@ const ModuleMetaAnalysis = () => {
             url: '',
           }));
         
-        console.log('[ModuleMetaAnalysis] Artículos virtuales creados:', virtualArticles.length);
-        
-        // Combinar: artículos included_final + artículos virtuales (de búsquedas anteriores)
+        // Combinar y eliminar duplicados
         const combinedArticles = [
           ...includedFinalArticles,
           ...virtualArticles,
         ];
         
-        console.log('[ModuleMetaAnalysis] Artículos combinados:', combinedArticles.length);
-        
-        // Eliminar duplicados por ID
         const uniqueArticles = Array.from(
           new Map(combinedArticles.map(a => [a.id, a])).values()
         );
         
-        console.log('[ModuleMetaAnalysis] Artículos únicos finales:', uniqueArticles.length);
-        console.log('[ModuleMetaAnalysis] Artículos finales:', uniqueArticles.map(a => ({ id: a.id, title: a.title })));
-        console.log('[ModuleMetaAnalysis] ✓ Actualizando state con setArticlesWithData');
         setArticlesWithData(uniqueArticles);
-        console.log('[ModuleMetaAnalysis] ✓ State actualizado');
       }
     };
     loadData();
@@ -2739,8 +2719,6 @@ const ModuleMetaAnalysis = () => {
 
   // Manejar cambio en inputs
   const handleInputChange = async (articleId, field, value) => {
-    console.log(`[handleInputChange] Cambio detectado - articleId: ${articleId}, field: ${field}, value: ${value}`);
-    
     const newData = {
       ...extractionData,
       [articleId]: {
@@ -2752,20 +2730,15 @@ const ModuleMetaAnalysis = () => {
 
     // Auto-guardar a Supabase
     if (state.currentProjectId) {
-      // Encontrar el artículo para obtener su título
       const article = articlesWithData.find(a => a.id === articleId);
       const articleTitle = article?.title || `Article ${articleId}`;
       
-      console.log(`[handleInputChange] Llamando a saveExtractionData con projectId: ${state.currentProjectId}`);
-      const result = await apiClient.saveExtractionData(
+      await apiClient.saveExtractionData(
         state.currentProjectId,
         articleId,
         articleTitle,
         newData[articleId]
       );
-      console.log(`[handleInputChange] Resultado de saveExtractionData:`, result);
-    } else {
-      console.warn('[handleInputChange] No hay projectId, no se puede guardar');
     }
   };
 
@@ -2778,7 +2751,7 @@ const ModuleMetaAnalysis = () => {
 
     // Preparar datos de extracción con títulos de artículos
     const dataToAnalyze = articlesWithData
-      .filter((article) => extractionData[String(article.id)]) // Solo artículos con datos (convertir a string)
+      .filter((article) => extractionData[String(article.id)])
       .map((article) => ({
         title: article.title,
         n_intervention: extractionData[String(article.id)]?.n_intervention,
@@ -2789,19 +2762,10 @@ const ModuleMetaAnalysis = () => {
         sd_control: extractionData[String(article.id)]?.sd_control,
       }));
 
-    console.log('[Meta-Analysis] articlesWithData:', articlesWithData.length);
-    console.log('[Meta-Analysis] extractionData keys:', Object.keys(extractionData));
-    console.log('[Meta-Analysis] dataToAnalyze:', dataToAnalyze.length);
-
     if (dataToAnalyze.length === 0) {
       alert('Por favor ingresa datos de extracción para al menos un estudio');
       return;
     }
-
-    console.log(`[Meta-Analysis] Enviando ${dataToAnalyze.length} estudios al análisis`);
-    dataToAnalyze.forEach((study, i) => {
-      console.log(`  ${i + 1}. ${study.title}`);
-    });
 
     setIsLoading(true);
     try {
@@ -2827,7 +2791,6 @@ const ModuleMetaAnalysis = () => {
       {/* Sección 1: Tabla de Extracción */}
       <div className="mb-12">
         <h2 className="text-2xl font-bold text-monokai-orange mb-6">Extracción de Datos de Estudios Incluidos</h2>
-        {console.log('[ModuleMetaAnalysis RENDER] articlesWithData.length:', articlesWithData.length)}
 
         {articlesWithData.length > 0 ? (
           <div className="overflow-x-auto bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
