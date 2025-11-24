@@ -2481,11 +2481,13 @@ const ModulePRISMA = () => {
     duplicates: state.projectArticles.filter((a) => a.status === 'duplicate').length,
     removed_without_abstract: state.projectArticles.filter((a) => a.status === 'removed_without_abstract').length,
     
-    // Cribado: solo los que NO son duplicados y NO son removed_without_abstract
-    screened: state.projectArticles.filter(
-      (a) => a.status !== 'duplicate' && a.status !== 'removed_without_abstract'
-    ).length,
+    // Cribado: solo los que fueron cribados (included_title + excluded_title)
     excluded_title: state.projectArticles.filter((a) => a.status === 'excluded_title').length,
+    screened_count: (() => {
+      const included = state.projectArticles.filter((a) => a.status === 'included_title').length;
+      const excluded = state.projectArticles.filter((a) => a.status === 'excluded_title').length;
+      return included + excluded;
+    })(),
     
     // Evaluación de texto completo
     included_title: state.projectArticles.filter((a) => a.status === 'included_title').length,
@@ -2822,7 +2824,7 @@ const ModulePRISMA = () => {
               </div>
               <div className="bg-monokai-dark p-4 rounded-lg">
                 <p className="text-sm text-monokai-subtle mb-1">Cribados</p>
-                <p className="text-3xl font-bold text-monokai-yellow">{counters.screened - counters.excluded_title}</p>
+                <p className="text-3xl font-bold text-monokai-yellow">{counters.screened_count}</p>
               </div>
               <div className="bg-monokai-dark p-4 rounded-lg">
                 <p className="text-sm text-monokai-subtle mb-1">Incluidos</p>
