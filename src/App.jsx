@@ -2236,28 +2236,26 @@ const ModuleScreening = () => {
 const ModuleEligibility = () => {
   const { state, dispatch } = useProject();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [initialCount, setInitialCount] = useState(0);
+  const [initialArticles, setInitialArticles] = useState([]);
   const [showOtherReasonModal, setShowOtherReasonModal] = useState(false);
   const [otherReason, setOtherReason] = useState('');
 
   // Artículos para revisar (status = 'included_title') desde estado local
   const articlesForReview = state.projectArticles.filter((a) => a.status === 'included_title');
 
-  // Inicializar contador de artículos para revisar (solo una vez)
+  // Guardar los artículos iniciales (solo una vez)
   useEffect(() => {
-    if (articlesForReview.length > 0 && initialCount === 0) {
-      setInitialCount(articlesForReview.length);
+    if (articlesForReview.length > 0 && initialArticles.length === 0) {
+      setInitialArticles(articlesForReview);
     }
   }, []);
 
-  // Artículo actual: usar initialCount para determinar si hay más artículos
-  // Si currentIndex < initialCount, hay artículos para revisar
-  const hasMoreArticles = currentIndex < initialCount;
-  const currentArticle = hasMoreArticles ? articlesForReview[currentIndex] : null;
+  // Artículo actual: usar initialArticles como referencia
+  const currentArticle = initialArticles[currentIndex] || null;
 
   // Estadísticas
   const stats = {
-    forReview: Math.max(0, initialCount - currentIndex),
+    forReview: Math.max(0, initialArticles.length - currentIndex),
     included: state.projectArticles.filter((a) => a.status === 'included_final').length,
     excluded: state.projectArticles.filter((a) => a.status === 'excluded_fulltext').length,
     total: state.projectArticles.length,
