@@ -2275,7 +2275,16 @@ const ModuleEligibility = () => {
     await apiClient.updateArticleStatus(currentArticle.id, 'included_final', null, currentArticle.title);
     
     console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} marcado como included_final`);
-    setCurrentIndex(prev => prev + 1);
+    
+    // Avanzar al siguiente artículo (pero no más allá de los disponibles)
+    setCurrentIndex(prev => {
+      const nextIndex = prev + 1;
+      // Si hay más artículos, avanza; si no, mantén el índice actual
+      if (nextIndex < articlesForReview.length) {
+        return nextIndex;
+      }
+      return prev;
+    });
   };
 
   // Excluir artículo
@@ -2297,7 +2306,16 @@ const ModuleEligibility = () => {
     await apiClient.updateArticleStatus(currentArticle.id, 'excluded_fulltext', reason, currentArticle.title);
     
     console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} excluido: ${reason}`);
-    setCurrentIndex(prev => prev + 1);
+    
+    // Avanzar al siguiente artículo (pero no más allá de los disponibles)
+    setCurrentIndex(prev => {
+      const nextIndex = prev + 1;
+      // Si hay más artículos, avanza; si no, mantén el índice actual
+      if (nextIndex < articlesForReview.length) {
+        return nextIndex;
+      }
+      return prev;
+    });
   };
 
   // Excluir con razón personalizada
@@ -2314,7 +2332,17 @@ const ModuleEligibility = () => {
     await apiClient.updateArticleStatus(currentArticle.id, 'excluded_fulltext', otherReason, currentArticle.title);
     
     console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} excluido: ${otherReason}`);
-    setCurrentIndex(prev => prev + 1);
+    
+    // Avanzar al siguiente artículo (pero no más allá de los disponibles)
+    setCurrentIndex(prev => {
+      const nextIndex = prev + 1;
+      // Si hay más artículos, avanza; si no, mantén el índice actual
+      if (nextIndex < articlesForReview.length) {
+        return nextIndex;
+      }
+      return prev;
+    });
+    
     setOtherReason('');
     setShowOtherReasonModal(false);
   };
