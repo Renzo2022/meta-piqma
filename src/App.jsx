@@ -2243,15 +2243,17 @@ const ModuleEligibility = () => {
   // Artículos para revisar (status = 'included_title') desde estado local
   const articlesForReview = state.projectArticles.filter((a) => a.status === 'included_title');
 
-  // Inicializar contador de artículos para revisar
+  // Inicializar contador de artículos para revisar (solo una vez)
   useEffect(() => {
     if (articlesForReview.length > 0 && initialCount === 0) {
       setInitialCount(articlesForReview.length);
     }
-  }, [articlesForReview.length, initialCount]);
+  }, []);
 
-  // Artículo actual
-  const currentArticle = articlesForReview[currentIndex];
+  // Artículo actual: usar initialCount para determinar si hay más artículos
+  // Si currentIndex < initialCount, hay artículos para revisar
+  const hasMoreArticles = currentIndex < initialCount;
+  const currentArticle = hasMoreArticles ? articlesForReview[currentIndex] : null;
 
   // Estadísticas
   const stats = {
@@ -2276,15 +2278,8 @@ const ModuleEligibility = () => {
     
     console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} marcado como included_final`);
     
-    // Avanzar al siguiente artículo (pero no más allá de los disponibles)
-    setCurrentIndex(prev => {
-      const nextIndex = prev + 1;
-      // Si hay más artículos, avanza; si no, mantén el índice actual
-      if (nextIndex < articlesForReview.length) {
-        return nextIndex;
-      }
-      return prev;
-    });
+    // Avanzar al siguiente artículo
+    setCurrentIndex(prev => prev + 1);
   };
 
   // Excluir artículo
@@ -2307,15 +2302,8 @@ const ModuleEligibility = () => {
     
     console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} excluido: ${reason}`);
     
-    // Avanzar al siguiente artículo (pero no más allá de los disponibles)
-    setCurrentIndex(prev => {
-      const nextIndex = prev + 1;
-      // Si hay más artículos, avanza; si no, mantén el índice actual
-      if (nextIndex < articlesForReview.length) {
-        return nextIndex;
-      }
-      return prev;
-    });
+    // Avanzar al siguiente artículo
+    setCurrentIndex(prev => prev + 1);
   };
 
   // Excluir con razón personalizada
@@ -2333,15 +2321,8 @@ const ModuleEligibility = () => {
     
     console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} excluido: ${otherReason}`);
     
-    // Avanzar al siguiente artículo (pero no más allá de los disponibles)
-    setCurrentIndex(prev => {
-      const nextIndex = prev + 1;
-      // Si hay más artículos, avanza; si no, mantén el índice actual
-      if (nextIndex < articlesForReview.length) {
-        return nextIndex;
-      }
-      return prev;
-    });
+    // Avanzar al siguiente artículo
+    setCurrentIndex(prev => prev + 1);
     
     setOtherReason('');
     setShowOtherReasonModal(false);
