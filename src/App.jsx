@@ -2493,6 +2493,13 @@ const ModulePRISMA = () => {
     
     // Incluidos finales
     included_final: state.projectArticles.filter((a) => a.status === 'included_final').length,
+    
+    // Razones de exclusión en elegibilidad
+    excluded_outcome: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason === 'Outcome incorrecto').length,
+    excluded_population: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason === 'Población incorrecta').length,
+    excluded_study_type: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason === 'Tipo de estudio incorrecto').length,
+    excluded_fulltext_reason: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason === 'Texto completo no disponible').length,
+    excluded_other: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason && a.exclusion_reason !== 'Outcome incorrecto' && a.exclusion_reason !== 'Población incorrecta' && a.exclusion_reason !== 'Tipo de estudio incorrecto' && a.exclusion_reason !== 'Texto completo no disponible').length,
   };
 
   // Debug log
@@ -2743,20 +2750,24 @@ const ModulePRISMA = () => {
                 <p className="font-semibold text-monokai-pink mb-2">Reportes excluidos: {counters.excluded_fulltext}</p>
                 <div className="grid grid-cols-2 gap-3 ml-4">
                   <div className="bg-monokai-dark p-3 rounded">
-                    <p className="text-xs text-monokai-subtle">Texto completo no disponible</p>
-                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_fulltext}</p>
+                    <p className="text-xs text-monokai-subtle">Outcome incorrecto</p>
+                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_outcome}</p>
                   </div>
                   <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">Población incorrecta</p>
-                    <p className="text-xl font-bold text-monokai-pink">0</p>
+                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_population}</p>
                   </div>
                   <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">Tipo de estudio incorrecto</p>
-                    <p className="text-xl font-bold text-monokai-pink">0</p>
+                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_study_type}</p>
                   </div>
                   <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">Texto completo no disponible</p>
+                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_fulltext_reason}</p>
+                  </div>
+                  <div className="bg-monokai-dark p-3 rounded col-span-2">
                     <p className="text-xs text-monokai-subtle">Otro</p>
-                    <p className="text-xl font-bold text-monokai-pink">0</p>
+                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_other}</p>
                   </div>
                 </div>
               </div>
