@@ -151,7 +151,7 @@ const projectReducer = (state, action) => {
             ? {
                 ...article,
                 status: action.payload.newStatus,
-                ...(action.payload.reason && { exclusionReason: action.payload.reason }),
+                ...(action.payload.reason && { exclusion_reason: action.payload.reason }),
               }
             : article
         ),
@@ -2507,6 +2507,13 @@ const ModulePRISMA = () => {
     console.log('[PRISMA] Contadores calculados:', counters);
     const uniqueStatuses = [...new Set(state.projectArticles.map(a => a.status))];
     console.log('[PRISMA] Status únicos en artículos:', uniqueStatuses);
+    
+    // Log de artículos excluidos con razones
+    const excludedArticles = state.projectArticles.filter(a => a.status === 'excluded_fulltext');
+    console.log('[PRISMA] Artículos excluidos:', excludedArticles.map(a => ({
+      title: a.title,
+      reason: a.exclusion_reason
+    })));
 
   }, [state.projectArticles]);
 
