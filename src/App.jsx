@@ -2236,18 +2236,26 @@ const ModuleScreening = () => {
 const ModuleEligibility = () => {
   const { state, dispatch } = useProject();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [initialCount, setInitialCount] = useState(0);
   const [showOtherReasonModal, setShowOtherReasonModal] = useState(false);
   const [otherReason, setOtherReason] = useState('');
 
   // Artículos para revisar (status = 'included_title') desde estado local
   const articlesForReview = state.projectArticles.filter((a) => a.status === 'included_title');
 
+  // Inicializar contador de artículos para revisar
+  useEffect(() => {
+    if (articlesForReview.length > 0 && initialCount === 0) {
+      setInitialCount(articlesForReview.length);
+    }
+  }, [articlesForReview.length, initialCount]);
+
   // Artículo actual
   const currentArticle = articlesForReview[currentIndex];
 
   // Estadísticas
   const stats = {
-    forReview: articlesForReview.length - currentIndex,
+    forReview: Math.max(0, initialCount - currentIndex),
     included: state.projectArticles.filter((a) => a.status === 'included_final').length,
     excluded: state.projectArticles.filter((a) => a.status === 'excluded_fulltext').length,
     total: state.projectArticles.length,
