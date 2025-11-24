@@ -2468,6 +2468,12 @@ const ModulePRISMA = () => {
 
   // Calcular contadores PRISMA automáticamente desde artículos
   const counters = {
+    // Total identificado por fuente
+    pubmed: state.projectArticles.filter((a) => a.source === 'PubMed').length,
+    semantic: state.projectArticles.filter((a) => a.source === 'Semantic Scholar').length,
+    arxiv: state.projectArticles.filter((a) => a.source === 'ArXiv').length,
+    crossref: state.projectArticles.filter((a) => a.source === 'Crossref').length,
+    
     // Total identificado
     identified: state.projectArticles.length,
     
@@ -2475,7 +2481,7 @@ const ModulePRISMA = () => {
     duplicates: state.projectArticles.filter((a) => a.status === 'duplicate').length,
     removed_without_abstract: state.projectArticles.filter((a) => a.status === 'removed_without_abstract').length,
     
-    // Cribado
+    // Cribado: solo los que NO son duplicados y NO son removed_without_abstract
     screened: state.projectArticles.filter(
       (a) => a.status !== 'duplicate' && a.status !== 'removed_without_abstract'
     ).length,
@@ -2647,15 +2653,9 @@ const ModulePRISMA = () => {
           {/* ESTUDIOS PREVIOS */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-purple border-opacity-50">
             <h3 className="text-lg font-bold text-monokai-purple mb-4">ESTUDIOS PREVIOS</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-monokai-dark p-3 rounded">
-                <p className="text-xs text-monokai-subtle">Estudios incluidos en versión previa</p>
-                <p className="text-2xl font-bold text-monokai-purple">0</p>
-              </div>
-              <div className="bg-monokai-dark p-3 rounded">
-                <p className="text-xs text-monokai-subtle">Reportes de estudios previos</p>
-                <p className="text-2xl font-bold text-monokai-purple">0</p>
-              </div>
+            <div className="bg-monokai-dark p-3 rounded">
+              <p className="text-xs text-monokai-subtle">Estudios incluidos en versión previa (suma de bases de datos)</p>
+              <p className="text-2xl font-bold text-monokai-purple">{counters.pubmed + counters.semantic + counters.arxiv + counters.crossref}</p>
             </div>
           </div>
 
@@ -2669,19 +2669,19 @@ const ModulePRISMA = () => {
                 <div className="grid grid-cols-2 gap-3 ml-4">
                   <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">PubMed</p>
-                    <p className="text-xl font-bold text-monokai-blue">0</p>
+                    <p className="text-xl font-bold text-monokai-blue">{counters.pubmed}</p>
                   </div>
                   <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">Semantic Scholar</p>
-                    <p className="text-xl font-bold text-monokai-blue">0</p>
+                    <p className="text-xl font-bold text-monokai-blue">{counters.semantic}</p>
                   </div>
                   <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">ArXiv</p>
-                    <p className="text-xl font-bold text-monokai-blue">0</p>
+                    <p className="text-xl font-bold text-monokai-blue">{counters.arxiv}</p>
                   </div>
                   <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">Crossref</p>
-                    <p className="text-xl font-bold text-monokai-blue">{counters.identified}</p>
+                    <p className="text-xl font-bold text-monokai-blue">{counters.crossref}</p>
                   </div>
                 </div>
               </div>
@@ -2789,19 +2789,9 @@ const ModulePRISMA = () => {
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-green border-opacity-50">
             <h3 className="text-lg font-bold text-monokai-green mb-4">INCLUIDOS</h3>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-monokai-dark p-3 rounded">
-                <p className="text-xs text-monokai-subtle">Nuevos estudios incluidos</p>
-                <p className="text-2xl font-bold text-monokai-green">{counters.included_final}</p>
-              </div>
-              <div className="bg-monokai-dark p-3 rounded">
-                <p className="text-xs text-monokai-subtle">Reportes de nuevos estudios</p>
-                <p className="text-2xl font-bold text-monokai-green">{counters.included_final}</p>
-              </div>
-              <div className="bg-monokai-dark p-3 rounded col-span-2">
-                <p className="text-xs text-monokai-subtle">TOTAL de estudios incluidos</p>
-                <p className="text-3xl font-bold text-monokai-green">{counters.included_final}</p>
-              </div>
+            <div className="bg-monokai-dark p-4 rounded">
+              <p className="text-xs text-monokai-subtle">Total de estudios incluidos</p>
+              <p className="text-3xl font-bold text-monokai-green">{counters.included_final}</p>
             </div>
           </div>
 
