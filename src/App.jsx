@@ -2623,29 +2623,7 @@ const ModulePRISMA = () => {
         </div>
       </div>
 
-      {/* Sección 2: Botones de Exportación */}
-      <div className="mb-12 flex gap-4">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleExportJSON}
-          className="flex items-center gap-2 px-6 py-3 bg-monokai-blue text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all"
-        >
-          <Download className="w-5 h-5" />
-          Exportar JSON
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleExportCSV}
-          className="flex items-center gap-2 px-6 py-3 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all"
-        >
-          <Download className="w-5 h-5" />
-          Exportar CSV
-        </motion.button>
-      </div>
-
-      {/* Sección 3: Diagrama PRISMA 2020 Completo */}
+      {/* Sección 2: Diagrama PRISMA 2020 Completo */}
       <div className="mb-12" id="prisma-diagram">
         <h2 className="text-2xl font-bold text-monokai-blue mb-8">Diagrama PRISMA 2020</h2>
         
@@ -2762,7 +2740,7 @@ const ModulePRISMA = () => {
               </div>
 
               <div>
-                <p className="font-semibold text-monokai-pink mb-2">Reportes excluidos por razón:</p>
+                <p className="font-semibold text-monokai-pink mb-2">Reportes excluidos: {counters.excluded_fulltext}</p>
                 <div className="grid grid-cols-2 gap-3 ml-4">
                   <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">Texto completo no disponible</p>
@@ -2795,24 +2773,37 @@ const ModulePRISMA = () => {
             </div>
           </div>
 
-          {/* RESUMEN */}
-          <div className="bg-monokai-dark p-6 rounded-lg border-2 border-monokai-subtle border-opacity-30">
-            <h3 className="text-lg font-bold text-monokai-text mb-4">RESUMEN DEL FLUJO</h3>
-            <div className="space-y-2 text-xs">
-              <p>📊 Identificados: <span className="text-monokai-blue font-bold">{counters.identified}</span></p>
-              <p>➖ Duplicados: <span className="text-monokai-pink font-bold">{counters.duplicates}</span></p>
-              <p>= Para cribado: <span className="text-monokai-yellow font-bold">{counters.identified - counters.duplicates}</span></p>
-              <p>➖ Excluidos en cribado: <span className="text-monokai-pink font-bold">{counters.excluded_title}</span></p>
-              <p>= Para elegibilidad: <span className="text-monokai-orange font-bold">{counters.included_title}</span></p>
-              <p>➖ Excluidos en elegibilidad: <span className="text-monokai-pink font-bold">{counters.excluded_fulltext}</span></p>
-              <p className="text-monokai-green font-bold mt-3">✓ INCLUIDOS FINALES: {counters.included_final}</p>
-              <p className="text-monokai-green font-bold">Tasa de inclusión: {counters.identified > 0 ? ((counters.included_final / counters.identified) * 100).toFixed(1) : 0}%</p>
+          {/* CONTADORES DINÁMICOS */}
+          <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue border-opacity-30">
+            <h3 className="text-lg font-bold text-monokai-blue mb-6">Contadores Dinámicos</h3>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-monokai-dark p-4 rounded-lg">
+                <p className="text-sm text-monokai-subtle mb-1">Identificados</p>
+                <p className="text-3xl font-bold text-monokai-blue">{counters.identified}</p>
+              </div>
+              <div className="bg-monokai-dark p-4 rounded-lg">
+                <p className="text-sm text-monokai-subtle mb-1">Duplicados</p>
+                <p className="text-3xl font-bold text-monokai-pink">{counters.duplicates}</p>
+              </div>
+              <div className="bg-monokai-dark p-4 rounded-lg">
+                <p className="text-sm text-monokai-subtle mb-1">Cribados</p>
+                <p className="text-3xl font-bold text-monokai-yellow">{counters.screened - counters.excluded_title}</p>
+              </div>
+              <div className="bg-monokai-dark p-4 rounded-lg">
+                <p className="text-sm text-monokai-subtle mb-1">Incluidos</p>
+                <p className="text-3xl font-bold text-monokai-green">{counters.included_final}</p>
+              </div>
+            </div>
+            
+            <div className="mt-4 text-center text-sm text-monokai-subtle">
+              Tasa de inclusión: <span className="text-monokai-green font-bold">{counters.identified > 0 ? ((counters.included_final / counters.identified) * 100).toFixed(1) : 0}%</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Sección 4: Estudios Incluidos */}
+      {/* Sección 3: Estudios Incluidos */}
       <div className="mb-12">
         <h2 className="text-2xl font-bold text-monokai-green mb-6">Estudios Incluidos Finales ({includedArticles.length})</h2>
         
@@ -2831,6 +2822,37 @@ const ModulePRISMA = () => {
             </p>
           </div>
         )}
+      </div>
+
+      {/* Sección 4: Botones de Exportación */}
+      <div className="mb-12 flex gap-4 flex-wrap">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleExportJSON}
+          className="flex items-center gap-2 px-6 py-3 bg-monokai-blue text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all"
+        >
+          <Download className="w-5 h-5" />
+          Exportar JSON
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleExportCSV}
+          className="flex items-center gap-2 px-6 py-3 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all"
+        >
+          <Download className="w-5 h-5" />
+          Exportar CSV
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleExportPNG}
+          className="flex items-center gap-2 px-6 py-3 bg-monokai-orange text-monokai-dark font-semibold rounded-lg hover:shadow-lg transition-all"
+        >
+          <Download className="w-5 h-5" />
+          Exportar PNG
+        </motion.button>
       </div>
     </motion.div>
   );
