@@ -2639,90 +2639,184 @@ const ModulePRISMA = () => {
         </motion.button>
       </div>
 
-      {/* Sección 3: Diagrama PRISMA 2020 */}
+      {/* Sección 3: Diagrama PRISMA 2020 Completo */}
       <div className="mb-12" id="prisma-diagram">
         <h2 className="text-2xl font-bold text-monokai-blue mb-8">Diagrama PRISMA 2020</h2>
         
-        <div className="space-y-8">
-          {/* FASE 1: IDENTIFICACIÓN */}
+        <div className="space-y-8 text-sm">
+          {/* ESTUDIOS PREVIOS */}
+          <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-purple border-opacity-50">
+            <h3 className="text-lg font-bold text-monokai-purple mb-4">ESTUDIOS PREVIOS</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-monokai-dark p-3 rounded">
+                <p className="text-xs text-monokai-subtle">Estudios incluidos en versión previa</p>
+                <p className="text-2xl font-bold text-monokai-purple">0</p>
+              </div>
+              <div className="bg-monokai-dark p-3 rounded">
+                <p className="text-xs text-monokai-subtle">Reportes de estudios previos</p>
+                <p className="text-2xl font-bold text-monokai-purple">0</p>
+              </div>
+            </div>
+          </div>
+
+          {/* IDENTIFICACIÓN - BASES DE DATOS */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue border-opacity-50">
-            <h3 className="text-xl font-bold text-monokai-blue mb-6">FASE 1: IDENTIFICACIÓN</h3>
+            <h3 className="text-lg font-bold text-monokai-blue mb-4">IDENTIFICACIÓN: BASES DE DATOS Y REGISTROS</h3>
             
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-monokai-dark p-4 rounded-lg border-l-4 border-monokai-blue">
-                <p className="text-sm text-monokai-subtle mb-1">Estudios identificados en búsqueda</p>
-                <p className="text-3xl font-bold text-monokai-blue">{counters.identified}</p>
+            <div className="space-y-4">
+              <div>
+                <p className="font-semibold text-monokai-blue mb-2">Registros identificados desde:</p>
+                <div className="grid grid-cols-2 gap-3 ml-4">
+                  <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">PubMed</p>
+                    <p className="text-xl font-bold text-monokai-blue">0</p>
+                  </div>
+                  <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">Semantic Scholar</p>
+                    <p className="text-xl font-bold text-monokai-blue">0</p>
+                  </div>
+                  <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">ArXiv</p>
+                    <p className="text-xl font-bold text-monokai-blue">0</p>
+                  </div>
+                  <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">Crossref</p>
+                    <p className="text-xl font-bold text-monokai-blue">{counters.identified}</p>
+                  </div>
+                </div>
               </div>
-              <div className="bg-monokai-dark p-4 rounded-lg border-l-4 border-monokai-pink">
-                <p className="text-sm text-monokai-subtle mb-1">Duplicados encontrados</p>
-                <p className="text-3xl font-bold text-monokai-pink">{counters.duplicates}</p>
+
+              <div>
+                <p className="font-semibold text-monokai-pink mb-2">Registros eliminados antes del cribado:</p>
+                <div className="grid grid-cols-2 gap-3 ml-4">
+                  <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">Duplicados</p>
+                    <p className="text-xl font-bold text-monokai-pink">{counters.duplicates}</p>
+                  </div>
+                  <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">Marcados como inelegibles</p>
+                    <p className="text-xl font-bold text-monokai-pink">0</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div className="text-sm text-monokai-subtle text-center">
-              {counters.identified} - {counters.duplicates} = {counters.identified - counters.duplicates} para cribado
             </div>
           </div>
 
-          {/* FASE 2: CRIBADO */}
+          {/* IDENTIFICACIÓN - OTROS MÉTODOS */}
+          <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue border-opacity-50">
+            <h3 className="text-lg font-bold text-monokai-blue mb-4">IDENTIFICACIÓN: OTROS MÉTODOS</h3>
+            
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-monokai-dark p-3 rounded">
+                <p className="text-xs text-monokai-subtle">Sitios Web</p>
+                <p className="text-xl font-bold text-monokai-blue">0</p>
+              </div>
+              <div className="bg-monokai-dark p-3 rounded">
+                <p className="text-xs text-monokai-subtle">Organizaciones</p>
+                <p className="text-xl font-bold text-monokai-blue">0</p>
+              </div>
+              <div className="bg-monokai-dark p-3 rounded">
+                <p className="text-xs text-monokai-subtle">Búsqueda de citaciones</p>
+                <p className="text-xl font-bold text-monokai-blue">0</p>
+              </div>
+            </div>
+          </div>
+
+          {/* CRIBADO */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-yellow border-opacity-50">
-            <h3 className="text-xl font-bold text-monokai-yellow mb-6">FASE 2: CRIBADO (Título/Resumen)</h3>
+            <h3 className="text-lg font-bold text-monokai-yellow mb-4">CRIBADO</h3>
             
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-monokai-dark p-4 rounded-lg border-l-4 border-monokai-yellow">
-                <p className="text-sm text-monokai-subtle mb-1">Registros cribados</p>
-                <p className="text-3xl font-bold text-monokai-yellow">{counters.screened}</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-monokai-dark p-3 rounded">
+                  <p className="text-xs text-monokai-subtle">Registros cribados</p>
+                  <p className="text-2xl font-bold text-monokai-yellow">{counters.screened}</p>
+                </div>
+                <div className="bg-monokai-dark p-3 rounded">
+                  <p className="text-xs text-monokai-subtle">Registros excluidos</p>
+                  <p className="text-2xl font-bold text-monokai-pink">{counters.excluded_title}</p>
+                </div>
               </div>
-              <div className="bg-monokai-dark p-4 rounded-lg border-l-4 border-monokai-pink">
-                <p className="text-sm text-monokai-subtle mb-1">Excluidos en cribado</p>
-                <p className="text-3xl font-bold text-monokai-pink">{counters.excluded_title}</p>
-              </div>
-            </div>
-            
-            <div className="text-sm text-monokai-subtle text-center">
-              {counters.screened} - {counters.excluded_title} = {counters.included_title} para evaluación
             </div>
           </div>
 
-          {/* FASE 3: ELEGIBILIDAD */}
+          {/* ELEGIBILIDAD */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-orange border-opacity-50">
-            <h3 className="text-xl font-bold text-monokai-orange mb-6">FASE 3: ELEGIBILIDAD (Texto Completo)</h3>
+            <h3 className="text-lg font-bold text-monokai-orange mb-4">ELEGIBILIDAD</h3>
             
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-monokai-dark p-4 rounded-lg border-l-4 border-monokai-orange">
-                <p className="text-sm text-monokai-subtle mb-1">Evaluados para elegibilidad</p>
-                <p className="text-3xl font-bold text-monokai-orange">{counters.included_title}</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-monokai-dark p-3 rounded">
+                  <p className="text-xs text-monokai-subtle">Reportes buscados para recuperación</p>
+                  <p className="text-2xl font-bold text-monokai-orange">{counters.included_title}</p>
+                </div>
+                <div className="bg-monokai-dark p-3 rounded">
+                  <p className="text-xs text-monokai-subtle">Reportes no recuperados</p>
+                  <p className="text-2xl font-bold text-monokai-pink">0</p>
+                </div>
               </div>
-              <div className="bg-monokai-dark p-4 rounded-lg border-l-4 border-monokai-pink">
-                <p className="text-sm text-monokai-subtle mb-1">Excluidos por texto completo</p>
-                <p className="text-3xl font-bold text-monokai-pink">{counters.excluded_fulltext}</p>
+
+              <div>
+                <p className="font-semibold text-monokai-orange mb-2">Reportes evaluados para elegibilidad</p>
+                <p className="text-2xl font-bold text-monokai-orange ml-4">{counters.included_title}</p>
               </div>
-            </div>
-            
-            <div className="text-sm text-monokai-subtle text-center">
-              {counters.included_title} - {counters.excluded_fulltext} = {counters.included_final} incluidos
+
+              <div>
+                <p className="font-semibold text-monokai-pink mb-2">Reportes excluidos por razón:</p>
+                <div className="grid grid-cols-2 gap-3 ml-4">
+                  <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">Texto completo no disponible</p>
+                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_fulltext}</p>
+                  </div>
+                  <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">Población incorrecta</p>
+                    <p className="text-xl font-bold text-monokai-pink">0</p>
+                  </div>
+                  <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">Tipo de estudio incorrecto</p>
+                    <p className="text-xl font-bold text-monokai-pink">0</p>
+                  </div>
+                  <div className="bg-monokai-dark p-3 rounded">
+                    <p className="text-xs text-monokai-subtle">Otro</p>
+                    <p className="text-xl font-bold text-monokai-pink">0</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* FASE 4: INCLUIDOS */}
+          {/* INCLUIDOS */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-green border-opacity-50">
-            <h3 className="text-xl font-bold text-monokai-green mb-6">FASE 4: INCLUIDOS</h3>
+            <h3 className="text-lg font-bold text-monokai-green mb-4">INCLUIDOS</h3>
             
-            <div className="bg-monokai-dark p-4 rounded-lg border-l-4 border-monokai-green">
-              <p className="text-sm text-monokai-subtle mb-1">Estudios incluidos en síntesis</p>
-              <p className="text-3xl font-bold text-monokai-green">{counters.included_final}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-monokai-dark p-3 rounded">
+                <p className="text-xs text-monokai-subtle">Nuevos estudios incluidos</p>
+                <p className="text-2xl font-bold text-monokai-green">{counters.included_final}</p>
+              </div>
+              <div className="bg-monokai-dark p-3 rounded">
+                <p className="text-xs text-monokai-subtle">Reportes de nuevos estudios</p>
+                <p className="text-2xl font-bold text-monokai-green">{counters.included_final}</p>
+              </div>
+              <div className="bg-monokai-dark p-3 rounded col-span-2">
+                <p className="text-xs text-monokai-subtle">TOTAL de estudios incluidos</p>
+                <p className="text-3xl font-bold text-monokai-green">{counters.included_final}</p>
+              </div>
             </div>
           </div>
 
-          {/* RESUMEN GENERAL */}
+          {/* RESUMEN */}
           <div className="bg-monokai-dark p-6 rounded-lg border-2 border-monokai-subtle border-opacity-30">
-            <h3 className="text-lg font-bold text-monokai-text mb-4">Resumen del Flujo</h3>
-            <div className="space-y-2 text-sm text-monokai-subtle">
-              <p>✓ Identificados: <span className="text-monokai-blue font-bold">{counters.identified}</span></p>
-              <p>✓ Después de duplicados: <span className="text-monokai-yellow font-bold">{counters.identified - counters.duplicates}</span></p>
-              <p>✓ Después de cribado: <span className="text-monokai-orange font-bold">{counters.included_title}</span></p>
-              <p>✓ Después de elegibilidad: <span className="text-monokai-green font-bold">{counters.included_final}</span></p>
-              <p className="text-monokai-green font-bold mt-4">Tasa de inclusión final: {counters.identified > 0 ? ((counters.included_final / counters.identified) * 100).toFixed(1) : 0}%</p>
+            <h3 className="text-lg font-bold text-monokai-text mb-4">RESUMEN DEL FLUJO</h3>
+            <div className="space-y-2 text-xs">
+              <p>📊 Identificados: <span className="text-monokai-blue font-bold">{counters.identified}</span></p>
+              <p>➖ Duplicados: <span className="text-monokai-pink font-bold">{counters.duplicates}</span></p>
+              <p>= Para cribado: <span className="text-monokai-yellow font-bold">{counters.identified - counters.duplicates}</span></p>
+              <p>➖ Excluidos en cribado: <span className="text-monokai-pink font-bold">{counters.excluded_title}</span></p>
+              <p>= Para elegibilidad: <span className="text-monokai-orange font-bold">{counters.included_title}</span></p>
+              <p>➖ Excluidos en elegibilidad: <span className="text-monokai-pink font-bold">{counters.excluded_fulltext}</span></p>
+              <p className="text-monokai-green font-bold mt-3">✓ INCLUIDOS FINALES: {counters.included_final}</p>
+              <p className="text-monokai-green font-bold">Tasa de inclusión: {counters.identified > 0 ? ((counters.included_final / counters.identified) * 100).toFixed(1) : 0}%</p>
             </div>
           </div>
         </div>
