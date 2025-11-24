@@ -2499,7 +2499,7 @@ const ModulePRISMA = () => {
     excluded_population: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason === 'Población incorrecta').length,
     excluded_study_type: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason === 'Tipo de estudio incorrecto').length,
     excluded_fulltext_reason: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason === 'Texto completo no disponible').length,
-    excluded_other: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason && a.exclusion_reason !== 'Outcome incorrecto' && a.exclusion_reason !== 'Población incorrecta' && a.exclusion_reason !== 'Tipo de estudio incorrecto' && a.exclusion_reason !== 'Texto completo no disponible').length,
+    excluded_other_reasons: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason && a.exclusion_reason !== 'Outcome incorrecto' && a.exclusion_reason !== 'Población incorrecta' && a.exclusion_reason !== 'Tipo de estudio incorrecto' && a.exclusion_reason !== 'Texto completo no disponible').map(a => a.exclusion_reason),
   };
 
   // Debug log
@@ -2750,7 +2750,7 @@ const ModulePRISMA = () => {
 
               <div>
                 <p className="font-semibold text-monokai-orange mb-2">Reportes evaluados para elegibilidad</p>
-                <p className="text-2xl font-bold text-monokai-orange ml-4">{counters.included_title + counters.excluded_fulltext}</p>
+                <p className="text-2xl font-bold text-monokai-orange ml-4">{counters.included_title}</p>
               </div>
 
               <div>
@@ -2773,8 +2773,16 @@ const ModulePRISMA = () => {
                     <p className="text-xl font-bold text-monokai-pink">{counters.excluded_fulltext_reason}</p>
                   </div>
                   <div className="bg-monokai-dark p-3 rounded col-span-2">
-                    <p className="text-xs text-monokai-subtle">Otro</p>
-                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_other}</p>
+                    <p className="text-xs text-monokai-subtle">Otro ({counters.excluded_other_reasons.length})</p>
+                    {counters.excluded_other_reasons.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        {counters.excluded_other_reasons.map((reason, idx) => (
+                          <p key={idx} className="text-xs text-monokai-subtle">• {reason}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xl font-bold text-monokai-pink">0</p>
+                    )}
                   </div>
                 </div>
               </div>
