@@ -3561,27 +3561,18 @@ const MainContent = () => {
 const AppContent = () => {
   const { state, dispatch } = useProject();
 
-  // useEffect 0: Limpiar artículos al recargar la página
-  useEffect(() => {
-    const handleBeforeUnload = async () => {
-      const projectData = await apiClient.loadProject();
-      if (projectData) {
-        await apiClient.deleteAllArticles(projectData.id);
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
-
-  // useEffect 1: Cargar proyecto y artículos al iniciar
+  // useEffect 1: Cargar proyecto, limpiar artículos previos y cargar nuevos al iniciar
   useEffect(() => {
     const loadProjectData = async () => {
       const projectData = await apiClient.loadProject();
       if (projectData) {
         dispatch({ type: 'SET_PROJECT_DATA', payload: projectData });
         
-        // Cargar artículos del proyecto
+        // Limpiar todos los artículos previos
+        console.log('[AppContent] Limpiando artículos previos...');
+        await apiClient.deleteAllArticles(projectData.id);
+        
+        // Cargar artículos del proyecto (debería estar vacío después de limpiar)
         const articles = await apiClient.loadArticles(projectData.id);
         if (articles && articles.length > 0) {
           dispatch({ type: 'SET_PROJECT_ARTICLES', payload: articles });
