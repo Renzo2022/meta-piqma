@@ -2459,6 +2459,9 @@ const ModuleEligibility = () => {
           </div>
         </div>
       )}
+    </motion.div>
+  );
+};
 
 const ModulePRISMA = () => {
   const { state, dispatch } = useProject();
