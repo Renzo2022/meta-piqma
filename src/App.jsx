@@ -2760,7 +2760,7 @@ const ModulePRISMA = () => {
 
               <div>
                 <p className="font-semibold text-monokai-orange mb-2">Reportes evaluados para elegibilidad</p>
-                <p className="text-2xl font-bold text-monokai-orange ml-4">{counters.included_title + counters.excluded_fulltext}</p>
+                <p className="text-2xl font-bold text-monokai-orange ml-4">{counters.included_title}</p>
               </div>
 
               <div>
