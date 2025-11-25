@@ -3231,60 +3231,85 @@ const ModuleMetaAnalysis = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="space-y-8"
+          className="space-y-12"
         >
-          {/* Métricas */}
-          <div className="bg-monokai-dark p-6 rounded-lg border border-monokai-subtle border-opacity-30">
-            <h3 className="text-xl font-bold text-monokai-orange mb-4">Métricas de Heterogeneidad</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-monokai-subtle mb-1">I² (Inconsistencia)</p>
-                <p className="text-2xl font-bold text-monokai-yellow">{metaAnalysisResults.metrics.i2}</p>
+          {/* HISTORIA: Métricas de Heterogeneidad */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0 }}
+            className="bg-monokai-dark p-8 rounded-lg border border-monokai-subtle border-opacity-30"
+          >
+            <h2 className="text-2xl font-bold text-monokai-orange mb-8">📊 Resultados del Meta-Análisis</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-blue border-opacity-30">
+                <p className="text-xs font-semibold text-monokai-blue uppercase tracking-wider mb-2">I² (Inconsistencia)</p>
+                <p className="text-3xl font-bold text-monokai-yellow">{metaAnalysisResults.metrics.i2}</p>
+                <p className="text-xs text-monokai-subtle mt-2">Heterogeneidad entre estudios</p>
               </div>
-              <div>
-                <p className="text-sm text-monokai-subtle mb-1">Q (Estadístico)</p>
-                <p className="text-2xl font-bold text-monokai-yellow">{metaAnalysisResults.metrics.q.toFixed(4)}</p>
+              <div className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-green border-opacity-30">
+                <p className="text-xs font-semibold text-monokai-green uppercase tracking-wider mb-2">Q (Estadístico)</p>
+                <p className="text-3xl font-bold text-monokai-yellow">{metaAnalysisResults.metrics.q.toFixed(4)}</p>
+                <p className="text-xs text-monokai-subtle mt-2">Prueba de homogeneidad</p>
               </div>
-              <div>
-                <p className="text-sm text-monokai-subtle mb-1">P-value</p>
-                <p className="text-2xl font-bold text-monokai-yellow">{metaAnalysisResults.metrics.pValue.toFixed(4)}</p>
+              <div className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-pink border-opacity-30">
+                <p className="text-xs font-semibold text-monokai-pink uppercase tracking-wider mb-2">P-value</p>
+                <p className="text-3xl font-bold text-monokai-yellow">{metaAnalysisResults.metrics.pValue.toFixed(4)}</p>
+                <p className="text-xs text-monokai-subtle mt-2">Significancia estadística</p>
               </div>
-              <div>
-                <p className="text-sm text-monokai-subtle mb-1">Heterogeneidad</p>
-                <p className="text-2xl font-bold text-monokai-yellow">{metaAnalysisResults.metrics.heterogeneity}</p>
+              <div className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-orange border-opacity-30">
+                <p className="text-xs font-semibold text-monokai-orange uppercase tracking-wider mb-2">Heterogeneidad</p>
+                <p className="text-3xl font-bold text-monokai-yellow">{metaAnalysisResults.metrics.heterogeneity}</p>
+                <p className="text-xs text-monokai-subtle mt-2">Nivel de variabilidad</p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Gráficos */}
-          <div className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30"
-            >
-              <h3 className="text-lg font-bold text-monokai-orange mb-4">Forest Plot</h3>
-              <img
-                src={metaAnalysisResults.forestPlotUrl}
-                alt="Forest Plot"
-                className="w-full rounded-lg"
-              />
-            </motion.div>
+          {/* GRÁFICOS: Forest Plot y Funnel Plot lado a lado */}
+          <div className="space-y-8">
+            <h2 className="text-2xl font-bold text-monokai-orange">📈 Visualizaciones</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Forest Plot */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30 flex flex-col"
+              >
+                <h3 className="text-lg font-bold text-monokai-blue mb-4 flex items-center gap-2">
+                  <span>🌲</span> Forest Plot
+                </h3>
+                <div className="flex-1 overflow-auto bg-monokai-dark rounded-lg p-2">
+                  <img
+                    src={metaAnalysisResults.forestPlotUrl}
+                    alt="Forest Plot"
+                    className="w-full h-auto rounded-lg"
+                  />
+                </div>
+                <p className="text-xs text-monokai-subtle mt-4">Efecto de cada estudio y efecto combinado</p>
+              </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30"
-            >
-              <h3 className="text-lg font-bold text-monokai-orange mb-4">Funnel Plot</h3>
-              <img
-                src={metaAnalysisResults.funnelPlotUrl}
-                alt="Funnel Plot"
-                className="w-full rounded-lg"
-              />
-            </motion.div>
+              {/* Funnel Plot */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30 flex flex-col"
+              >
+                <h3 className="text-lg font-bold text-monokai-pink mb-4 flex items-center gap-2">
+                  <span>📊</span> Funnel Plot
+                </h3>
+                <div className="flex-1 overflow-auto bg-monokai-dark rounded-lg p-2">
+                  <img
+                    src={metaAnalysisResults.funnelPlotUrl}
+                    alt="Funnel Plot"
+                    className="w-full h-auto rounded-lg"
+                  />
+                </div>
+                <p className="text-xs text-monokai-subtle mt-4">Detección de sesgo de publicación</p>
+              </motion.div>
+            </div>
           </div>
         </motion.div>
       ) : null}
