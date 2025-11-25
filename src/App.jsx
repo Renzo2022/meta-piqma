@@ -2459,12 +2459,25 @@ const ModuleEligibility = () => {
           </div>
         </div>
       )}
-    </motion.div>
-  );
-};
 
 const ModulePRISMA = () => {
-  const { state } = useProject();
+  const { state, dispatch } = useProject();
+
+  // Recargar artículos desde Supabase cuando se abre PRISMA
+  useEffect(() => {
+    const reloadArticles = async () => {
+      if (state.currentProjectId) {
+        console.log('[PRISMA] Recargando artículos desde Supabase...');
+        const articles = await apiClient.loadArticles(state.currentProjectId);
+        if (articles && articles.length > 0) {
+          console.log('[PRISMA] Artículos recargados:', articles.length);
+          dispatch({ type: 'SET_PROJECT_ARTICLES', payload: articles });
+        }
+      }
+    };
+    
+    reloadArticles();
+  }, [state.currentProjectId, dispatch]);
 
   // Calcular contadores PRISMA automáticamente desde artículos
   const counters = {
