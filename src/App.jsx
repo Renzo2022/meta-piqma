@@ -2518,6 +2518,10 @@ const ModulePRISMA = () => {
     const uniqueStatuses = [...new Set(state.projectArticles.map(a => a.status))];
     console.log('[PRISMA] Status únicos en artículos:', uniqueStatuses);
     
+    // Log de artículos que pasaron cribado
+    const includedTitleArticles = state.projectArticles.filter(a => a.status === 'included_title');
+    console.log('[PRISMA] Artículos con status included_title:', includedTitleArticles.length, includedTitleArticles.map(a => a.title));
+    
     // Log de artículos excluidos con razones
     const excludedArticles = state.projectArticles.filter(a => a.status === 'excluded_fulltext');
     console.log('[PRISMA] Artículos excluidos:', excludedArticles.map(a => ({
@@ -2622,32 +2626,7 @@ const ModulePRISMA = () => {
       transition={{ duration: 0.3 }}
     >
       <h1 className="text-4xl font-bold text-monokai-orange mb-8">Módulo 5: Reporte PRISMA 2020</h1>
-
-      {/* Sección 1: Resumen de Contadores */}
-      <div className="mb-12 bg-monokai-sidebar p-6 rounded-lg border border-monokai-blue border-opacity-30">
-        <h2 className="text-2xl font-bold text-monokai-blue mb-6">Contadores Dinámicos</h2>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-monokai-dark p-4 rounded-lg">
-            <p className="text-sm text-monokai-subtle mb-1">Identificados</p>
-            <p className="text-3xl font-bold text-monokai-blue">{counters.identified}</p>
-          </div>
-          <div className="bg-monokai-dark p-4 rounded-lg">
-            <p className="text-sm text-monokai-subtle mb-1">Duplicados</p>
-            <p className="text-3xl font-bold text-monokai-pink">{counters.duplicates}</p>
-          </div>
-          <div className="bg-monokai-dark p-4 rounded-lg">
-            <p className="text-sm text-monokai-subtle mb-1">Cribados</p>
-            <p className="text-3xl font-bold text-monokai-yellow">{counters.screened}</p>
-          </div>
-          <div className="bg-monokai-dark p-4 rounded-lg">
-            <p className="text-sm text-monokai-subtle mb-1">Incluidos</p>
-            <p className="text-3xl font-bold text-monokai-green">{counters.included_final}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Sección 2: Diagrama PRISMA 2020 Completo */}
+      {/* Sección 1: Diagrama PRISMA 2020 Completo */}
       <div className="mb-12" id="prisma-diagram">
         <h2 className="text-2xl font-bold text-monokai-blue mb-8">Diagrama PRISMA 2020</h2>
         
@@ -2841,28 +2820,7 @@ const ModulePRISMA = () => {
         </div>
       </div>
 
-      {/* Sección 3: Estudios Incluidos */}
-      <div className="mb-12">
-        <h2 className="text-2xl font-bold text-monokai-green mb-6">Estudios Incluidos Finales ({includedArticles.length})</h2>
-        
-        {includedArticles.length > 0 ? (
-          <div className="space-y-4">
-            <AnimatePresence>
-              {includedArticles.map((article) => (
-                <ArticleCard key={article.id} article={article} />
-              ))}
-            </AnimatePresence>
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
-            <p className="text-monokai-subtle">
-              No hay estudios incluidos aún. Completa los módulos anteriores para ver los resultados.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Sección 4: Botones de Exportación */}
+      {/* Sección 3: Botones de Exportación */}
       <div className="mb-12 flex gap-4 flex-wrap">
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -2891,6 +2849,27 @@ const ModulePRISMA = () => {
           <Download className="w-5 h-5" />
           Exportar PNG
         </motion.button>
+      </div>
+
+    {/* Sección 4: Estudios Incluidos */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold text-monokai-green mb-6">Estudios Incluidos Finales ({includedArticles.length})</h2>
+        
+        {includedArticles.length > 0 ? (
+          <div className="space-y-4">
+            <AnimatePresence>
+              {includedArticles.map((article) => (
+                <ArticleCard key={article.id} article={article} />
+              ))}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30">
+            <p className="text-monokai-subtle">
+              No hay estudios incluidos aún. Completa los módulos anteriores para ver los resultados.
+            </p>
+          </div>
+        )}
       </div>
     </motion.div>
   );
