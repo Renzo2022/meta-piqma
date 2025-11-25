@@ -488,6 +488,12 @@ const apiClient = {
   // Guarda (inserta) múltiples artículos en Supabase
   saveArticles: async (projectId, articles) => {
     try {
+      console.log(`[saveArticles] Iniciando guardado de ${articles.length} artículos`);
+      console.log(`[saveArticles] Artículos por fuente:`, articles.reduce((acc, a) => {
+        acc[a.source] = (acc[a.source] || 0) + 1;
+        return acc;
+      }, {}));
+      
       // Cargar artículos existentes del proyecto
       const { data: existingArticles, error: loadError } = await supabase
         .from('articles')
@@ -499,11 +505,19 @@ const apiClient = {
         return false;
       }
       
+      console.log(`[saveArticles] Artículos existentes en BD: ${existingArticles?.length || 0}`);
+      
       // Crear un Set con combinación de title + source para detectar duplicados reales
       const existingKeys = new Set(existingArticles?.map(a => `${a.title}|${a.source}`) || []);
       
       // Filtrar artículos que no existen (comparando title + source)
       const newArticles = articles.filter(article => !existingKeys.has(`${article.title}|${article.source}`));
+      
+      console.log(`[saveArticles] Nuevos artículos a insertar: ${newArticles.length}`);
+      console.log(`[saveArticles] Nuevos artículos por fuente:`, newArticles.reduce((acc, a) => {
+        acc[a.source] = (acc[a.source] || 0) + 1;
+        return acc;
+      }, {}));
       
       if (newArticles.length === 0) {
         console.log('[saveArticles] Todos los artículos ya existen, no hay nada que insertar');
@@ -523,7 +537,7 @@ const apiClient = {
         exclusion_reason: null,
       }));
 
-      console.log(`[saveArticles] Insertando ${articlesToInsert.length} artículos nuevos (${articles.length - newArticles.length} ya existían)`);
+      console.log(`[saveArticles] Insertando ${articlesToInsert.length} artículos nuevos`);
 
       const { error } = await supabase
         .from('articles')
