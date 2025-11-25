@@ -2484,11 +2484,7 @@ const ModulePRISMA = () => {
     
     // Cribado: solo los que fueron cribados (included_title + excluded_title)
     excluded_title: state.projectArticles.filter((a) => a.status === 'excluded_title').length,
-    screened_count: (() => {
-      const included = state.projectArticles.filter((a) => a.status === 'included_title').length;
-      const excluded = state.projectArticles.filter((a) => a.status === 'excluded_title').length;
-      return included + excluded;
-    })(),
+    screened_count: state.projectArticles.filter((a) => a.status === 'included_title' || a.status === 'excluded_title').length,
     
     // Evaluación de texto completo
     included_title: state.projectArticles.filter((a) => a.status === 'included_title').length,
@@ -2739,7 +2735,7 @@ const ModulePRISMA = () => {
               </div>
 
               <div>
-                <p className="font-semibold text-monokai-orange mb-2">Reportes evaluados para elegibilidad</p>
+                <p className="font-semibold text-monokai-orange mb-2">Reportes para la elegibilidad</p>
                 <p className="text-2xl font-bold text-monokai-orange ml-4">{counters.included_title}</p>
               </div>
 
