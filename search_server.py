@@ -923,13 +923,13 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
     y_start = 100
     
     # Layout con dos columnas separadas: recuadro de nombres y gráfico
-    names_box_width = 450  # Ancho del recuadro de nombres (aumentado)
+    names_box_width = 300  # Ancho del recuadro de nombres (REDUCIDO)
     names_box_x = 10
     names_box_y = 80
-    names_box_height = len(studies) * 40 + 60
+    names_box_height = len(studies) * 35 + 40  # REDUCIDO: menos padding
     
-    graph_start = names_box_x + names_box_width + 50  # Inicio del gráfico (más espaciado)
-    graph_width = 700  # Ancho del gráfico (aumentado)
+    graph_start = names_box_x + names_box_width + 80  # Inicio del gráfico (MÁS espaciado)
+    graph_width = 800  # Ancho del gráfico (AUMENTADO)
     total_width = graph_start + graph_width + 100
     
     # Crear SVG con layout separado
@@ -956,7 +956,7 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
     <!-- Estudios -->'''
     
     y_pos = y_start
-    names_y_pos = names_box_y + 40
+    names_y_pos = names_box_y + 35  # REDUCIDO: menos espacio inicial
     
     for i, study in enumerate(studies):
         # Escala: 1 unidad = 100 pixels
@@ -967,8 +967,8 @@ def generate_forest_plot_svg(extraction_data: list, i2: float, q: float, p_value
         # Obtener color del estudio
         color = study.get('color', '#2196F3')
         
-        # EN EL RECUADRO: Rectángulo de color + nombre
-        svg += f'\n    <rect x="{names_box_x + 15}" y="{names_y_pos - 8}" width="14" height="14" fill="{color}" rx="2"/>'
+        # EN EL RECUADRO: Rectángulo de color + nombre (más compacto)
+        svg += f'\n    <rect x="{names_box_x + 10}" y="{names_y_pos - 7}" width="12" height="12" fill="{color}" rx="2"/>'
         name_truncated = study["name"][:45] if len(study["name"]) > 45 else study["name"]
         svg += f'\n    <text x="{names_box_x + 38}" y="{names_y_pos + 5}" font-size="10" fill="#333" text-anchor="start">{name_truncated}</text>'
         
@@ -1055,13 +1055,13 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
             })
     
     # Layout con dos columnas separadas: recuadro de nombres y gráfico
-    names_box_width = 450  # Ancho del recuadro de nombres (aumentado)
+    names_box_width = 300  # Ancho del recuadro de nombres (REDUCIDO)
     names_box_x = 10
     names_box_y = 80
-    names_box_height = 500
+    names_box_height = len(studies) * 35 + 40  # REDUCIDO: altura dinámica según estudios
     
-    graph_start = names_box_x + names_box_width + 50  # Inicio del gráfico (más espaciado)
-    graph_width = 700  # Ancho del gráfico (aumentado)
+    graph_start = names_box_x + names_box_width + 80  # Inicio del gráfico (MÁS espaciado)
+    graph_width = 800  # Ancho del gráfico (AUMENTADO)
     total_width = graph_start + graph_width + 100
     
     # Crear SVG con mejor layout
@@ -1091,7 +1091,7 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
     
     <!-- Estudios con etiquetas -->'''
     
-    names_y_pos = names_box_y + 40
+    names_y_pos = names_box_y + 35  # REDUCIDO: menos espacio inicial
     for i, study in enumerate(studies):
         # Escala: efecto en X (0.5 a 2.5), SE en Y (0.3 a 0.05)
         x = graph_start + graph_width//2 + (study['effect'] - 1.5) * 140  # Centrado en 1.5
@@ -1100,15 +1100,15 @@ def generate_funnel_plot_svg(extraction_data: list, i2: float, q: float, p_value
         # Obtener color del estudio
         color = study.get('color', '#2196F3')
         
-        # EN EL RECUADRO: Rectángulo de color + nombre
-        svg += f'\n    <rect x="{names_box_x + 15}" y="{names_y_pos - 8}" width="14" height="14" fill="{color}" rx="2"/>'
-        name_truncated = study["name"][:45] if len(study["name"]) > 45 else study["name"]
-        svg += f'\n    <text x="{names_box_x + 38}" y="{names_y_pos + 5}" font-size="10" fill="#333" text-anchor="start">{name_truncated}</text>'
+        # EN EL RECUADRO: Rectángulo de color + nombre (más compacto)
+        svg += f'\n    <rect x="{names_box_x + 10}" y="{names_y_pos - 7}" width="12" height="12" fill="{color}" rx="2"/>'
+        name_truncated = study["name"][:35] if len(study["name"]) > 35 else study["name"]  # Truncar más
+        svg += f'\n    <text x="{names_box_x + 28}" y="{names_y_pos + 5}" font-size="9" fill="#333" text-anchor="start">{name_truncated}</text>'
         
         # EN EL GRÁFICO: Punto del estudio con color
         svg += f'\n    <circle cx="{x}" cy="{y}" r="6" fill="{color}" opacity="0.8"/>'
         
-        names_y_pos += 40
+        names_y_pos += 35  # REDUCIDO: menos espacio entre items
     
     svg += f'''
     <!-- Etiquetas de ejes -->
