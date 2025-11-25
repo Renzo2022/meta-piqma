@@ -1509,6 +1509,36 @@ const ModuleSearch = () => {
     >
       <h1 className="text-4xl font-bold text-monokai-yellow mb-6">Módulo 2: Búsqueda Bibliográfica</h1>
 
+      {/* Botón Limpiar Registros */}
+      <div className="mb-6">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={async () => {
+            if (confirm('¿Estás seguro de que deseas limpiar los registros existentes? Esto eliminará todos los artículos de Supabase.')) {
+              try {
+                if (state.currentProjectId) {
+                  const success = await apiClient.deleteAllArticles(state.currentProjectId);
+                  if (success) {
+                    dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: [] });
+                    alert('Registros limpiados correctamente');
+                  } else {
+                    alert('Error al limpiar los registros');
+                  }
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Error al limpiar los registros: ' + error.message);
+              }
+            }
+          }}
+          className="flex items-center gap-2 px-6 py-3 bg-monokai-red text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+        >
+          <Trash2 className="w-5 h-5" />
+          Limpiar Registros
+        </motion.button>
+      </div>
+
       {/* Pestañas */}
       <div className="flex gap-4 mb-6 border-b border-monokai-subtle border-opacity-30">
         <motion.button
