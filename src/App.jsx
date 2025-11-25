@@ -2051,6 +2051,7 @@ const ModuleScreening = () => {
 
   const handleInclude = async () => {
     if (nextArticle) {
+      console.log('[Screening] Incluyendo artículo:', { id: nextArticle.id, uniqueId: nextArticle.uniqueId, title: nextArticle.title });
       // Actualizar estado local
       dispatch({
         type: 'UPDATE_ARTICLE_STATUS',
@@ -2465,22 +2466,6 @@ const ModuleEligibility = () => {
 
 const ModulePRISMA = () => {
   const { state, dispatch } = useProject();
-
-  // Recargar artículos desde Supabase cuando se abre PRISMA
-  useEffect(() => {
-    const reloadArticles = async () => {
-      if (state.currentProjectId) {
-        console.log('[PRISMA] Recargando artículos desde Supabase...');
-        const articles = await apiClient.loadArticles(state.currentProjectId);
-        if (articles && articles.length > 0) {
-          console.log('[PRISMA] Artículos recargados:', articles.length);
-          dispatch({ type: 'SET_PROJECT_ARTICLES', payload: articles });
-        }
-      }
-    };
-    
-    reloadArticles();
-  }, [state.currentProjectId, dispatch]);
 
   // Calcular contadores PRISMA automáticamente desde artículos
   const counters = {
