@@ -2758,7 +2758,7 @@ const ModulePRISMA = () => {
             <h3 className="text-lg font-bold text-monokai-orange mb-4">ELEGIBILIDAD</h3>
             
             <div className="space-y-4">
-              <div class="bg-monokai-dark p-3 rounded">
+              <div className="bg-monokai-dark p-3 rounded">
                 <p className="font-semibold text-monokai-orange mb-2">Reportes para la elegibilidad</p>
                 <p className="text-2xl font-bold text-monokai-orange ml-4">{counters.excluded_fulltext}</p>
               </div>
