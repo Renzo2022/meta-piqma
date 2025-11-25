@@ -3240,7 +3240,7 @@ const ModuleMetaAnalysis = () => {
             transition={{ duration: 0.5, delay: 0 }}
             className="bg-monokai-dark p-8 rounded-lg border border-monokai-subtle border-opacity-30"
           >
-            <h2 className="text-2xl font-bold text-monokai-orange mb-8">📊 Resultados del Meta-Análisis</h2>
+            <h2 className="text-2xl font-bold text-monokai-orange mb-8">Resultados del Meta-Análisis</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-blue border-opacity-30">
                 <p className="text-xs font-semibold text-monokai-blue uppercase tracking-wider mb-2">I² (Inconsistencia)</p>
@@ -3267,7 +3267,7 @@ const ModuleMetaAnalysis = () => {
 
           {/* GRÁFICOS: Forest Plot y Funnel Plot lado a lado */}
           <div className="space-y-8">
-            <h2 className="text-2xl font-bold text-monokai-orange">📈 Visualizaciones</h2>
+            <h2 className="text-2xl font-bold text-monokai-orange"> Visualizaciones</h2>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Forest Plot */}
@@ -3275,16 +3275,16 @@ const ModuleMetaAnalysis = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30 flex flex-col"
+                className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30 flex flex-col h-full"
               >
                 <h3 className="text-lg font-bold text-monokai-blue mb-4 flex items-center gap-2">
-                  <span>🌲</span> Forest Plot
+                  <span></span> Forest Plot
                 </h3>
-                <div className="flex-1 overflow-auto bg-monokai-dark rounded-lg p-2">
+                <div className="flex-1 overflow-x-auto overflow-y-hidden bg-monokai-dark rounded-lg p-4 min-h-96">
                   <img
                     src={metaAnalysisResults.forestPlotUrl}
                     alt="Forest Plot"
-                    className="w-full h-auto rounded-lg"
+                    className="h-full w-auto rounded-lg"
                   />
                 </div>
                 <p className="text-xs text-monokai-subtle mt-4">Efecto de cada estudio y efecto combinado</p>
@@ -3295,16 +3295,16 @@ const ModuleMetaAnalysis = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30 flex flex-col"
+                className="bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30 flex flex-col h-full"
               >
                 <h3 className="text-lg font-bold text-monokai-pink mb-4 flex items-center gap-2">
-                  <span>📊</span> Funnel Plot
+                  <span></span> Funnel Plot
                 </h3>
-                <div className="flex-1 overflow-auto bg-monokai-dark rounded-lg p-2">
+                <div className="flex-1 overflow-x-auto overflow-y-hidden bg-monokai-dark rounded-lg p-4 min-h-96">
                   <img
                     src={metaAnalysisResults.funnelPlotUrl}
                     alt="Funnel Plot"
-                    className="w-full h-auto rounded-lg"
+                    className="h-full w-auto rounded-lg"
                   />
                 </div>
                 <p className="text-xs text-monokai-subtle mt-4">Detección de sesgo de publicación</p>
