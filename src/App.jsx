@@ -491,7 +491,7 @@ const apiClient = {
       // Cargar artículos existentes del proyecto
       const { data: existingArticles, error: loadError } = await supabase
         .from('articles')
-        .select('title')
+        .select('title, source')
         .eq('project_id', projectId);
       
       if (loadError) {
@@ -499,10 +499,11 @@ const apiClient = {
         return false;
       }
       
-      const existingTitles = new Set(existingArticles?.map(a => a.title) || []);
+      // Crear un Set con combinación de title + source para detectar duplicados reales
+      const existingKeys = new Set(existingArticles?.map(a => `${a.title}|${a.source}`) || []);
       
-      // Filtrar artículos que no existen
-      const newArticles = articles.filter(article => !existingTitles.has(article.title));
+      // Filtrar artículos que no existen (comparando title + source)
+      const newArticles = articles.filter(article => !existingKeys.has(`${article.title}|${article.source}`));
       
       if (newArticles.length === 0) {
         console.log('[saveArticles] Todos los artículos ya existen, no hay nada que insertar');
@@ -1514,6 +1515,8 @@ const ModuleSearch = () => {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          animate={{ y: [0, -5, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
           onClick={async () => {
             if (confirm('¿Estás seguro de que deseas limpiar los registros existentes? Esto eliminará todos los artículos de Supabase.')) {
               try {
@@ -1532,7 +1535,7 @@ const ModuleSearch = () => {
               }
             }
           }}
-          className="flex items-center gap-2 px-6 py-3 bg-monokai-red text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
+          className="flex items-center gap-2 px-6 py-3 bg-monokai-red text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all shadow-lg shadow-monokai-red/50"
         >
           <Trash2 className="w-5 h-5" />
           Limpiar Registros
