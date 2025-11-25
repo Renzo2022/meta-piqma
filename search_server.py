@@ -596,10 +596,35 @@ async def search(strategies: SearchStrategies):
         
         # Ejecutar búsquedas SOLO en bases de datos seleccionadas
         # Usar la estrategia si está disponible, sino usar una búsqueda genérica
-        pubmed_articles = search_pubmed(strategies.pubmed or "diabetes") if strategies.use_pubmed else []
-        semantic_articles = search_semantic_scholar(strategies.semanticScholar or "diabetes") if strategies.use_semantic else []
-        arxiv_articles = search_arxiv(strategies.arxiv or "diabetes") if strategies.use_arxiv else []
-        crossref_articles = search_crossref(strategies.crossref or "diabetes") if strategies.use_crossref else []
+        pubmed_articles = []
+        semantic_articles = []
+        arxiv_articles = []
+        crossref_articles = []
+        
+        # Ejecutar cada búsqueda con manejo de errores
+        try:
+            if strategies.use_pubmed:
+                pubmed_articles = search_pubmed(strategies.pubmed or "diabetes")
+        except Exception as e:
+            print(f"[SEARCH] Error en PubMed: {str(e)}")
+        
+        try:
+            if strategies.use_semantic:
+                semantic_articles = search_semantic_scholar(strategies.semanticScholar or "diabetes")
+        except Exception as e:
+            print(f"[SEARCH] Error en Semantic Scholar: {str(e)}")
+        
+        try:
+            if strategies.use_arxiv:
+                arxiv_articles = search_arxiv(strategies.arxiv or "diabetes")
+        except Exception as e:
+            print(f"[SEARCH] Error en ArXiv: {str(e)}")
+        
+        try:
+            if strategies.use_crossref:
+                crossref_articles = search_crossref(strategies.crossref or "diabetes")
+        except Exception as e:
+            print(f"[SEARCH] Error en Crossref: {str(e)}")
         
         # Unificar resultados (incluir duplicados)
         all_articles = pubmed_articles + semantic_articles + arxiv_articles + crossref_articles
@@ -610,6 +635,7 @@ async def search(strategies: SearchStrategies):
         print(f"  - ArXiv: {len(arxiv_articles)} artículos")
         print(f"  - Crossref: {len(crossref_articles)} artículos")
         print(f"  - Total (con duplicados): {len(all_articles)} artículos")
+        print(f"  - Artículos por fuente: {{'PubMed': {len(pubmed_articles)}, 'Semantic Scholar': {len(semantic_articles)}, 'ArXiv': {len(arxiv_articles)}, 'Crossref': {len(crossref_articles)}}}")
         
         return SearchResponse(
             success=True,
