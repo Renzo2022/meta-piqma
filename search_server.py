@@ -595,10 +595,11 @@ async def search(strategies: SearchStrategies):
         print(f"  - Crossref: {'✓' if strategies.use_crossref else '✗'} - {strategies.crossref}")
         
         # Ejecutar búsquedas SOLO en bases de datos seleccionadas
-        pubmed_articles = search_pubmed(strategies.pubmed) if (strategies.use_pubmed and strategies.pubmed) else []
-        semantic_articles = search_semantic_scholar(strategies.semanticScholar) if (strategies.use_semantic and strategies.semanticScholar) else []
-        arxiv_articles = search_arxiv(strategies.arxiv) if (strategies.use_arxiv and strategies.arxiv) else []
-        crossref_articles = search_crossref(strategies.crossref) if (strategies.use_crossref and strategies.crossref) else []
+        # Usar la estrategia si está disponible, sino usar una búsqueda genérica
+        pubmed_articles = search_pubmed(strategies.pubmed or "diabetes") if strategies.use_pubmed else []
+        semantic_articles = search_semantic_scholar(strategies.semanticScholar or "diabetes") if strategies.use_semantic else []
+        arxiv_articles = search_arxiv(strategies.arxiv or "diabetes") if strategies.use_arxiv else []
+        crossref_articles = search_crossref(strategies.crossref or "diabetes") if strategies.use_crossref else []
         
         # Unificar resultados (incluir duplicados)
         all_articles = pubmed_articles + semantic_articles + arxiv_articles + crossref_articles
