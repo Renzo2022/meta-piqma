@@ -1454,11 +1454,16 @@ const ModuleSearch = () => {
         use_crossref: state.selectedDatabases.crossref,
       };
       const results = await apiClient.runRealSearch(searchData);
+      console.log(`[handleSearchPICO] Búsqueda completada: ${results.length} artículos encontrados`);
+      
       // Guardar artículos en Supabase
       if (state.currentProjectId && results.length > 0) {
         await apiClient.saveArticles(state.currentProjectId, results);
+        // Cargar todos los artículos guardados (acumular resultados)
+        const allArticles = await apiClient.loadArticles(state.currentProjectId);
+        console.log(`[handleSearchPICO] Total de artículos en BD: ${allArticles.length}`);
+        dispatch({ type: 'SET_PROJECT_ARTICLES', payload: allArticles });
       }
-      dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: results });
     } catch (error) {
       console.error('Error en búsqueda:', error);
       alert('Error en búsqueda: ' + error.message);
@@ -1488,11 +1493,16 @@ const ModuleSearch = () => {
         use_crossref: state.selectedDatabases.crossref,
       };
       const results = await apiClient.runRealSearch(searchData);
+      console.log(`[handleQuickSearch] Búsqueda completada: ${results.length} artículos encontrados`);
+      
       // Guardar artículos en Supabase
       if (state.currentProjectId && results.length > 0) {
         await apiClient.saveArticles(state.currentProjectId, results);
+        // Cargar todos los artículos guardados (acumular resultados)
+        const allArticles = await apiClient.loadArticles(state.currentProjectId);
+        console.log(`[handleQuickSearch] Total de artículos en BD: ${allArticles.length}`);
+        dispatch({ type: 'SET_PROJECT_ARTICLES', payload: allArticles });
       }
-      dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: results });
     } catch (error) {
       console.error('Error en búsqueda rápida:', error);
       alert('Error en búsqueda: ' + error.message);
@@ -1535,7 +1545,7 @@ const ModuleSearch = () => {
               }
             }
           }}
-          className="flex items-center gap-2 px-6 py-3 bg-monokai-red text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all shadow-lg shadow-monokai-red/50"
+          className="flex items-center gap-2 px-6 py-3 bg-monokai-blue text-monokai-text font-bold rounded-lg hover:shadow-lg transition-all shadow-lg shadow-monokai-blue/50"
         >
           <Trash2 className="w-5 h-5" />
           Limpiar Registros
