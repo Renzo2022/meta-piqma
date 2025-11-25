@@ -1650,33 +1650,6 @@ const ModuleSearch = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={async () => {
-                  if (confirm('¿Estás seguro de que deseas limpiar la tabla de artículos? Esto eliminará todos los artículos de Supabase.')) {
-                    try {
-                      if (state.currentProjectId) {
-                        const success = await apiClient.deleteAllArticles(state.currentProjectId);
-                        if (success) {
-                          dispatch({ type: 'LOAD_PROJECT_ARTICLES', payload: [] });
-                          alert('Tabla limpiada correctamente');
-                        } else {
-                          alert('Error al limpiar la tabla');
-                        }
-                      }
-                    } catch (error) {
-                      console.error('Error:', error);
-                      alert('Error al limpiar la tabla: ' + error.message);
-                    }
-                  }
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-monokai-red text-monokai-text font-semibold rounded-lg hover:shadow-lg transition-all"
-              >
-                <Trash2 className="w-5 h-5" />
-                Limpiar Tabla
-              </motion.button>
-              
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
                 onClick={handleSearchPICO}
                 disabled={state.isLoading}
                 className="flex items-center gap-2 px-6 py-3 bg-monokai-green text-monokai-dark font-semibold rounded-lg hover:shadow-monokai-green transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2785,6 +2758,11 @@ const ModulePRISMA = () => {
             <h3 className="text-lg font-bold text-monokai-orange mb-4">ELEGIBILIDAD</h3>
             
             <div className="space-y-4">
+              <div class="bg-monokai-dark p-3 rounded">
+                <p className="font-semibold text-monokai-orange mb-2">Reportes para la elegibilidad</p>
+                <p className="text-2xl font-bold text-monokai-orange ml-4">{counters.excluded_fulltext}</p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-monokai-dark p-3 rounded">
                   <p className="text-xs text-monokai-subtle">Reportes buscados para recuperación</p>
@@ -2792,17 +2770,12 @@ const ModulePRISMA = () => {
                 </div>
                 <div className="bg-monokai-dark p-3 rounded">
                   <p className="text-xs text-monokai-subtle">Reportes no recuperados</p>
-                  <p className="text-2xl font-bold text-monokai-pink">0</p>
+                  <p className="text-2xl font-bold text-monokai-orange">0</p>
                 </div>
               </div>
 
               <div>
-                <p className="font-semibold text-monokai-orange mb-2">Reportes para la elegibilidad</p>
-                <p className="text-2xl font-bold text-monokai-orange ml-4">{counters.excluded_fulltext}</p>
-              </div>
-
-              <div>
-                <p className="font-semibold text-monokai-pink mb-2">Reportes excluidos: {counters.excluded_fulltext}</p>
+                <p className="font-semibold text-monokai-pink mb-2">Reportes excluidos:</p>
                 <div className="grid grid-cols-2 gap-3 ml-4">
                   <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">Outcome incorrecto</p>
@@ -2868,7 +2841,7 @@ const ModulePRISMA = () => {
             <p className="text-3xl font-bold text-monokai-yellow">{counters.screened_count}</p>
           </div>
           <div className="bg-monokai-dark p-4 rounded-lg">
-            <p className="text-sm text-monokai-subtle mb-1">Reportes para elegibilidad</p>
+            <p className="text-sm text-monokai-subtle mb-1">Elegibilidad</p>
             <p className="text-3xl font-bold text-monokai-orange">{counters.excluded_fulltext}</p>
           </div>
           <div className="bg-monokai-dark p-4 rounded-lg">
@@ -3587,6 +3560,19 @@ const MainContent = () => {
 
 const AppContent = () => {
   const { state, dispatch } = useProject();
+
+  // useEffect 0: Limpiar artículos al recargar la página
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      const projectData = await apiClient.loadProject();
+      if (projectData) {
+        await apiClient.deleteAllArticles(projectData.id);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   // useEffect 1: Cargar proyecto y artículos al iniciar
   useEffect(() => {
