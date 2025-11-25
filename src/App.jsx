@@ -2673,9 +2673,24 @@ const ModulePRISMA = () => {
                     <p className="text-xs text-monokai-subtle">Duplicados</p>
                     <p className="text-xl font-bold text-monokai-pink">{counters.duplicates}</p>
                   </div>
-                  <div className="bg-monokai-dark p-3 rounded">
+                  <div 
+                    className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
+                    onClick={() => setEditingField('ineligible_marked')}
+                  >
                     <p className="text-xs text-monokai-subtle">Marcados como inelegibles</p>
-                    <p className="text-xl font-bold text-monokai-pink">0</p>
+                    {editingField === 'ineligible_marked' ? (
+                      <input
+                        type="number"
+                        value={editableValues.ineligible_marked ?? 0}
+                        onChange={(e) => setEditableValues({...editableValues, ineligible_marked: parseInt(e.target.value) || 0})}
+                        onBlur={() => setEditingField(null)}
+                        onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
+                        autoFocus
+                        className="w-full bg-monokai-dark text-xl font-bold text-monokai-pink border border-monokai-pink rounded px-2 py-1"
+                      />
+                    ) : (
+                      <p className="text-xl font-bold text-monokai-pink">{editableValues.ineligible_marked ?? 0}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2687,17 +2702,62 @@ const ModulePRISMA = () => {
             <h3 className="text-lg font-bold text-monokai-blue mb-4">IDENTIFICACIÓN: OTROS MÉTODOS</h3>
             
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-monokai-dark p-3 rounded">
+              <div 
+                className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
+                onClick={() => setEditingField('websites')}
+              >
                 <p className="text-xs text-monokai-subtle">Sitios Web</p>
-                <p className="text-xl font-bold text-monokai-blue">0</p>
+                {editingField === 'websites' ? (
+                  <input
+                    type="number"
+                    value={editableValues.websites ?? 0}
+                    onChange={(e) => setEditableValues({...editableValues, websites: parseInt(e.target.value) || 0})}
+                    onBlur={() => setEditingField(null)}
+                    onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
+                    autoFocus
+                    className="w-full bg-monokai-dark text-xl font-bold text-monokai-blue border border-monokai-blue rounded px-2 py-1"
+                  />
+                ) : (
+                  <p className="text-xl font-bold text-monokai-blue">{editableValues.websites ?? 0}</p>
+                )}
               </div>
-              <div className="bg-monokai-dark p-3 rounded">
+              <div 
+                className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
+                onClick={() => setEditingField('organizations')}
+              >
                 <p className="text-xs text-monokai-subtle">Organizaciones</p>
-                <p className="text-xl font-bold text-monokai-blue">0</p>
+                {editingField === 'organizations' ? (
+                  <input
+                    type="number"
+                    value={editableValues.organizations ?? 0}
+                    onChange={(e) => setEditableValues({...editableValues, organizations: parseInt(e.target.value) || 0})}
+                    onBlur={() => setEditingField(null)}
+                    onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
+                    autoFocus
+                    className="w-full bg-monokai-dark text-xl font-bold text-monokai-blue border border-monokai-blue rounded px-2 py-1"
+                  />
+                ) : (
+                  <p className="text-xl font-bold text-monokai-blue">{editableValues.organizations ?? 0}</p>
+                )}
               </div>
-              <div className="bg-monokai-dark p-3 rounded">
+              <div 
+                className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
+                onClick={() => setEditingField('citations')}
+              >
                 <p className="text-xs text-monokai-subtle">Búsqueda de citaciones</p>
-                <p className="text-xl font-bold text-monokai-blue">0</p>
+                {editingField === 'citations' ? (
+                  <input
+                    type="number"
+                    value={editableValues.citations ?? 0}
+                    onChange={(e) => setEditableValues({...editableValues, citations: parseInt(e.target.value) || 0})}
+                    onBlur={() => setEditingField(null)}
+                    onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
+                    autoFocus
+                    className="w-full bg-monokai-dark text-xl font-bold text-monokai-blue border border-monokai-blue rounded px-2 py-1"
+                  />
+                ) : (
+                  <p className="text-xl font-bold text-monokai-blue">{editableValues.citations ?? 0}</p>
+                )}
               </div>
             </div>
           </div>
@@ -2726,146 +2786,39 @@ const ModulePRISMA = () => {
             
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div 
-                  className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
-                  onClick={() => setEditingField('reports_sought')}
-                >
+                <div className="bg-monokai-dark p-3 rounded">
                   <p className="text-xs text-monokai-subtle">Reportes buscados para recuperación</p>
-                  {editingField === 'reports_sought' ? (
-                    <input
-                      type="number"
-                      value={editableValues.reports_sought ?? counters.included_title}
-                      onChange={(e) => setEditableValues({...editableValues, reports_sought: parseInt(e.target.value) || 0})}
-                      onBlur={() => setEditingField(null)}
-                      onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
-                      autoFocus
-                      className="w-full bg-monokai-dark text-2xl font-bold text-monokai-orange border border-monokai-orange rounded px-2 py-1"
-                    />
-                  ) : (
-                    <p className="text-2xl font-bold text-monokai-orange">{editableValues.reports_sought ?? counters.included_title}</p>
-                  )}
+                  <p className="text-2xl font-bold text-monokai-orange">{counters.included_title}</p>
                 </div>
-                <div 
-                  className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
-                  onClick={() => setEditingField('reports_not_retrieved')}
-                >
+                <div className="bg-monokai-dark p-3 rounded">
                   <p className="text-xs text-monokai-subtle">Reportes no recuperados</p>
-                  {editingField === 'reports_not_retrieved' ? (
-                    <input
-                      type="number"
-                      value={editableValues.reports_not_retrieved ?? 0}
-                      onChange={(e) => setEditableValues({...editableValues, reports_not_retrieved: parseInt(e.target.value) || 0})}
-                      onBlur={() => setEditingField(null)}
-                      onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
-                      autoFocus
-                      className="w-full bg-monokai-dark text-2xl font-bold text-monokai-pink border border-monokai-pink rounded px-2 py-1"
-                    />
-                  ) : (
-                    <p className="text-2xl font-bold text-monokai-pink">{editableValues.reports_not_retrieved ?? 0}</p>
-                  )}
+                  <p className="text-2xl font-bold text-monokai-pink">0</p>
                 </div>
               </div>
 
               <div>
                 <p className="font-semibold text-monokai-orange mb-2">Reportes para la elegibilidad</p>
-                <div 
-                  className="bg-monokai-dark p-3 rounded ml-4 cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all inline-block"
-                  onClick={() => setEditingField('reports_assessed')}
-                >
-                  {editingField === 'reports_assessed' ? (
-                    <input
-                      type="number"
-                      value={editableValues.reports_assessed ?? counters.excluded_fulltext}
-                      onChange={(e) => setEditableValues({...editableValues, reports_assessed: parseInt(e.target.value) || 0})}
-                      onBlur={() => setEditingField(null)}
-                      onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
-                      autoFocus
-                      className="w-20 bg-monokai-dark text-2xl font-bold text-monokai-orange border border-monokai-orange rounded px-2 py-1"
-                    />
-                  ) : (
-                    <p className="text-2xl font-bold text-monokai-orange">{editableValues.reports_assessed ?? counters.excluded_fulltext}</p>
-                  )}
-                </div>
+                <p className="text-2xl font-bold text-monokai-orange ml-4">{counters.excluded_fulltext}</p>
               </div>
 
               <div>
-                <p className="font-semibold text-monokai-pink mb-2">Reportes excluidos: {editableValues.reports_excluded ?? counters.excluded_fulltext}</p>
+                <p className="font-semibold text-monokai-pink mb-2">Reportes excluidos: {counters.excluded_fulltext}</p>
                 <div className="grid grid-cols-2 gap-3 ml-4">
-                  <div 
-                    className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
-                    onClick={() => setEditingField('excluded_outcome')}
-                  >
+                  <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">Outcome incorrecto</p>
-                    {editingField === 'excluded_outcome' ? (
-                      <input
-                        type="number"
-                        value={editableValues.excluded_outcome ?? counters.excluded_outcome}
-                        onChange={(e) => setEditableValues({...editableValues, excluded_outcome: parseInt(e.target.value) || 0})}
-                        onBlur={() => setEditingField(null)}
-                        onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
-                        autoFocus
-                        className="w-full bg-monokai-dark text-xl font-bold text-monokai-pink border border-monokai-pink rounded px-2 py-1"
-                      />
-                    ) : (
-                      <p className="text-xl font-bold text-monokai-pink">{editableValues.excluded_outcome ?? counters.excluded_outcome}</p>
-                    )}
+                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_outcome}</p>
                   </div>
-                  <div 
-                    className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
-                    onClick={() => setEditingField('excluded_population')}
-                  >
+                  <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">Población incorrecta</p>
-                    {editingField === 'excluded_population' ? (
-                      <input
-                        type="number"
-                        value={editableValues.excluded_population ?? counters.excluded_population}
-                        onChange={(e) => setEditableValues({...editableValues, excluded_population: parseInt(e.target.value) || 0})}
-                        onBlur={() => setEditingField(null)}
-                        onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
-                        autoFocus
-                        className="w-full bg-monokai-dark text-xl font-bold text-monokai-pink border border-monokai-pink rounded px-2 py-1"
-                      />
-                    ) : (
-                      <p className="text-xl font-bold text-monokai-pink">{editableValues.excluded_population ?? counters.excluded_population}</p>
-                    )}
+                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_population}</p>
                   </div>
-                  <div 
-                    className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
-                    onClick={() => setEditingField('excluded_study_type')}
-                  >
+                  <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">Tipo de estudio incorrecto</p>
-                    {editingField === 'excluded_study_type' ? (
-                      <input
-                        type="number"
-                        value={editableValues.excluded_study_type ?? counters.excluded_study_type}
-                        onChange={(e) => setEditableValues({...editableValues, excluded_study_type: parseInt(e.target.value) || 0})}
-                        onBlur={() => setEditingField(null)}
-                        onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
-                        autoFocus
-                        className="w-full bg-monokai-dark text-xl font-bold text-monokai-pink border border-monokai-pink rounded px-2 py-1"
-                      />
-                    ) : (
-                      <p className="text-xl font-bold text-monokai-pink">{editableValues.excluded_study_type ?? counters.excluded_study_type}</p>
-                    )}
+                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_study_type}</p>
                   </div>
-                  <div 
-                    className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
-                    onClick={() => setEditingField('excluded_fulltext_reason')}
-                  >
+                  <div className="bg-monokai-dark p-3 rounded">
                     <p className="text-xs text-monokai-subtle">Texto completo no disponible</p>
-                    {editingField === 'excluded_fulltext_reason' ? (
-                      <input
-                        type="number"
-                        value={editableValues.excluded_fulltext_reason ?? counters.excluded_fulltext_reason}
-                        onChange={(e) => setEditableValues({...editableValues, excluded_fulltext_reason: parseInt(e.target.value) || 0})}
-                        onBlur={() => setEditingField(null)}
-                        onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
-                        autoFocus
-                        className="w-full bg-monokai-dark text-xl font-bold text-monokai-pink border border-monokai-pink rounded px-2 py-1"
-                      />
-                    ) : (
-                      <p className="text-xl font-bold text-monokai-pink">{editableValues.excluded_fulltext_reason ?? counters.excluded_fulltext_reason}</p>
-                    )}
+                    <p className="text-xl font-bold text-monokai-pink">{counters.excluded_fulltext_reason}</p>
                   </div>
                   <div className="bg-monokai-dark p-3 rounded col-span-2">
                     <p className="text-xs text-monokai-subtle">Otro ({Object.keys(counters.excluded_other_reasons).length})</p>
@@ -2901,7 +2854,7 @@ const ModulePRISMA = () => {
       <div className="mb-12 bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue border-opacity-30">
         <h2 className="text-2xl font-bold text-monokai-blue mb-8">Contadores Dinámicos</h2>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-monokai-dark p-4 rounded-lg">
             <p className="text-sm text-monokai-subtle mb-1">Identificados</p>
             <p className="text-3xl font-bold text-monokai-blue">{counters.identified}</p>
@@ -2913,6 +2866,10 @@ const ModulePRISMA = () => {
           <div className="bg-monokai-dark p-4 rounded-lg">
             <p className="text-sm text-monokai-subtle mb-1">Cribados</p>
             <p className="text-3xl font-bold text-monokai-yellow">{counters.screened_count}</p>
+          </div>
+          <div className="bg-monokai-dark p-4 rounded-lg">
+            <p className="text-sm text-monokai-subtle mb-1">Reportes para elegibilidad</p>
+            <p className="text-3xl font-bold text-monokai-orange">{counters.excluded_fulltext}</p>
           </div>
           <div className="bg-monokai-dark p-4 rounded-lg">
             <p className="text-sm text-monokai-subtle mb-1">Incluidos</p>
