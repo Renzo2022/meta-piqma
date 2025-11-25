@@ -2732,7 +2732,7 @@ const ModulePRISMA = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-monokai-dark p-3 rounded">
                   <p className="text-xs text-monokai-subtle">Registros cribados</p>
-                  <p className="text-2xl font-bold text-monokai-yellow">{counters.screened}</p>
+                  <p className="text-2xl font-bold text-monokai-yellow">{counters.screened_count}</p>
                 </div>
                 <div className="bg-monokai-dark p-3 rounded">
                   <p className="text-xs text-monokai-subtle">Registros excluidos</p>
@@ -2809,34 +2809,35 @@ const ModulePRISMA = () => {
             </div>
           </div>
 
-          {/* CONTADORES DINÁMICOS Y TASA DE INCLUSIÓN */}
-          <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue border-opacity-30">
-            <h3 className="text-lg font-bold text-monokai-blue mb-6">Contadores Dinámicos</h3>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-monokai-dark p-4 rounded-lg">
-                <p className="text-sm text-monokai-subtle mb-1">Identificados</p>
-                <p className="text-3xl font-bold text-monokai-blue">{counters.identified}</p>
-              </div>
-              <div className="bg-monokai-dark p-4 rounded-lg">
-                <p className="text-sm text-monokai-subtle mb-1">Duplicados</p>
-                <p className="text-3xl font-bold text-monokai-pink">{counters.duplicates}</p>
-              </div>
-              <div className="bg-monokai-dark p-4 rounded-lg">
-                <p className="text-sm text-monokai-subtle mb-1">Cribados</p>
-                <p className="text-3xl font-bold text-monokai-yellow">{counters.screened_count}</p>
-              </div>
-              <div className="bg-monokai-dark p-4 rounded-lg">
-                <p className="text-sm text-monokai-subtle mb-1">Incluidos</p>
-                <p className="text-3xl font-bold text-monokai-green">{counters.included_final}</p>
-              </div>
-            </div>
-            
-            <div className="bg-monokai-dark p-6 rounded-lg text-center border border-monokai-green border-opacity-30">
-              <p className="text-sm text-monokai-subtle mb-2">Tasa de inclusión</p>
-              <p className="text-4xl font-bold text-monokai-green">{counters.identified > 0 ? ((counters.included_final / counters.identified) * 100).toFixed(1) : 0}%</p>
-            </div>
+        </div>
+      </div>
+
+      {/* Contadores Dinámicos y Tasa de Inclusión */}
+      <div className="mb-12 bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue border-opacity-30">
+        <h2 className="text-2xl font-bold text-monokai-blue mb-8">Contadores Dinámicos</h2>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-monokai-dark p-4 rounded-lg">
+            <p className="text-sm text-monokai-subtle mb-1">Identificados</p>
+            <p className="text-3xl font-bold text-monokai-blue">{counters.identified}</p>
           </div>
+          <div className="bg-monokai-dark p-4 rounded-lg">
+            <p className="text-sm text-monokai-subtle mb-1">Duplicados</p>
+            <p className="text-3xl font-bold text-monokai-pink">{counters.duplicates}</p>
+          </div>
+          <div className="bg-monokai-dark p-4 rounded-lg">
+            <p className="text-sm text-monokai-subtle mb-1">Cribados</p>
+            <p className="text-3xl font-bold text-monokai-yellow">{counters.screened_count}</p>
+          </div>
+          <div className="bg-monokai-dark p-4 rounded-lg">
+            <p className="text-sm text-monokai-subtle mb-1">Incluidos</p>
+            <p className="text-3xl font-bold text-monokai-green">{counters.included_final}</p>
+          </div>
+        </div>
+        
+        <div className="bg-monokai-dark p-6 rounded-lg text-center border border-monokai-green border-opacity-30">
+          <p className="text-sm text-monokai-subtle mb-2">Tasa de inclusión</p>
+          <p className="text-4xl font-bold text-monokai-green">{counters.identified > 0 ? ((counters.included_final / counters.identified) * 100).toFixed(1) : 0}%</p>
         </div>
       </div>
 
