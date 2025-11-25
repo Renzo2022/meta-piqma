@@ -3561,18 +3561,39 @@ const MainContent = () => {
 const AppContent = () => {
   const { state, dispatch } = useProject();
 
-  // useEffect 1: Cargar proyecto, limpiar artículos previos y cargar nuevos al iniciar
+  // useEffect 0: Detectar cierre de pestaña vs reload
+  useEffect(() => {
+    // Marcar que la sesión está activa
+    sessionStorage.setItem('sessionActive', 'true');
+
+    const handleBeforeUnload = () => {
+      // Cuando el usuario intenta cerrar/recargar, removemos la marca
+      sessionStorage.removeItem('sessionActive');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  // useEffect 1: Cargar proyecto y artículos al iniciar
   useEffect(() => {
     const loadProjectData = async () => {
       const projectData = await apiClient.loadProject();
       if (projectData) {
         dispatch({ type: 'SET_PROJECT_DATA', payload: projectData });
         
-        // Limpiar todos los artículos previos
-        console.log('[AppContent] Limpiando artículos previos...');
-        await apiClient.deleteAllArticles(projectData.id);
+        // Verificar si es un reload (sessionActive aún existe) o un cierre de pestaña
+        const wasReload = sessionStorage.getItem('sessionActive') === 'true';
         
-        // Cargar artículos del proyecto (debería estar vacío después de limpiar)
+        if (!wasReload) {
+          // Si NO es reload (es cierre de pestaña), limpiar artículos
+          console.log('[AppContent] Cierre de pestaña detectado, limpiando artículos...');
+          await apiClient.deleteAllArticles(projectData.id);
+        } else {
+          console.log('[AppContent] Reload detectado, manteniendo artículos...');
+        }
+        
+        // Cargar artículos del proyecto
         const articles = await apiClient.loadArticles(projectData.id);
         if (articles && articles.length > 0) {
           dispatch({ type: 'SET_PROJECT_ARTICLES', payload: articles });
