@@ -37,9 +37,15 @@ export const ForestPlot = ({ extractionData, metrics }) => {
     const se = 0.5; // Error estándar simulado
     const ci_lower = effect - 1.96 * se;
     const ci_upper = effect + 1.96 * se;
+    
+    // Truncar nombres muy largos con puntos suspensivos
+    let name = study.title || `Study ${index + 1}`;
+    if (name.length > 80) {
+      name = name.substring(0, 77) + '...';
+    }
 
     return {
-      name: study.title || `Study ${index + 1}`,
+      name,
       effect,
       ci_lower,
       ci_upper,
@@ -103,9 +109,9 @@ export const ForestPlot = ({ extractionData, metrics }) => {
     plot_bgcolor: '#f8f9fa',
     paper_bgcolor: '#ffffff',
     hovermode: 'closest',
-    margin: { l: 500, r: 50, t: 60, b: 60 },
+    margin: { l: 600, r: 100, t: 60, b: 80 },
     autosize: true,
-    font: { family: 'Arial, sans-serif', size: 11, color: '#333' },
+    font: { family: 'Arial, sans-serif', size: 10, color: '#333' },
   };
 
   const config = {
@@ -169,8 +175,15 @@ export const FunnelPlot = ({ extractionData, metrics }) => {
   const studies = extractionData.map((study, index) => {
     const effect = study.mean_intervention - study.mean_control;
     const se = 0.1 + (index * 0.05); // Error estándar aumenta con el índice
+    
+    // Truncar nombres muy largos con puntos suspensivos
+    let name = study.title || `Study ${index + 1}`;
+    if (name.length > 80) {
+      name = name.substring(0, 77) + '...';
+    }
+    
     return {
-      name: study.title || `Study ${index + 1}`,
+      name,
       effect,
       se,
     };
