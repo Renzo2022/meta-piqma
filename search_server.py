@@ -958,9 +958,11 @@ def generate_forest_plot_graph_svg(extraction_data: list, i2: float, q: float, p
     height = 150 + (len(studies) * 40) + 100
     y_start = 80
     
-    graph_width = 800
-    graph_start = 20
-    total_width = graph_start + graph_width + 80
+    # Márgenes para centrar el gráfico
+    margin = 40
+    graph_width = 700
+    graph_start = margin + 20
+    total_width = graph_start + graph_width + margin + 80
     
     svg = f'''<svg width="{total_width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
     <!-- Fondo -->
@@ -1239,9 +1241,11 @@ def generate_funnel_plot_graph_svg(extraction_data: list, i2: float, q: float, p
                 'color': colors[(i - 1) % len(colors)]
             })
     
-    graph_width = 800
-    graph_start = 20
-    total_width = graph_start + graph_width + 80
+    # Márgenes para centrar el gráfico
+    margin = 40
+    graph_width = 700
+    graph_start = margin + 20
+    total_width = graph_start + graph_width + margin + 80
     
     svg = f'''<svg width="{total_width}" height="700" xmlns="http://www.w3.org/2000/svg">
     <!-- Fondo -->
