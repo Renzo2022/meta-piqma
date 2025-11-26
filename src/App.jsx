@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import CytoscapeComponent from 'react-cytoscapejs';
 import { createClient } from '@supabase/supabase-js';
+import { ForestPlot, FunnelPlot, ForestPlotLegend, FunnelPlotLegend } from './components/MetaAnalysisCharts';
 import './index.css';
 
 // ============================================================================
@@ -3267,7 +3268,7 @@ const ModuleMetaAnalysis = () => {
             </div>
           </motion.div>
 
-          {/* GRÁFICOS: Forest Plot y Funnel Plot con leyendas separadas */}
+          {/* GRÁFICOS: Forest Plot y Funnel Plot con JavaScript */}
           <div className="space-y-12">
             <h2 className="text-2xl font-bold text-monokai-orange"> Visualizaciones</h2>
             
@@ -3281,21 +3282,21 @@ const ModuleMetaAnalysis = () => {
               <h3 className="text-lg font-bold text-monokai-blue mb-6 flex items-center gap-2">
                 <span>🌲</span> Forest Plot
               </h3>
-              <div className="flex gap-6 overflow-x-auto">
+              <div className="flex gap-6">
                 {/* Leyenda */}
-                <div className="flex-shrink-0 bg-monokai-dark rounded-lg p-4 overflow-auto max-h-96">
-                  <img
-                    src={metaAnalysisResults.forestLegendUrl}
-                    alt="Forest Plot Legend"
-                    className="h-auto w-auto rounded-lg"
-                  />
+                <div className="flex-shrink-0">
+                  <ForestPlotLegend extractionData={articlesWithData.filter(a => extractionData[String(a.id)])} />
                 </div>
                 {/* Gráfico */}
-                <div className="flex-1 bg-monokai-dark rounded-lg p-4 overflow-auto max-h-96">
-                  <img
-                    src={metaAnalysisResults.forestPlotUrl}
-                    alt="Forest Plot"
-                    className="h-auto w-auto rounded-lg"
+                <div className="flex-1 bg-white rounded-lg overflow-hidden">
+                  <ForestPlot
+                    extractionData={articlesWithData
+                      .filter(a => extractionData[String(a.id)])
+                      .map(a => ({
+                        title: a.title,
+                        ...extractionData[String(a.id)],
+                      }))}
+                    metrics={metaAnalysisResults.metrics}
                   />
                 </div>
               </div>
@@ -3312,21 +3313,21 @@ const ModuleMetaAnalysis = () => {
               <h3 className="text-lg font-bold text-monokai-pink mb-6 flex items-center gap-2">
                 <span>📊</span> Funnel Plot
               </h3>
-              <div className="flex gap-6 overflow-x-auto">
+              <div className="flex gap-6">
                 {/* Leyenda */}
-                <div className="flex-shrink-0 bg-monokai-dark rounded-lg p-4 overflow-auto max-h-96">
-                  <img
-                    src={metaAnalysisResults.funnelLegendUrl}
-                    alt="Funnel Plot Legend"
-                    className="h-auto w-auto rounded-lg"
-                  />
+                <div className="flex-shrink-0">
+                  <FunnelPlotLegend metrics={metaAnalysisResults.metrics} />
                 </div>
                 {/* Gráfico */}
-                <div className="flex-1 bg-monokai-dark rounded-lg p-4 overflow-auto max-h-96">
-                  <img
-                    src={metaAnalysisResults.funnelPlotUrl}
-                    alt="Funnel Plot"
-                    className="h-auto w-auto rounded-lg"
+                <div className="flex-1 bg-white rounded-lg overflow-hidden">
+                  <FunnelPlot
+                    extractionData={articlesWithData
+                      .filter(a => extractionData[String(a.id)])
+                      .map(a => ({
+                        title: a.title,
+                        ...extractionData[String(a.id)],
+                      }))}
+                    metrics={metaAnalysisResults.metrics}
                   />
                 </div>
               </div>
