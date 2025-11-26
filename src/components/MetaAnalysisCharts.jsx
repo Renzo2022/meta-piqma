@@ -63,7 +63,7 @@ export const ForestPlot = ({ extractionData, metrics }) => {
     arrayminus: studies.map(s => s.effect - s.ci_lower).concat([combinedEffect - combinedCI_lower]),
   };
 
-  // Colores: estudios en azul, efecto combinado en rojo
+  // Colores: todos los estudios en azul, efecto combinado en rojo
   const colors = [...Array(studies.length).fill('#2196F3'), '#E74C3C'];
 
   const trace = {
@@ -98,11 +98,12 @@ export const ForestPlot = ({ extractionData, metrics }) => {
     yaxis: {
       title: 'Studies',
       autorange: 'reversed',
+      tickfont: { size: 11 },
     },
     plot_bgcolor: '#f8f9fa',
     paper_bgcolor: '#ffffff',
     hovermode: 'closest',
-    margin: { l: 300, r: 50, t: 60, b: 60 },
+    margin: { l: 500, r: 50, t: 60, b: 60 },
     autosize: true,
     font: { family: 'Arial, sans-serif', size: 11, color: '#333' },
   };
@@ -122,7 +123,7 @@ export const ForestPlot = ({ extractionData, metrics }) => {
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: '500px' }}>
+    <div style={{ width: '100%', height: '100%', minHeight: `${Math.max(600, 100 + studies.length * 50)}px` }}>
       <Plot
         data={[trace]}
         layout={layout}
@@ -293,7 +294,8 @@ export const FunnelPlot = ({ extractionData, metrics }) => {
 export const ForestPlotLegend = ({ extractionData }) => {
   if (!extractionData || extractionData.length === 0) return null;
 
-  const colors = ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#F44336', '#00BCD4', '#FFEB3B', '#795548', '#E91E63', '#009688'];
+  // Todos los estudios en azul (mismo color que en el gráfico)
+  const colors = Array(extractionData.length).fill('#2196F3');
 
   return (
     <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm" style={{ maxWidth: '300px' }}>
