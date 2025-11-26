@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Plot from 'react-plotly.js';
 
 /**
@@ -6,6 +6,23 @@ import Plot from 'react-plotly.js';
  * Visualiza el efecto de cada estudio y el efecto combinado
  */
 export const ForestPlot = ({ extractionData, metrics }) => {
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1000,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800,
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (!extractionData || extractionData.length === 0) {
     return (
       <div className="flex items-center justify-center h-96 bg-gray-100 rounded-lg">
@@ -69,7 +86,7 @@ export const ForestPlot = ({ extractionData, metrics }) => {
   const layout = {
     title: {
       text: '<b>Forest Plot - Meta-Analysis Results</b>',
-      font: { size: 18, color: '#1a1a1a' },
+      font: { size: 16, color: '#1a1a1a' },
     },
     xaxis: {
       title: 'Effect Size (Mean Difference)',
@@ -85,9 +102,9 @@ export const ForestPlot = ({ extractionData, metrics }) => {
     plot_bgcolor: '#f8f9fa',
     paper_bgcolor: '#ffffff',
     hovermode: 'closest',
-    margin: { l: 250, r: 100, t: 80, b: 80 },
-    height: 400 + studies.length * 30,
-    font: { family: 'Arial, sans-serif', size: 12, color: '#333' },
+    margin: { l: 300, r: 50, t: 60, b: 60 },
+    autosize: true,
+    font: { family: 'Arial, sans-serif', size: 11, color: '#333' },
   };
 
   const config = {
@@ -95,15 +112,25 @@ export const ForestPlot = ({ extractionData, metrics }) => {
     displayModeBar: true,
     displaylogo: false,
     modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    toImageButtonOptions: {
+      format: 'png',
+      filename: 'forest_plot',
+      height: 600,
+      width: 1000,
+      scale: 2,
+    },
   };
 
   return (
-    <Plot
-      data={[trace]}
-      layout={layout}
-      config={config}
-      style={{ width: '100%', height: '100%' }}
-    />
+    <div style={{ width: '100%', height: '100%', minHeight: '500px' }}>
+      <Plot
+        data={[trace]}
+        layout={layout}
+        config={config}
+        useResizeHandler={true}
+        style={{ width: '100%', height: '100%' }}
+      />
+    </div>
   );
 };
 
@@ -112,6 +139,23 @@ export const ForestPlot = ({ extractionData, metrics }) => {
  * Visualiza el sesgo de publicación
  */
 export const FunnelPlot = ({ extractionData, metrics }) => {
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1000,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800,
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (!extractionData || extractionData.length === 0) {
     return (
       <div className="flex items-center justify-center h-96 bg-gray-100 rounded-lg">
@@ -188,7 +232,7 @@ export const FunnelPlot = ({ extractionData, metrics }) => {
   const layout = {
     title: {
       text: '<b>Funnel Plot - Publication Bias Assessment</b>',
-      font: { size: 18, color: '#1a1a1a' },
+      font: { size: 16, color: '#1a1a1a' },
     },
     xaxis: {
       title: 'Effect Size (Mean Difference)',
@@ -203,9 +247,9 @@ export const FunnelPlot = ({ extractionData, metrics }) => {
     plot_bgcolor: '#f8f9fa',
     paper_bgcolor: '#ffffff',
     hovermode: 'closest',
-    margin: { l: 100, r: 100, t: 80, b: 80 },
-    height: 500,
-    font: { family: 'Arial, sans-serif', size: 12, color: '#333' },
+    margin: { l: 100, r: 100, t: 60, b: 60 },
+    autosize: true,
+    font: { family: 'Arial, sans-serif', size: 11, color: '#333' },
     showlegend: true,
     legend: {
       x: 0.02,
@@ -221,15 +265,25 @@ export const FunnelPlot = ({ extractionData, metrics }) => {
     displayModeBar: true,
     displaylogo: false,
     modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    toImageButtonOptions: {
+      format: 'png',
+      filename: 'funnel_plot',
+      height: 500,
+      width: 800,
+      scale: 2,
+    },
   };
 
   return (
-    <Plot
-      data={[trace, nullEffectLine, confidenceLines]}
-      layout={layout}
-      config={config}
-      style={{ width: '100%', height: '100%' }}
-    />
+    <div style={{ width: '100%', height: '100%', minHeight: '450px' }}>
+      <Plot
+        data={[trace, nullEffectLine, confidenceLines]}
+        layout={layout}
+        config={config}
+        useResizeHandler={true}
+        style={{ width: '100%', height: '100%' }}
+      />
+    </div>
   );
 };
 
