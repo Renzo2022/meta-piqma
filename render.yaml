@@ -3,8 +3,8 @@ services:
     name: meta-piqma-app
     env: node
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm run preview
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
     envVars:
       - key: VITE_SUPABASE_URL
         value: https://quyvxrcjjhamxhiidjbx.supabase.co
@@ -12,4 +12,5 @@ services:
         sync: false
       - key: VITE_SEARCH_SERVER_URL
         value: https://meta-piqma-search.onrender.com
-    staticPublishPath: dist
+      - key: NODE_ENV
+        value: production
