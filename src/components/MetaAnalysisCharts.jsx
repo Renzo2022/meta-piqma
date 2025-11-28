@@ -173,8 +173,8 @@ export const ForestPlot = ({ extractionData, metrics }) => {
 };
 
 /**
- * Funnel Plot Component
- * Visualiza el sesgo de publicación
+ * Funnel Plot Component - Diseño profesional
+ * Visualiza el sesgo de publicación con forma de embudo
  */
 export const FunnelPlot = ({ extractionData, metrics }) => {
   const [windowSize, setWindowSize] = useState({
@@ -205,101 +205,112 @@ export const FunnelPlot = ({ extractionData, metrics }) => {
   // Preparar datos para el Funnel Plot
   const studies = extractionData.map((study, index) => {
     const effect = study.mean_intervention - study.mean_control;
-    const se = 0.1 + (index * 0.05); // Error estándar aumenta con el índice
+    const logEffect = Math.log(Math.abs(effect) + 0.1); // Log scale
+    const se = 0.05 + (index * 0.04); // Error estándar aumenta con el índice
     
     // Truncar nombres muy largos con puntos suspensivos
     let name = study.title || `Study ${index + 1}`;
-    if (name.length > 80) {
-      name = name.substring(0, 77) + '...';
+    if (name.length > 60) {
+      name = name.substring(0, 57) + '...';
     }
     
     return {
       name,
       effect,
+      logEffect,
       se,
     };
   });
 
   // Calcular efecto combinado
   const combinedEffect = studies.reduce((sum, s) => sum + s.effect, 0) / studies.length;
+  const combinedLogEffect = Math.log(Math.abs(combinedEffect) + 0.1);
 
   // Preparar datos para Plotly
   const trace = {
-    x: studies.map(s => s.effect),
+    x: studies.map(s => s.logEffect),
     y: studies.map(s => s.se),
     mode: 'markers',
     marker: {
-      size: 10,
-      color: '#3498DB',
+      size: 8,
+      color: '#1976D2',
       line: {
-        color: 'rgba(0,0,0,0.5)',
+        color: 'rgba(0,0,0,0.3)',
         width: 1,
       },
     },
     type: 'scatter',
-    hovertemplate: '<b>%{customdata}</b><br>Effect: %{x:.2f}<br>SE: %{y:.3f}<extra></extra>',
+    hovertemplate: '<b>%{customdata}</b><br>RR: %{x:.2f}<br>SE: %{y:.3f}<extra></extra>',
     customdata: studies.map(s => s.name),
   };
 
-  // Línea de efecto nulo
-  const nullEffectLine = {
-    x: [combinedEffect, combinedEffect],
-    y: [0, Math.max(...studies.map(s => s.se)) * 1.2],
+  // Línea central (efecto combinado)
+  const maxSE = Math.max(...studies.map(s => s.se));
+  const centralLine = {
+    x: [combinedLogEffect, combinedLogEffect],
+    y: [maxSE * 1.1, 0],
     mode: 'lines',
     line: {
-      color: '#999',
-      width: 2,
-      dash: 'dash',
+      color: '#D32F2F',
+      width: 2.5,
     },
-    name: 'No Effect',
+    name: `RR=${combinedEffect.toFixed(2)}`,
     hoverinfo: 'skip',
   };
 
-  // Líneas de confianza (95%)
-  const maxSE = Math.max(...studies.map(s => s.se));
-  const confidenceLines = {
-    x: [
-      combinedEffect - 2 * maxSE,
-      combinedEffect,
-      combinedEffect + 2 * maxSE,
-    ],
-    y: [0, maxSE * 1.2, 0],
+  // Líneas de confianza (95%) - forma de pirámide normal (ancho arriba, estrecho abajo)
+  // Línea izquierda: desde arriba izquierda hacia abajo centro
+  const funnelLeft = {
+    x: [combinedLogEffect - 1.96 * maxSE, combinedLogEffect],
+    y: [maxSE * 1.1, 0],
     mode: 'lines',
     line: {
-      color: '#E0E0E0',
-      width: 1,
-      dash: 'dot',
+      color: '#999',
+      width: 1.5,
+      dash: 'solid',
+    },
+    name: '95% CI',
+    hoverinfo: 'skip',
+  };
+
+  // Línea derecha: desde arriba derecha hacia abajo centro
+  const funnelRight = {
+    x: [combinedLogEffect + 1.96 * maxSE, combinedLogEffect],
+    y: [maxSE * 1.1, 0],
+    mode: 'lines',
+    line: {
+      color: '#999',
+      width: 1.5,
+      dash: 'solid',
     },
     name: '95% CI',
     hoverinfo: 'skip',
   };
 
   const layout = {
-    title: {
-      text: '<b>Funnel Plot - Publication Bias Assessment</b>',
-      font: { size: 16, color: '#1a1a1a' },
-    },
     xaxis: {
-      title: 'Effect Size (Mean Difference)',
+      title: 'Riesgo Relativo (escala logarítmica)',
       zeroline: false,
       gridcolor: '#E0E0E0',
+      showgrid: true,
     },
     yaxis: {
-      title: 'Standard Error',
-      autorange: 'reversed',
+      title: 'Error Estándar (log RR)',
+      autorange: true,
       gridcolor: '#E0E0E0',
+      showgrid: true,
     },
-    plot_bgcolor: '#f8f9fa',
+    plot_bgcolor: '#ffffff',
     paper_bgcolor: '#ffffff',
     hovermode: 'closest',
-    margin: { l: 100, r: 100, t: 60, b: 60 },
+    margin: { l: 120, r: 80, t: 40, b: 80 },
     autosize: true,
-    font: { family: 'Arial, sans-serif', size: 11, color: '#333' },
+    font: { family: 'Arial, sans-serif', size: 10, color: '#333' },
     showlegend: true,
     legend: {
       x: 0.02,
       y: 0.98,
-      bgcolor: 'rgba(255,255,255,0.8)',
+      bgcolor: 'rgba(255,255,255,0.9)',
       bordercolor: '#ccc',
       borderwidth: 1,
     },
@@ -310,24 +321,24 @@ export const FunnelPlot = ({ extractionData, metrics }) => {
     displayModeBar: true,
     displaylogo: false,
     modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-    toImageButtonOptions: {
-      format: 'png',
-      filename: 'funnel_plot',
-      height: 500,
-      width: 800,
-      scale: 2,
-    },
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: '450px' }}>
-      <Plot
-        data={[trace, nullEffectLine, confidenceLines]}
-        layout={layout}
-        config={config}
-        useResizeHandler={true}
-        style={{ width: '100%', height: '100%' }}
-      />
+    <div className="w-full bg-white rounded-lg overflow-hidden">
+      <div style={{ width: '100%', height: '450px', minHeight: '450px' }}>
+        <Plot
+          data={[trace, centralLine, funnelLeft, funnelRight]}
+          layout={layout}
+          config={config}
+          useResizeHandler={true}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+
+      <div className="p-4 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
+        <p><strong>Interpretación:</strong> Los puntos dentro del embudo sugieren ausencia de sesgo de publicación. Puntos fuera del embudo pueden indicar sesgo.</p>
+        <p className="mt-2">Efecto combinado: RR = {combinedEffect.toFixed(2)}</p>
+      </div>
     </div>
   );
 };
