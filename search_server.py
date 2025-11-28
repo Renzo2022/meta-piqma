@@ -16,6 +16,7 @@ import xml.etree.ElementTree as ET
 from urllib.parse import quote
 from groq import Groq
 from dotenv import load_dotenv
+from supabase import create_client, Client
 
 # Cargar variables de entorno desde .env (para desarrollo local)
 load_dotenv()
@@ -47,6 +48,19 @@ if GROQ_API_KEY:
     print("[Groq] ✓ Cliente configurado correctamente")
 else:
     print("[Groq] ⚠ API key no configurada (variable GROQ_API_KEY no encontrada)")
+
+# Configurar Cliente Supabase
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Optional[Client] = None
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("[Supabase] ✓ Cliente configurado correctamente")
+    except Exception as e:
+        print(f"[Supabase] ⚠ Error configurando cliente: {str(e)}")
+else:
+    print("[Supabase] ⚠ Variables SUPABASE_URL o SUPABASE_KEY no configuradas")
 
 # ============================================================================
 # MODELOS
@@ -1796,30 +1810,43 @@ async def network_analysis(request: NetworkAnalysisRequest):
         # - source: Base de datos (PubMed, Semantic Scholar, ArXiv, Crossref)
         # - status: Estado (identified, duplicate, excluded_title, included_title, excluded_fulltext, included_final)
         
-        # TODO: Reemplazar con consulta real a Supabase
-        # articles = supabase.table('articles')\
-        #     .select('id, title, authors, year, abstract, url, source, status')\
-        #     .eq('project_id', request.projectId)\
-        #     .neq('status', 'duplicate')\
-        #     .execute()
-        # articles = articles.data
-        
-        # Por ahora, simular obtención de artículos (en futuro: from Supabase)
-        num_articles = min(20, max(5, request.projectId % 20 + 5))  # 5-20 artículos
         articles = []
-        for i in range(1, num_articles + 1):
-            articles.append({
-                "id": f"article_{request.projectId}_{i}",
-                "title": f"Study {i}: Research on Topic {(i % 4) + 1}",
-                "authors": f"Author {(i % 8) + 1}, Author {((i+1) % 8) + 1}",
-                "year": 2020 + (i % 5),
-                "abstract": f"This study investigates the effects of intervention on outcome in population {i}.",
-                "url": f"https://example.com/article/{i}",
-                "source": ["PubMed", "Semantic Scholar", "ArXiv", "Crossref"][i % 4],
-                "status": "included_final"
-            })
         
-        print(f"[NETWORK] ✓ {len(articles)} artículos cargados")
+        # Intentar obtener datos REALES de Supabase
+        if supabase:
+            try:
+                response = supabase.table('articles')\
+                    .select('id, title, authors, year, abstract, url, source, status')\
+                    .eq('project_id', request.projectId)\
+                    .neq('status', 'duplicate')\
+                    .execute()
+                
+                articles = response.data if response.data else []
+                print(f"[NETWORK] ✓ {len(articles)} artículos cargados desde Supabase")
+                
+            except Exception as e:
+                print(f"[NETWORK] ⚠ Error consultando Supabase: {str(e)}")
+                print(f"[NETWORK] Usando datos simulados como fallback...")
+                articles = []
+        else:
+            print(f"[NETWORK] ⚠ Supabase no configurado, usando datos simulados")
+        
+        # Si no hay artículos en Supabase, generar datos simulados como fallback
+        if not articles:
+            print(f"[NETWORK] Generando {20} artículos simulados...")
+            for i in range(1, 21):
+                articles.append({
+                    "id": f"article_{request.projectId}_{i}",
+                    "title": f"Study {i}: Research on Topic {(i % 4) + 1}",
+                    "authors": f"Author {(i % 8) + 1}, Author {((i+1) % 8) + 1}",
+                    "year": 2020 + (i % 5),
+                    "abstract": f"This study investigates the effects of intervention on outcome in population {i}.",
+                    "url": f"https://example.com/article/{i}",
+                    "source": ["PubMed", "Semantic Scholar", "ArXiv", "Crossref"][i % 4],
+                    "status": "included_final"
+                })
+        
+        print(f"[NETWORK] ✓ Total: {len(articles)} artículos para procesar")
         
         # ============================================================================
         # PASO 2: Extraer AUTORES de los artículos
