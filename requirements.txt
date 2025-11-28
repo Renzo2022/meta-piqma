@@ -5,3 +5,4 @@ pydantic==1.10.13
 python-multipart==0.0.6
 groq
 python-dotenv
+supabase==2.0.3
