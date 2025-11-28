@@ -139,8 +139,8 @@ const projectReducer = (state, action) => {
         uniqueId: crypto.randomUUID(),
         status: 'unscreened',
       }));
-      return { 
-        ...state, 
+      return {
+        ...state,
         projectArticles: articlesWithIds,
         totalOriginalArticles: action.payload.length,
       };
@@ -150,10 +150,10 @@ const projectReducer = (state, action) => {
         projectArticles: state.projectArticles.map((article) =>
           article.uniqueId === action.payload.articleId
             ? {
-                ...article,
-                status: action.payload.newStatus,
-                ...(action.payload.reason && { exclusion_reason: action.payload.reason }),
-              }
+              ...article,
+              status: action.payload.newStatus,
+              ...(action.payload.reason && { exclusion_reason: action.payload.reason }),
+            }
             : article
         ),
       };
@@ -176,17 +176,17 @@ const projectReducer = (state, action) => {
         if (!str1 || !str2) return 0;
         if (typeof str1 !== 'string') str1 = String(str1);
         if (typeof str2 !== 'string') str2 = String(str2);
-        
+
         const s1 = str1.toLowerCase().trim();
         const s2 = str2.toLowerCase().trim();
-        
+
         if (s1 === s2) return 1; // Exacto
-        
+
         const longer = s1.length > s2.length ? s1 : s2;
         const shorter = s1.length > s2.length ? s2 : s1;
-        
+
         if (longer.length === 0) return 1;
-        
+
         const editDistance = getEditDistance(longer, shorter);
         return (longer.length - editDistance) / longer.length;
       };
@@ -216,17 +216,17 @@ const projectReducer = (state, action) => {
       // Función para extraer primer autor
       const getFirstAuthor = (authors) => {
         if (!authors) return '';
-        
+
         // Si es un array, tomar el primer elemento
         if (Array.isArray(authors)) {
           return authors[0]?.toLowerCase().trim() || '';
         }
-        
+
         // Si es un string, dividir por coma
         if (typeof authors === 'string') {
           return authors.split(',')[0].trim().toLowerCase();
         }
-        
+
         return '';
       };
 
@@ -234,7 +234,7 @@ const projectReducer = (state, action) => {
       const isDuplicate = (article1, article2) => {
         // Validar que ambos artículos tengan título
         if (!article1.title || !article2.title) return false;
-        
+
         // Comparar títulos con similitud >= 95% (muy estricto)
         const titleSimilarity = calculateSimilarity(article1.title, article2.title);
         if (titleSimilarity >= 0.95) {
@@ -244,7 +244,7 @@ const projectReducer = (state, action) => {
         // Comparar: mismo primer autor + mismo año + título IDÉNTICO (100%)
         const firstAuthor1 = getFirstAuthor(article1.authors);
         const firstAuthor2 = getFirstAuthor(article2.authors);
-        
+
         const sameFirstAuthor = firstAuthor1 && firstAuthor2 && firstAuthor1 === firstAuthor2;
         const sameYear = article1.year && article2.year && article1.year === article2.year;
         const identicalTitle = titleSimilarity === 1.0; // Exactamente igual
@@ -414,7 +414,7 @@ const apiClient = {
         .select('*')
         .limit(1)
         .single();
-      
+
       if (error) {
         // Si no hay proyectos, retorna null sin error
         if (error.code === 'PGRST116') {
@@ -424,7 +424,7 @@ const apiClient = {
         console.error('Error cargando proyecto:', error);
         return null;
       }
-      
+
       return data;
     } catch (err) {
       console.error('Error en loadProject:', err);
@@ -462,23 +462,23 @@ const apiClient = {
         .select('*')
         .eq('project_id', projectId)
         .limit(1);
-      
+
       if (data && data.length > 0) {
         console.log('[loadArticles] Estructura de artículo:', Object.keys(data[0]));
         console.log('[loadArticles] Primer artículo:', data[0]);
       }
-      
+
       // Cargar todos sin límite
       const { data: allData, error: allError } = await supabase
         .from('articles')
         .select('*')
         .eq('project_id', projectId);
-      
+
       if (allError) {
         console.error('Error cargando artículos:', allError);
         return [];
       }
-      
+
       return allData || [];
     } catch (err) {
       console.error('Error en loadArticles:', err);
@@ -494,37 +494,37 @@ const apiClient = {
         acc[a.source] = (acc[a.source] || 0) + 1;
         return acc;
       }, {}));
-      
+
       // Cargar artículos existentes del proyecto
       const { data: existingArticles, error: loadError } = await supabase
         .from('articles')
         .select('title, source')
         .eq('project_id', projectId);
-      
+
       if (loadError) {
         console.error('Error cargando artículos existentes:', loadError);
         return false;
       }
-      
+
       console.log(`[saveArticles] Artículos existentes en BD: ${existingArticles?.length || 0}`);
-      
+
       // Crear un Set con combinación de title + source para detectar duplicados reales
       const existingKeys = new Set(existingArticles?.map(a => `${a.title}|${a.source}`) || []);
-      
+
       // Filtrar artículos que no existen (comparando title + source)
       const newArticles = articles.filter(article => !existingKeys.has(`${article.title}|${article.source}`));
-      
+
       console.log(`[saveArticles] Nuevos artículos a insertar: ${newArticles.length}`);
       console.log(`[saveArticles] Nuevos artículos por fuente:`, newArticles.reduce((acc, a) => {
         acc[a.source] = (acc[a.source] || 0) + 1;
         return acc;
       }, {}));
-      
+
       if (newArticles.length === 0) {
         console.log('[saveArticles] Todos los artículos ya existen, no hay nada que insertar');
         return true;
       }
-      
+
       // Mapear artículos para agregar project_id
       const articlesToInsert = newArticles.map((article) => ({
         project_id: projectId,
@@ -543,12 +543,12 @@ const apiClient = {
       const { error } = await supabase
         .from('articles')
         .insert(articlesToInsert);
-      
+
       if (error) {
         console.error('Error guardando artículos:', error);
         return false;
       }
-      
+
       console.log(`[saveArticles] ✓ ${articlesToInsert.length} artículos guardados correctamente`);
       return true;
     } catch (err) {
@@ -561,11 +561,11 @@ const apiClient = {
   updateArticleStatus: async (articleId, newStatus, reason = null, articleTitle = null) => {
     try {
       console.log('[updateArticleStatus] Intentando actualizar artículo:', articleId, 'a status:', newStatus);
-      
+
       const updateData = {
         status: newStatus,
       };
-      
+
       if (reason) {
         updateData.exclusion_reason = reason;
       }
@@ -573,9 +573,9 @@ const apiClient = {
       // Verificar si articleId es un número válido
       const numericId = parseInt(articleId);
       const isValidNumericId = !isNaN(numericId) && numericId > 0;
-      
+
       let result;
-      
+
       if (isValidNumericId) {
         // Si es un ID numérico válido, actualizar por ID
         console.log('[updateArticleStatus] Actualizando por ID numérico:', numericId);
@@ -594,12 +594,12 @@ const apiClient = {
         console.error('[updateArticleStatus] No hay ID válido ni título disponible');
         return false;
       }
-      
+
       if (result.error) {
         console.error('Error actualizando artículo:', result.error);
         return false;
       }
-      
+
       console.log('[updateArticleStatus] ✓ Artículo actualizado correctamente');
       return true;
     } catch (err) {
@@ -615,12 +615,12 @@ const apiClient = {
         .from('articles')
         .delete()
         .eq('project_id', projectId);
-      
+
       if (error) {
         console.error('Error eliminando artículos:', error);
         return false;
       }
-      
+
       console.log(`[Articles] ✓ Todos los artículos del proyecto ${projectId} fueron eliminados`);
       return true;
     } catch (err) {
@@ -636,7 +636,7 @@ const apiClient = {
       // Por defecto: localhost:8000 (desarrollo)
       // Producción: configurar VITE_SEARCH_SERVER_URL en .env.local
       const SEARCH_SERVER_URL = import.meta.env.VITE_SEARCH_SERVER_URL || 'http://localhost:8000';
-      
+
       // Preparar datos para enviar al backend
       const searchPayload = {
         pubmed: strategies.pubmed || '',
@@ -648,10 +648,10 @@ const apiClient = {
         use_arxiv: strategies.use_arxiv !== undefined ? strategies.use_arxiv : true,
         use_crossref: strategies.use_crossref !== undefined ? strategies.use_crossref : true,
       };
-      
+
       console.log(`[Search] Conectando a: ${SEARCH_SERVER_URL}/api/v1/search`);
       console.log('[Search] Payload:', searchPayload);
-      
+
       const response = await fetch(`${SEARCH_SERVER_URL}/api/v1/search`, {
         method: 'POST',
         headers: {
@@ -659,7 +659,7 @@ const apiClient = {
         },
         body: JSON.stringify(searchPayload),
       });
-      
+
       if (!response.ok) {
         let errorMessage = `Error ${response.status}`;
         try {
@@ -670,15 +670,15 @@ const apiClient = {
         }
         throw new Error(errorMessage);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.message || 'Error en búsqueda');
       }
-      
+
       console.log(`[Search] Resultados: ${data.total_count} artículos encontrados`);
-      
+
       // Mapear respuesta del servidor al formato esperado por React
       return data.articles.map((article) => ({
         id: article.id,
@@ -700,10 +700,10 @@ const apiClient = {
     try {
       // URL del servidor de búsqueda
       const SEARCH_SERVER_URL = import.meta.env.VITE_SEARCH_SERVER_URL || 'http://localhost:8000';
-      
+
       console.log(`[Meta-Analysis] Conectando a: ${SEARCH_SERVER_URL}/api/v1/meta-analysis`);
       console.log(`[Meta-Analysis] Enviando ${extractionData.length} estudios`);
-      
+
       // Convertir extractionData al formato esperado por el servidor
       const formattedData = extractionData.map((row) => ({
         id: row.id,
@@ -712,7 +712,7 @@ const apiClient = {
         mean: parseFloat(row.mean) || 0,
         sd: parseFloat(row.sd) || 0,
       }));
-      
+
       const response = await fetch(`${SEARCH_SERVER_URL}/api/v1/meta-analysis`, {
         method: 'POST',
         headers: {
@@ -723,23 +723,23 @@ const apiClient = {
           analysisType: 'fixed',
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || `Error en meta-análisis: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.message || 'Error en meta-análisis');
       }
-      
+
       console.log(`[Meta-Analysis] ✓ Análisis completado`);
       console.log(`[Meta-Analysis] I² = ${data.metrics.i_squared.toFixed(2)}%`);
       console.log(`[Meta-Analysis] Q = ${data.metrics.q_statistic.toFixed(4)}`);
       console.log(`[Meta-Analysis] p-value = ${data.metrics.p_value.toFixed(4)}`);
-      
+
       // Mapear respuesta del servidor al formato esperado por React
       return {
         metrics: {
@@ -764,12 +764,12 @@ const apiClient = {
         .from('meta_analysis_data')
         .select('*')
         .eq('project_id', projectId);
-      
+
       if (error) {
         console.error('Error cargando datos de extracción:', error);
         return [];
       }
-      
+
       return data || [];
     } catch (err) {
       console.error('Error en loadExtractionData:', err);
@@ -782,22 +782,22 @@ const apiClient = {
     try {
       // Convertir articleId a string para que coincida con article_id TEXT en Supabase
       const articleIdStr = String(articleId);
-      
+
       console.log(`[Meta-Analysis] Guardando datos para artículo ID: ${articleIdStr}, Título: ${articleTitle}`);
       console.log(`[Meta-Analysis] Datos:`, extractionData);
-      
+
       // Verificar si ya existe un registro para este artículo
       const { data: existing, error: selectError } = await supabase
         .from('meta_analysis_data')
         .select('id')
         .eq('article_id', articleIdStr)
         .single();
-      
+
       if (selectError && selectError.code !== 'PGRST116') {
         // Error diferente a "no rows found"
         console.error('Error verificando existencia:', selectError);
       }
-      
+
       if (existing) {
         // Actualizar registro existente
         const { error } = await supabase
@@ -812,7 +812,7 @@ const apiClient = {
             sd_control: extractionData.sd_control || null,
           })
           .eq('article_id', articleIdStr);
-        
+
         if (error) {
           console.error('Error actualizando datos de extracción:', error);
           return false;
@@ -832,7 +832,7 @@ const apiClient = {
           mean_control: extractionData.mean_control || null,
           sd_control: extractionData.sd_control || null,
         });
-        
+
         const { data: insertedData, error } = await supabase
           .from('meta_analysis_data')
           .insert({
@@ -847,7 +847,7 @@ const apiClient = {
             sd_control: extractionData.sd_control || null,
           })
           .select();
-        
+
         if (error) {
           console.error('[Meta-Analysis] ❌ Error guardando datos de extracción:', error);
           console.error('[Meta-Analysis] Código de error:', error.code);
@@ -859,7 +859,7 @@ const apiClient = {
         console.log(`[Meta-Analysis] ✓ Datos guardados para artículo: ${articleIdStr}`);
         console.log(`[Meta-Analysis] Datos insertados:`, insertedData);
       }
-      
+
       return true;
     } catch (err) {
       console.error('Error en saveExtractionData:', err);
@@ -871,11 +871,11 @@ const apiClient = {
   async runMetaAnalysisFromSupabase(projectId, extractionData = []) {
     try {
       const SEARCH_SERVER_URL = import.meta.env.VITE_SEARCH_SERVER_URL || 'http://localhost:8000';
-      
+
       console.log(`[Meta-Analysis] Conectando a: ${SEARCH_SERVER_URL}/api/v1/run-meta-analysis`);
       console.log(`[Meta-Analysis] Proyecto ID: ${projectId}`);
       console.log(`[Meta-Analysis] Estudios a analizar: ${extractionData.length}`);
-      
+
       const response = await fetch(`${SEARCH_SERVER_URL}/api/v1/run-meta-analysis`, {
         method: 'POST',
         headers: {
@@ -883,23 +883,23 @@ const apiClient = {
         },
         body: JSON.stringify({ projectId, extractionData }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || `Error en meta-análisis: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.message || 'Error en meta-análisis');
       }
-      
+
       console.log(`[Meta-Analysis] ✓ Análisis completado`);
       console.log(`[Meta-Analysis] I² = ${data.metrics.i2}%`);
       console.log(`[Meta-Analysis] Q = ${data.metrics.q}`);
       console.log(`[Meta-Analysis] p-value = ${data.metrics.pValue}`);
-      
+
       return {
         metrics: {
           i2: `${data.metrics.i2}%`,
@@ -922,10 +922,10 @@ const apiClient = {
   async runNetworkAnalysis(projectId) {
     try {
       const SEARCH_SERVER_URL = import.meta.env.VITE_SEARCH_SERVER_URL || 'http://localhost:8000';
-      
+
       console.log(`[Network] Conectando a: ${SEARCH_SERVER_URL}/api/v1/network-analysis`);
       console.log(`[Network] Proyecto ID: ${projectId}`);
-      
+
       const response = await fetch(`${SEARCH_SERVER_URL}/api/v1/network-analysis`, {
         method: 'POST',
         headers: {
@@ -933,21 +933,21 @@ const apiClient = {
         },
         body: JSON.stringify({ projectId }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || `Error en análisis de red: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.message || 'Error en análisis de red');
       }
-      
+
       console.log(`[Network] ✓ Análisis completado`);
       console.log(`[Network] Elementos totales: ${data.elements.length}`);
-      
+
       return data.elements.map((elem) => ({ data: elem.data }));
     } catch (error) {
       console.error('[Network] Error:', error);
@@ -1013,6 +1013,47 @@ const apiClient = {
       { data: { source: 'au5', target: 'au6' } },
     ];
     return elements;
+  },
+
+  // Generar estrategias con IA usando Google Gemini
+  async generateStrategiesAI(picoData) {
+    try {
+      const SEARCH_SERVER_URL = import.meta.env.VITE_SEARCH_SERVER_URL || 'http://localhost:8000';
+
+      console.log('[AI] Generando estrategias con Gemini...');
+      console.log('[AI] PICO:', picoData);
+
+      const response = await fetch(`${SEARCH_SERVER_URL}/api/v1/generate-strategies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(picoData),
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Error ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.detail || errorMessage;
+        } catch (e) {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Error generando estrategias');
+      }
+
+      console.log('[AI] ✓ Estrategias generadas:', data.strategies);
+      return data.strategies;
+    } catch (error) {
+      console.error('[AI] Error:', error);
+      throw error;
+    }
   },
 };
 
@@ -1182,7 +1223,7 @@ const SearchStrategyGuide = () => (
       <p className="text-monokai-yellow">
         💡 <span className="font-semibold">Tip:</span> Para mejores resultados, traduce los términos a inglés y usa la sintaxis correcta para cada base de datos.
       </p>
-      
+
       <div>
         <p className="text-monokai-green font-semibold mb-2">PubMed (Usa sintaxis MeSH y operadores booleanos):</p>
         <div className="bg-monokai-sidebar p-3 rounded space-y-2">
@@ -1194,7 +1235,7 @@ const SearchStrategyGuide = () => (
           </p>
         </div>
       </div>
-      
+
       <div>
         <p className="text-monokai-yellow font-semibold mb-2">Semantic Scholar (Usa palabras clave naturales):</p>
         <div className="bg-monokai-sidebar p-3 rounded space-y-2">
@@ -1206,7 +1247,7 @@ const SearchStrategyGuide = () => (
           </p>
         </div>
       </div>
-      
+
       <div>
         <p className="text-monokai-blue font-semibold mb-2">ArXiv (Usa palabras clave simples):</p>
         <div className="bg-monokai-sidebar p-3 rounded space-y-2">
@@ -1218,7 +1259,7 @@ const SearchStrategyGuide = () => (
           </p>
         </div>
       </div>
-      
+
       <div>
         <p className="text-monokai-purple font-semibold mb-2">Crossref (Usa palabras clave naturales):</p>
         <div className="bg-monokai-sidebar p-3 rounded space-y-2">
@@ -1293,6 +1334,32 @@ const StrategyField = ({ label, db, placeholder, color }) => {
 const ModulePICO = () => {
   const { state, dispatch } = useProject();
   const [showGuide, setShowGuide] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateWithAI = async () => {
+    // Validar que PICO esté completo
+    if (!state.pico.population || !state.pico.intervention || !state.pico.comparison || !state.pico.outcome) {
+      alert('⚠️ Por favor completa todos los campos PICO antes de generar estrategias');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const strategies = await apiClient.generateStrategiesAI(state.pico);
+
+      // Actualizar campos de estrategia automáticamente
+      dispatch({ type: 'UPDATE_STRATEGY_FIELD', payload: { db: 'pubmed', value: strategies.pubmed } });
+      dispatch({ type: 'UPDATE_STRATEGY_FIELD', payload: { db: 'semanticScholar', value: strategies.semantic } });
+      dispatch({ type: 'UPDATE_STRATEGY_FIELD', payload: { db: 'arxiv', value: strategies.arxiv } });
+      dispatch({ type: 'UPDATE_STRATEGY_FIELD', payload: { db: 'crossref', value: strategies.crossref } });
+
+      alert('✓ Estrategias generadas exitosamente con IA');
+    } catch (error) {
+      alert(`❌ Error generando estrategias: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <motion.div
@@ -1358,16 +1425,20 @@ const ModulePICO = () => {
         {/* Guía de estrategia */}
         <SearchStrategyGuide />
 
-        {/* Botón IA (disabled) */}
+        {/* Botón IA (ACTIVADO) */}
         <div className="mb-6">
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            disabled
-            className="flex items-center gap-2 px-6 py-3 bg-monokai-sidebar text-monokai-subtle rounded-lg opacity-50 cursor-not-allowed transition-all"
+            whileHover={{ scale: isGenerating ? 1 : 1.05 }}
+            whileTap={{ scale: isGenerating ? 1 : 0.95 }}
+            onClick={handleGenerateWithAI}
+            disabled={isGenerating}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all ${isGenerating
+                ? 'bg-monokai-sidebar text-monokai-subtle cursor-wait opacity-70'
+                : 'bg-gradient-to-r from-monokai-pink to-monokai-purple text-white hover:shadow-lg hover:shadow-monokai-pink/30'
+              }`}
           >
-            <Wand2 className="w-5 h-5" />
-            Generar con IA (Próximamente)
+            <Wand2 className={`w-5 h-5 ${isGenerating ? 'animate-spin' : ''}`} />
+            {isGenerating ? 'Generando estrategias con IA...' : '✨ Generar Estrategias con IA'}
           </motion.button>
         </div>
 
@@ -1447,11 +1518,11 @@ const ModuleSearch = () => {
 
   const handleSearchPICO = async () => {
     // Validar que al menos una estrategia tenga contenido
-    const hasStrategy = state.searchStrategies.pubmed || 
-                       state.searchStrategies.semanticScholar || 
-                       state.searchStrategies.arxiv || 
-                       state.searchStrategies.crossref;
-    
+    const hasStrategy = state.searchStrategies.pubmed ||
+      state.searchStrategies.semanticScholar ||
+      state.searchStrategies.arxiv ||
+      state.searchStrategies.crossref;
+
     if (!hasStrategy) {
       alert('Por favor ingresa al menos una estrategia de búsqueda');
       return;
@@ -1472,7 +1543,7 @@ const ModuleSearch = () => {
       };
       const results = await apiClient.runRealSearch(searchData);
       console.log(`[handleSearchPICO] Búsqueda completada: ${results.length} artículos encontrados`);
-      
+
       // Guardar artículos en Supabase
       if (state.currentProjectId && results.length > 0) {
         await apiClient.saveArticles(state.currentProjectId, results);
@@ -1511,7 +1582,7 @@ const ModuleSearch = () => {
       };
       const results = await apiClient.runRealSearch(searchData);
       console.log(`[handleQuickSearch] Búsqueda completada: ${results.length} artículos encontrados`);
-      
+
       // Guardar artículos en Supabase
       if (state.currentProjectId && results.length > 0) {
         await apiClient.saveArticles(state.currentProjectId, results);
@@ -1575,11 +1646,10 @@ const ModuleSearch = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('pico')}
-          className={`px-6 py-3 font-semibold transition-all ${
-            activeTab === 'pico'
-              ? 'text-monokai-green border-b-2 border-monokai-green'
-              : 'text-monokai-subtle hover:text-monokai-text'
-          }`}
+          className={`px-6 py-3 font-semibold transition-all ${activeTab === 'pico'
+            ? 'text-monokai-green border-b-2 border-monokai-green'
+            : 'text-monokai-subtle hover:text-monokai-text'
+            }`}
         >
           Búsqueda PICO
         </motion.button>
@@ -1587,11 +1657,10 @@ const ModuleSearch = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('quick')}
-          className={`px-6 py-3 font-semibold transition-all ${
-            activeTab === 'quick'
-              ? 'text-monokai-green border-b-2 border-monokai-green'
-              : 'text-monokai-subtle hover:text-monokai-text'
-          }`}
+          className={`px-6 py-3 font-semibold transition-all ${activeTab === 'quick'
+            ? 'text-monokai-green border-b-2 border-monokai-green'
+            : 'text-monokai-subtle hover:text-monokai-text'
+            }`}
         >
           Búsqueda Rápida
         </motion.button>
@@ -1616,11 +1685,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'pubmed' })}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    state.selectedDatabases.pubmed
-                      ? 'bg-monokai-green text-monokai-dark'
-                      : 'bg-monokai-dark text-monokai-green border border-monokai-green'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${state.selectedDatabases.pubmed
+                    ? 'bg-monokai-green text-monokai-dark'
+                    : 'bg-monokai-dark text-monokai-green border border-monokai-green'
+                    }`}
                 >
                   {state.selectedDatabases.pubmed ? '✓' : '○'} PubMed
                 </motion.button>
@@ -1628,11 +1696,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'semanticScholar' })}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    state.selectedDatabases.semanticScholar
-                      ? 'bg-monokai-yellow text-monokai-dark'
-                      : 'bg-monokai-dark text-monokai-yellow border border-monokai-yellow'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${state.selectedDatabases.semanticScholar
+                    ? 'bg-monokai-yellow text-monokai-dark'
+                    : 'bg-monokai-dark text-monokai-yellow border border-monokai-yellow'
+                    }`}
                 >
                   {state.selectedDatabases.semanticScholar ? '✓' : '○'} Semantic Scholar
                 </motion.button>
@@ -1640,11 +1707,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'arxiv' })}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    state.selectedDatabases.arxiv
-                      ? 'bg-monokai-blue text-monokai-dark'
-                      : 'bg-monokai-dark text-monokai-blue border border-monokai-blue'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${state.selectedDatabases.arxiv
+                    ? 'bg-monokai-blue text-monokai-dark'
+                    : 'bg-monokai-dark text-monokai-blue border border-monokai-blue'
+                    }`}
                 >
                   {state.selectedDatabases.arxiv ? '✓' : '○'} ArXiv
                 </motion.button>
@@ -1652,11 +1718,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'crossref' })}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    state.selectedDatabases.crossref
-                      ? 'bg-monokai-purple text-monokai-dark'
-                      : 'bg-monokai-dark text-monokai-purple border border-monokai-purple'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${state.selectedDatabases.crossref
+                    ? 'bg-monokai-purple text-monokai-dark'
+                    : 'bg-monokai-dark text-monokai-purple border border-monokai-purple'
+                    }`}
                 >
                   {state.selectedDatabases.crossref ? '✓' : '○'} Crossref
                 </motion.button>
@@ -1723,7 +1788,7 @@ const ModuleSearch = () => {
             <div className="mt-6 bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30">
               <h3 className="text-lg font-bold text-monokai-yellow mb-4">Filtros de Datos Incompletos</h3>
               <p className="text-monokai-subtle mb-6">Elimina artículos que no tengan ciertos datos:</p>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -1835,11 +1900,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'pubmed' })}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    state.selectedDatabases.pubmed
-                      ? 'bg-monokai-green text-monokai-dark'
-                      : 'bg-monokai-dark text-monokai-green border border-monokai-green'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${state.selectedDatabases.pubmed
+                    ? 'bg-monokai-green text-monokai-dark'
+                    : 'bg-monokai-dark text-monokai-green border border-monokai-green'
+                    }`}
                 >
                   {state.selectedDatabases.pubmed ? '✓' : '○'} PubMed
                 </motion.button>
@@ -1847,11 +1911,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'semanticScholar' })}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    state.selectedDatabases.semanticScholar
-                      ? 'bg-monokai-yellow text-monokai-dark'
-                      : 'bg-monokai-dark text-monokai-yellow border border-monokai-yellow'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${state.selectedDatabases.semanticScholar
+                    ? 'bg-monokai-yellow text-monokai-dark'
+                    : 'bg-monokai-dark text-monokai-yellow border border-monokai-yellow'
+                    }`}
                 >
                   {state.selectedDatabases.semanticScholar ? '✓' : '○'} Semantic Scholar
                 </motion.button>
@@ -1859,11 +1922,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'arxiv' })}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    state.selectedDatabases.arxiv
-                      ? 'bg-monokai-blue text-monokai-dark'
-                      : 'bg-monokai-dark text-monokai-blue border border-monokai-blue'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${state.selectedDatabases.arxiv
+                    ? 'bg-monokai-blue text-monokai-dark'
+                    : 'bg-monokai-dark text-monokai-blue border border-monokai-blue'
+                    }`}
                 >
                   {state.selectedDatabases.arxiv ? '✓' : '○'} ArXiv
                 </motion.button>
@@ -1871,11 +1933,10 @@ const ModuleSearch = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => dispatch({ type: 'TOGGLE_DATABASE', payload: 'crossref' })}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    state.selectedDatabases.crossref
-                      ? 'bg-monokai-purple text-monokai-dark'
-                      : 'bg-monokai-dark text-monokai-purple border border-monokai-purple'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${state.selectedDatabases.crossref
+                    ? 'bg-monokai-purple text-monokai-dark'
+                    : 'bg-monokai-dark text-monokai-purple border border-monokai-purple'
+                    }`}
                 >
                   {state.selectedDatabases.crossref ? '✓' : '○'} Crossref
                 </motion.button>
@@ -1907,7 +1968,7 @@ const ModuleSearch = () => {
               <div className="mt-6 bg-monokai-sidebar p-6 rounded-lg border border-monokai-subtle border-opacity-30">
                 <h3 className="text-lg font-bold text-monokai-yellow mb-4">Filtros de Datos Incompletos</h3>
                 <p className="text-monokai-subtle mb-6">Elimina artículos que no tengan ciertos datos:</p>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -2074,7 +2135,7 @@ const ModuleScreening = () => {
   const handleMarkDuplicates = async () => {
     // Marcar duplicados en estado local
     dispatch({ type: 'MARK_DUPLICATES' });
-    
+
     // Guardar duplicados en Supabase
     const duplicatesInState = state.projectArticles.filter((a) => a.status === 'duplicate');
     for (const dup of duplicatesInState) {
@@ -2122,11 +2183,10 @@ const ModuleScreening = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('duplicates')}
-          className={`px-6 py-3 font-semibold transition-all ${
-            activeTab === 'duplicates'
-              ? 'text-monokai-yellow border-b-2 border-monokai-yellow'
-              : 'text-monokai-subtle hover:text-monokai-text'
-          }`}
+          className={`px-6 py-3 font-semibold transition-all ${activeTab === 'duplicates'
+            ? 'text-monokai-yellow border-b-2 border-monokai-yellow'
+            : 'text-monokai-subtle hover:text-monokai-text'
+            }`}
         >
           Detección de Duplicados
         </motion.button>
@@ -2134,11 +2194,10 @@ const ModuleScreening = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('screening')}
-          className={`px-6 py-3 font-semibold transition-all ${
-            activeTab === 'screening'
-              ? 'text-monokai-yellow border-b-2 border-monokai-yellow'
-              : 'text-monokai-subtle hover:text-monokai-text'
-          }`}
+          className={`px-6 py-3 font-semibold transition-all ${activeTab === 'screening'
+            ? 'text-monokai-yellow border-b-2 border-monokai-yellow'
+            : 'text-monokai-subtle hover:text-monokai-text'
+            }`}
         >
           Cribado Título/Resumen
         </motion.button>
@@ -2298,18 +2357,18 @@ const ModuleEligibility = () => {
   // Incluir artículo
   const handleIncludeFinal = async () => {
     if (!currentArticle) return;
-    
+
     // Actualizar estado local
     dispatch({
       type: 'UPDATE_ARTICLE_STATUS',
       payload: { articleId: currentArticle.uniqueId, newStatus: 'included_final' },
     });
-    
+
     // Guardar en Supabase
     await apiClient.updateArticleStatus(currentArticle.id, 'included_final', null, currentArticle.title);
-    
+
     console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} marcado como included_final`);
-    
+
     // Avanzar al siguiente artículo
     setCurrentIndex(prev => prev + 1);
   };
@@ -2317,23 +2376,23 @@ const ModuleEligibility = () => {
   // Excluir artículo
   const handleExcludeWithReason = async (reason) => {
     if (!currentArticle) return;
-    
+
     if (reason === 'Otro') {
       setShowOtherReasonModal(true);
       return;
     }
-    
+
     // Actualizar estado local
     dispatch({
       type: 'UPDATE_ARTICLE_STATUS',
       payload: { articleId: currentArticle.uniqueId, newStatus: 'excluded_fulltext', reason },
     });
-    
+
     // Guardar en Supabase
     await apiClient.updateArticleStatus(currentArticle.id, 'excluded_fulltext', reason, currentArticle.title);
-    
+
     console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} excluido: ${reason}`);
-    
+
     // Avanzar al siguiente artículo
     setCurrentIndex(prev => prev + 1);
   };
@@ -2341,21 +2400,21 @@ const ModuleEligibility = () => {
   // Excluir con razón personalizada
   const handleAcceptOtherReason = async () => {
     if (!otherReason.trim() || !currentArticle) return;
-    
+
     // Actualizar estado local
     dispatch({
       type: 'UPDATE_ARTICLE_STATUS',
       payload: { articleId: currentArticle.uniqueId, newStatus: 'excluded_fulltext', reason: otherReason },
     });
-    
+
     // Guardar en Supabase
     await apiClient.updateArticleStatus(currentArticle.id, 'excluded_fulltext', otherReason, currentArticle.title);
-    
+
     console.log(`[Eligibility] ✓ Artículo ${currentArticle.title} excluido: ${otherReason}`);
-    
+
     // Avanzar al siguiente artículo
     setCurrentIndex(prev => prev + 1);
-    
+
     setOtherReason('');
     setShowOtherReasonModal(false);
   };
@@ -2509,25 +2568,25 @@ const ModulePRISMA = () => {
     semantic: state.projectArticles.filter((a) => a.source === 'Semantic Scholar').length,
     arxiv: state.projectArticles.filter((a) => a.source === 'ArXiv').length,
     crossref: state.projectArticles.filter((a) => a.source === 'Crossref').length,
-    
+
     // Total identificado
     identified: state.projectArticles.length,
-    
+
     // Eliminados antes del cribado
     duplicates: state.projectArticles.filter((a) => a.status === 'duplicate').length,
     removed_without_abstract: state.projectArticles.filter((a) => a.status === 'removed_without_abstract').length,
-    
+
     // Cribado: solo los que fueron cribados (included_title + excluded_title)
     excluded_title: state.projectArticles.filter((a) => a.status === 'excluded_title').length,
     screened_count: state.projectArticles.filter((a) => a.status === 'included_title' || a.status === 'excluded_title').length,
-    
+
     // Evaluación de texto completo
     included_title: state.projectArticles.filter((a) => a.status === 'included_title').length,
     excluded_fulltext: state.projectArticles.filter((a) => a.status === 'excluded_fulltext').length,
-    
+
     // Incluidos finales
     included_final: state.projectArticles.filter((a) => a.status === 'included_final').length,
-    
+
     // Razones de exclusión en elegibilidad
     excluded_outcome: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason === 'Outcome incorrecto').length,
     excluded_population: state.projectArticles.filter((a) => a.status === 'excluded_fulltext' && a.exclusion_reason === 'Población incorrecta').length,
@@ -2549,11 +2608,11 @@ const ModulePRISMA = () => {
     console.log('[PRISMA] Contadores calculados:', counters);
     const uniqueStatuses = [...new Set(state.projectArticles.map(a => a.status))];
     console.log('[PRISMA] Status únicos en artículos:', uniqueStatuses);
-    
+
     // Log de artículos que pasaron cribado
     const includedTitleArticles = state.projectArticles.filter(a => a.status === 'included_title');
     console.log('[PRISMA] Artículos con status included_title:', includedTitleArticles.length, includedTitleArticles.map(a => a.title));
-    
+
     // Log de artículos excluidos con razones
     const excludedArticles = state.projectArticles.filter(a => a.status === 'excluded_fulltext');
     console.log('[PRISMA] Artículos excluidos:', excludedArticles.map(a => ({
@@ -2592,7 +2651,7 @@ const ModulePRISMA = () => {
   // Función para exportar estudios incluidos como CSV
   const handleExportCSV = () => {
     const includedArticles = state.projectArticles.filter((a) => a.status === 'included_final');
-    
+
     const headers = ['Título', 'Autores', 'Año', 'Fuente', 'URL', 'Abstract'];
     const rows = includedArticles.map((article) => [
       `"${article.title.replace(/"/g, '""')}"`,
@@ -2624,7 +2683,7 @@ const ModulePRISMA = () => {
     try {
       // Importar html2canvas dinámicamente
       const html2canvas = (await import('html2canvas')).default;
-      
+
       const diagramElement = document.getElementById('prisma-diagram');
       if (!diagramElement) {
         alert('No se encontró el diagrama PRISMA');
@@ -2661,7 +2720,7 @@ const ModulePRISMA = () => {
       {/* Sección 1: Diagrama PRISMA 2020 Completo */}
       <div className="mb-12" id="prisma-diagram">
         <h2 className="text-2xl font-bold text-monokai-blue mb-8">Diagrama PRISMA 2020</h2>
-        
+
         <div className="space-y-8 text-sm">
           {/* ESTUDIOS PREVIOS */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-purple border-opacity-50">
@@ -2675,7 +2734,7 @@ const ModulePRISMA = () => {
           {/* IDENTIFICACIÓN - BASES DE DATOS */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue border-opacity-50">
             <h3 className="text-lg font-bold text-monokai-blue mb-4">IDENTIFICACIÓN: BASES DE DATOS Y REGISTROS</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <p className="font-semibold text-monokai-blue mb-2">Registros identificados desde:</p>
@@ -2706,7 +2765,7 @@ const ModulePRISMA = () => {
                     <p className="text-xs text-monokai-subtle">Duplicados</p>
                     <p className="text-xl font-bold text-monokai-pink">{counters.duplicates}</p>
                   </div>
-                  <div 
+                  <div
                     className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
                     onClick={() => setEditingField('ineligible_marked')}
                   >
@@ -2715,7 +2774,7 @@ const ModulePRISMA = () => {
                       <input
                         type="number"
                         value={editableValues.ineligible_marked ?? 0}
-                        onChange={(e) => setEditableValues({...editableValues, ineligible_marked: parseInt(e.target.value) || 0})}
+                        onChange={(e) => setEditableValues({ ...editableValues, ineligible_marked: parseInt(e.target.value) || 0 })}
                         onBlur={() => setEditingField(null)}
                         onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
                         autoFocus
@@ -2733,9 +2792,9 @@ const ModulePRISMA = () => {
           {/* IDENTIFICACIÓN - OTROS MÉTODOS */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue border-opacity-50">
             <h3 className="text-lg font-bold text-monokai-blue mb-4">IDENTIFICACIÓN: OTROS MÉTODOS</h3>
-            
+
             <div className="grid grid-cols-3 gap-3">
-              <div 
+              <div
                 className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
                 onClick={() => setEditingField('websites')}
               >
@@ -2744,7 +2803,7 @@ const ModulePRISMA = () => {
                   <input
                     type="number"
                     value={editableValues.websites ?? 0}
-                    onChange={(e) => setEditableValues({...editableValues, websites: parseInt(e.target.value) || 0})}
+                    onChange={(e) => setEditableValues({ ...editableValues, websites: parseInt(e.target.value) || 0 })}
                     onBlur={() => setEditingField(null)}
                     onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
                     autoFocus
@@ -2754,7 +2813,7 @@ const ModulePRISMA = () => {
                   <p className="text-xl font-bold text-monokai-blue">{editableValues.websites ?? 0}</p>
                 )}
               </div>
-              <div 
+              <div
                 className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
                 onClick={() => setEditingField('organizations')}
               >
@@ -2763,7 +2822,7 @@ const ModulePRISMA = () => {
                   <input
                     type="number"
                     value={editableValues.organizations ?? 0}
-                    onChange={(e) => setEditableValues({...editableValues, organizations: parseInt(e.target.value) || 0})}
+                    onChange={(e) => setEditableValues({ ...editableValues, organizations: parseInt(e.target.value) || 0 })}
                     onBlur={() => setEditingField(null)}
                     onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
                     autoFocus
@@ -2773,7 +2832,7 @@ const ModulePRISMA = () => {
                   <p className="text-xl font-bold text-monokai-blue">{editableValues.organizations ?? 0}</p>
                 )}
               </div>
-              <div 
+              <div
                 className="bg-monokai-dark p-3 rounded cursor-pointer hover:bg-monokai-dark hover:bg-opacity-80 transition-all"
                 onClick={() => setEditingField('citations')}
               >
@@ -2782,7 +2841,7 @@ const ModulePRISMA = () => {
                   <input
                     type="number"
                     value={editableValues.citations ?? 0}
-                    onChange={(e) => setEditableValues({...editableValues, citations: parseInt(e.target.value) || 0})}
+                    onChange={(e) => setEditableValues({ ...editableValues, citations: parseInt(e.target.value) || 0 })}
                     onBlur={() => setEditingField(null)}
                     onKeyPress={(e) => e.key === 'Enter' && setEditingField(null)}
                     autoFocus
@@ -2798,7 +2857,7 @@ const ModulePRISMA = () => {
           {/* CRIBADO */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-yellow border-opacity-50">
             <h3 className="text-lg font-bold text-monokai-yellow mb-4">CRIBADO</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-monokai-dark p-3 rounded">
@@ -2816,7 +2875,7 @@ const ModulePRISMA = () => {
           {/* ELEGIBILIDAD */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-orange border-opacity-50">
             <h3 className="text-lg font-bold text-monokai-orange mb-4">ELEGIBILIDAD</h3>
-            
+
             <div className="space-y-4">
               <div className="bg-monokai-dark p-3 rounded">
                 <p className="font-semibold text-monokai-orange mb-2">Reportes para la elegibilidad</p>
@@ -2873,7 +2932,7 @@ const ModulePRISMA = () => {
           {/* INCLUIDOS */}
           <div className="bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-green border-opacity-50">
             <h3 className="text-lg font-bold text-monokai-green mb-4">INCLUIDOS</h3>
-            
+
             <div className="bg-monokai-dark p-4 rounded">
               <p className="text-xs text-monokai-subtle">Total de estudios incluidos</p>
               <p className="text-3xl font-bold text-monokai-green">{counters.included_final}</p>
@@ -2886,7 +2945,7 @@ const ModulePRISMA = () => {
       {/* Contadores Dinámicos y Tasa de Inclusión */}
       <div className="mb-12 bg-monokai-sidebar p-6 rounded-lg border-2 border-monokai-blue border-opacity-30">
         <h2 className="text-2xl font-bold text-monokai-blue mb-8">Contadores Dinámicos</h2>
-        
+
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-monokai-dark p-4 rounded-lg">
             <p className="text-sm text-monokai-subtle mb-1">Identificados</p>
@@ -2909,7 +2968,7 @@ const ModulePRISMA = () => {
             <p className="text-3xl font-bold text-monokai-green">{counters.included_final}</p>
           </div>
         </div>
-        
+
         <div className="bg-monokai-dark p-6 rounded-lg text-center border border-monokai-green border-opacity-30">
           <p className="text-sm text-monokai-subtle mb-2">Tasa de inclusión</p>
           <p className="text-4xl font-bold text-monokai-green">{counters.identified > 0 ? ((counters.included_final / counters.identified) * 100).toFixed(1) : 0}%</p>
@@ -2947,10 +3006,10 @@ const ModulePRISMA = () => {
         </motion.button>
       </div>
 
-    {/* Sección 4: Estudios Incluidos */}
+      {/* Sección 4: Estudios Incluidos */}
       <div className="mb-12">
         <h2 className="text-2xl font-bold text-monokai-green mb-6">Estudios Incluidos Finales ({includedArticles.length})</h2>
-        
+
         {includedArticles.length > 0 ? (
           <div className="space-y-4">
             <AnimatePresence>
@@ -2987,10 +3046,10 @@ const ModuleMetaAnalysis = () => {
       if (state.currentProjectId) {
         // Cargar datos de extracción desde Supabase
         const data = await apiClient.loadExtractionData(state.currentProjectId);
-        
+
         const dataMap = {};
         const articleIdsWithData = new Set();
-        
+
         data.forEach((row) => {
           dataMap[row.article_id] = {
             n_intervention: row.n_intervention,
@@ -3002,15 +3061,15 @@ const ModuleMetaAnalysis = () => {
           };
           articleIdsWithData.add(row.article_id);
         });
-        
+
         setExtractionData(dataMap);
-        
+
         // Cargar todos los artículos desde Supabase
         const allArticles = await apiClient.loadArticles(state.currentProjectId);
-        
+
         // Obtener artículos included_final
         const includedFinalArticles = allArticles.filter((a) => a.status === 'included_final');
-        
+
         // Crear artículos "virtuales" para datos guardados sin artículo actual
         const virtualArticles = Array.from(articleIdsWithData)
           .filter(articleId => !allArticles.some(a => a.id === articleId))
@@ -3024,17 +3083,17 @@ const ModuleMetaAnalysis = () => {
             authors: '',
             url: '',
           }));
-        
+
         // Combinar y eliminar duplicados
         const combinedArticles = [
           ...includedFinalArticles,
           ...virtualArticles,
         ];
-        
+
         const uniqueArticles = Array.from(
           new Map(combinedArticles.map(a => [a.id, a])).values()
         );
-        
+
         setArticlesWithData(uniqueArticles);
       }
     };
@@ -3056,7 +3115,7 @@ const ModuleMetaAnalysis = () => {
     if (state.currentProjectId) {
       const article = articlesWithData.find(a => a.id === articleId);
       const articleTitle = article?.title || `Article ${articleId}`;
-      
+
       await apiClient.saveExtractionData(
         state.currentProjectId,
         articleId,
@@ -3271,7 +3330,7 @@ const ModuleMetaAnalysis = () => {
           {/* GRÁFICOS: Forest Plot y Funnel Plot con JavaScript */}
           <div className="space-y-12">
             <h2 className="text-2xl font-bold text-monokai-orange"> Visualizaciones</h2>
-            
+
             {/* Forest Plot - Leyenda y Gráfico lado a lado */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -3597,11 +3656,10 @@ const Sidebar = () => {
             >
               <button
                 onClick={() => dispatch({ type: 'SET_PAGE', payload: module.id })}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                  isActive
-                    ? 'bg-monokai-pink bg-opacity-20 border border-monokai-pink text-monokai-pink'
-                    : 'text-monokai-text hover:bg-monokai-dark hover:bg-opacity-50'
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
+                  ? 'bg-monokai-pink bg-opacity-20 border border-monokai-pink text-monokai-pink'
+                  : 'text-monokai-text hover:bg-monokai-dark hover:bg-opacity-50'
+                  }`}
               >
                 <Icon className={`w-5 h-5 ${module.color}`} />
                 <span className="text-sm font-medium">{module.label}</span>
@@ -3686,10 +3744,10 @@ const AppContent = () => {
       const projectData = await apiClient.loadProject();
       if (projectData) {
         dispatch({ type: 'SET_PROJECT_DATA', payload: projectData });
-        
+
         // Verificar si es un reload (sessionActive aún existe) o un cierre de pestaña
         const wasReload = sessionStorage.getItem('sessionActive') === 'true';
-        
+
         if (!wasReload) {
           // Si NO es reload (es cierre de pestaña), limpiar artículos
           console.log('[AppContent] Cierre de pestaña detectado, limpiando artículos...');
@@ -3697,7 +3755,7 @@ const AppContent = () => {
         } else {
           console.log('[AppContent] Reload detectado, manteniendo artículos...');
         }
-        
+
         // Cargar artículos del proyecto
         const articles = await apiClient.loadArticles(projectData.id);
         if (articles && articles.length > 0) {

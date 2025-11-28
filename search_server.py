@@ -14,6 +14,7 @@ from datetime import datetime
 import os
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
+import google.generativeai as genai
 
 # ============================================================================
 # CONFIGURACIÓN
@@ -33,6 +34,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Configurar Google Gemini
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+    print("[Gemini] ✓ API configurada correctamente")
+else:
+    print("[Gemini] ⚠ API key no configurada (variable GOOGLE_API_KEY no encontrada)")
 
 # ============================================================================
 # MODELOS
@@ -126,6 +135,19 @@ class NetworkAnalysisResponse(BaseModel):
     """Respuesta de análisis de red"""
     success: bool
     elements: List[NetworkElement]
+    message: str
+
+class GenerateStrategiesRequest(BaseModel):
+    """Solicitud para generar estrategias con IA"""
+    population: str
+    intervention: str
+    comparison: str
+    outcome: str
+
+class GenerateStrategiesResponse(BaseModel):
+    """Respuesta de generación de estrategias"""
+    success: bool
+    strategies: dict  # {pubmed, semantic, arxiv, crossref}
     message: str
 
 
@@ -669,6 +691,122 @@ async def search(strategies: SearchStrategies):
         raise HTTPException(
             status_code=500,
             detail=f"Error en búsqueda: {str(e)}"
+        )
+
+@app.post("/api/v1/generate-strategies", response_model=GenerateStrategiesResponse)
+async def generate_strategies(request: GenerateStrategiesRequest):
+    """
+    Endpoint para generar estrategias de búsqueda con IA (Google Gemini)
+    
+    Recibe datos PICO y devuelve estrategias optimizadas para cada base de datos
+    """
+    try:
+        # Validar que la API key esté configurada
+        if not GOOGLE_API_KEY:
+            raise HTTPException(
+                status_code=500,
+                detail="API key de Google Gemini no configurada. Por favor configura la variable GOOGLE_API_KEY en tu archivo .env"
+            )
+        
+        print(f"\n[Gemini] Generando estrategias de búsqueda...")
+        print(f"[Gemini] PICO:")
+        print(f"  - Población: {request.population}")
+        print(f"  - Intervención: {request.intervention}")
+        print(f"  - Comparación: {request.comparison}")
+        print(f"  - Outcome: {request.outcome}")
+        
+        # Construir prompt optimizado para Gemini
+        prompt = f"""Actúa como un bibliotecario experto en revisiones sistemáticas y búsquedas bibliográficas académicas.
+
+Basado en este PICO:
+- Población: {request.population}
+- Intervención: {request.intervention}
+- Comparación: {request.comparison}
+- Outcome: {request.outcome}
+
+Genera 4 estrategias de búsqueda optimizadas siguiendo EXACTAMENTE estos formatos:
+
+1. **PubMed** (usando MeSH terms y TIAB):
+   - Formato: (("Term1"[Mesh] OR Synonym1 OR "Term2") AND ("Term3"[Mesh] OR Synonym2))
+   - Ejemplo: (("Type 2 Diabetes Mellitus"[Mesh] OR T2DM OR "Diabetes Mellitus, Non-Insulin-Dependent" OR NIDDM OR "Adult-Onset Diabetes") AND (Metformin[Mesh] OR Metformin OR Glucophage OR Biguanides))
+
+2. **Semantic Scholar** (palabras clave simples con operadores):
+   - Formato: (Term1 OR Synonym1) AND (Term2) AND (Outcome)
+   - Ejemplo: (Type 2 Diabetes Mellitus OR T2DM) AND (Metformin) AND (Cardiovascular Risk)
+
+3. **ArXiv** (términos clave naturales):
+   - Formato: term1 term2 term3 outcome
+   - Ejemplo: Type 2 diabetes treatment metformin cardiovascular outcomes
+
+4. **Crossref** (copia la estrategia de PubMed sin comillas ni corchetes):
+   - Formato: Term1 Mesh Synonym1 Term2 Mesh Synonym2
+   - Ejemplo: Type 2 Diabetes Mellitus T2DM Non-Insulin-Dependent Diabetes NIDDM Adult-Onset Diabetes Metformin Glucophage Biguanides
+
+IMPORTANTE:
+- Traduce todos los términos al INGLÉS
+- Usa sinónimos y términos MeSH apropiados
+- Devuelve SOLO un objeto JSON válido con las claves: "pubmed", "semantic", "arxiv", "crossref"
+- NO incluyas markdown (```json), explicaciones ni texto adicional
+- Formato de respuesta exacto: {{"pubmed": "...", "semantic": "...", "arxiv": "...", "crossref": "..."}}
+"""
+        
+        # Llamar a Gemini
+        try:
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            response = model.generate_content(prompt)
+            
+            # Extraer texto de la respuesta
+            response_text = response.text.strip()
+            print(f"[Gemini] Respuesta recibida ({len(response_text)} caracteres)")
+            
+            # Limpiar markdown si Gemini lo añadió
+            if response_text.startswith("```json"):
+                response_text = response_text.replace("```json", "").replace("```", "").strip()
+            elif response_text.startswith("```"):
+                response_text = response_text.replace("```", "").strip()
+            
+            # Parsear JSON
+            strategies = json.loads(response_text)
+            
+            # Validar que tenga las claves esperadas
+            required_keys = ["pubmed", "semantic", "arxiv", "crossref"]
+            for key in required_keys:
+                if key not in strategies:
+                    raise ValueError(f"Respuesta de Gemini no contiene la clave '{key}'")
+            
+            print(f"[Gemini] ✓ Estrategias generadas exitosamente")
+            print(f"[Gemini] - PubMed: {strategies['pubmed'][:80]}...")
+            print(f"[Gemini] - Semantic: {strategies['semantic'][:80]}...")
+            print(f"[Gemini] - ArXiv: {strategies['arxiv'][:80]}...")
+            print(f"[Gemini] - Crossref: {strategies['crossref'][:80]}...")
+            
+            return GenerateStrategiesResponse(
+                success=True,
+                strategies=strategies,
+                message="Estrategias generadas exitosamente con IA"
+            )
+            
+        except json.JSONDecodeError as e:
+            print(f"[Gemini] Error parseando JSON: {str(e)}")
+            print(f"[Gemini] Respuesta recibida: {response_text[:200]}...")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error parseando respuesta de Gemini. La IA no devolvió un JSON válido."
+            )
+        except Exception as e:
+            print(f"[Gemini] Error llamando a Gemini: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error generando estrategias con IA: {str(e)}"
+            )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"\n[ERROR] Error en generate_strategies: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generando estrategias: {str(e)}"
         )
 
 # ============================================================================
