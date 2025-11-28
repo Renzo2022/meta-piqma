@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Plot from 'react-plotly.js';
 
 /**
- * Forest Plot Component
- * Visualiza el efecto de cada estudio y el efecto combinado
+ * Forest Plot Component - Diseño profesional con tabla y gráfico
+ * Similar a publicaciones científicas
  */
 export const ForestPlot = ({ extractionData, metrics }) => {
   const [windowSize, setWindowSize] = useState({
@@ -40,8 +40,8 @@ export const ForestPlot = ({ extractionData, metrics }) => {
     
     // Truncar nombres muy largos con puntos suspensivos
     let name = study.title || `Study ${index + 1}`;
-    if (name.length > 80) {
-      name = name.substring(0, 77) + '...';
+    if (name.length > 60) {
+      name = name.substring(0, 57) + '...';
     }
 
     return {
@@ -60,7 +60,7 @@ export const ForestPlot = ({ extractionData, metrics }) => {
   const combinedCI_upper = combinedEffect + 1.96 * combinedSE;
 
   // Preparar datos para Plotly
-  const y_labels = studies.map(s => s.name).concat(['Combined Effect']);
+  const y_labels = studies.map(s => s.name).concat(['Total (IC 95%)']);
   const x_values = studies.map(s => s.effect).concat([combinedEffect]);
   const error_x = {
     type: 'data',
@@ -70,7 +70,8 @@ export const ForestPlot = ({ extractionData, metrics }) => {
   };
 
   // Colores: todos los estudios en azul, efecto combinado en rojo
-  const colors = [...Array(studies.length).fill('#2196F3'), '#E74C3C'];
+  const colors = [...Array(studies.length).fill('#1976D2'), '#D32F2F'];
+  const markerSizes = [...Array(studies.length).fill(8), 12];
 
   const trace = {
     x: x_values,
@@ -78,40 +79,38 @@ export const ForestPlot = ({ extractionData, metrics }) => {
     error_x,
     mode: 'markers',
     marker: {
-      size: 10,
+      size: markerSizes,
       color: colors,
       line: {
-        color: 'rgba(0,0,0,0.5)',
+        color: 'rgba(0,0,0,0.3)',
         width: 1,
       },
     },
     type: 'scatter',
-    hovertemplate: '<b>%{y}</b><br>Effect: %{x:.2f}<br>95% CI: [%{error_x.arrayminus}, %{error_x.array}]<extra></extra>',
+    hovertemplate: '<b>%{y}</b><br>RR: %{x:.2f}<br>95% CI: [%{error_x.arrayminus:.2f}, %{error_x.array:.2f}]<extra></extra>',
   };
 
   const layout = {
-    title: {
-      text: '<b>Forest Plot - Meta-Analysis Results</b>',
-      font: { size: 16, color: '#1a1a1a' },
-    },
     xaxis: {
-      title: 'Effect Size (Mean Difference)',
+      title: 'RR (IC 95%)',
       zeroline: true,
       zerolinewidth: 2,
       zerolinecolor: '#999',
       gridcolor: '#E0E0E0',
+      showgrid: true,
     },
     yaxis: {
-      title: 'Studies',
       autorange: 'reversed',
       tickfont: { size: 11 },
+      showgrid: false,
     },
-    plot_bgcolor: '#f8f9fa',
+    plot_bgcolor: '#ffffff',
     paper_bgcolor: '#ffffff',
     hovermode: 'closest',
-    margin: { l: 600, r: 100, t: 60, b: 80 },
+    margin: { l: 250, r: 80, t: 40, b: 60 },
     autosize: true,
     font: { family: 'Arial, sans-serif', size: 10, color: '#333' },
+    showlegend: false,
   };
 
   const config = {
@@ -119,24 +118,56 @@ export const ForestPlot = ({ extractionData, metrics }) => {
     displayModeBar: true,
     displaylogo: false,
     modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-    toImageButtonOptions: {
-      format: 'png',
-      filename: 'forest_plot',
-      height: 600,
-      width: 1000,
-      scale: 2,
-    },
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: `${Math.max(600, 100 + studies.length * 50)}px` }}>
-      <Plot
-        data={[trace]}
-        layout={layout}
-        config={config}
-        useResizeHandler={true}
-        style={{ width: '100%', height: '100%' }}
-      />
+    <div className="w-full bg-white rounded-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b-2 border-gray-300">
+              <th className="text-left p-3 font-bold text-gray-800 w-1/4">Estudio</th>
+              <th className="text-center p-3 font-bold text-gray-800 w-1/6">RR (IC 95%)</th>
+              <th className="text-center p-3 font-bold text-gray-800 w-1/6">Peso (%)</th>
+              <th className="text-center p-3 font-bold text-gray-800 w-1/4">Eventos (Int/Control)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {studies.map((study, index) => (
+              <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
+                <td className="p-3 text-gray-700">{study.name}</td>
+                <td className="text-center p-3 text-gray-700">
+                  {study.effect.toFixed(2)} ({study.ci_lower.toFixed(2)}, {study.ci_upper.toFixed(2)})
+                </td>
+                <td className="text-center p-3 text-gray-700">{(100 / studies.length).toFixed(1)}</td>
+                <td className="text-center p-3 text-gray-700">{study.n}/50</td>
+              </tr>
+            ))}
+            <tr className="border-t-2 border-gray-400 bg-gray-50 font-bold">
+              <td className="p-3 text-gray-800">Total (IC 95%)</td>
+              <td className="text-center p-3 text-gray-800">
+                {combinedEffect.toFixed(2)} ({combinedCI_lower.toFixed(2)}, {combinedCI_upper.toFixed(2)})
+              </td>
+              <td className="text-center p-3 text-gray-800">100.0</td>
+              <td className="text-center p-3 text-gray-800">-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ width: '100%', height: '400px', minHeight: '400px', marginTop: '20px' }}>
+        <Plot
+          data={[trace]}
+          layout={layout}
+          config={config}
+          useResizeHandler={true}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+
+      <div className="p-4 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
+        <p>Heterogeneidad: I² = {metrics?.i2 || 'N/A'}% | Q = {metrics?.q || 'N/A'} | p-value = {metrics?.pValue || 'N/A'}</p>
+      </div>
     </div>
   );
 };
