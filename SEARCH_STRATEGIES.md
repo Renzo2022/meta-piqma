@@ -143,9 +143,10 @@ Type 2 Diabetes Mellitus T2DM Non-Insulin-Dependent Diabetes NIDDM Adult-Onset D
 1. **Usuario ingresa PICO** en Módulo 1
 2. **Usuario hace clic** en "✨ Generar Estrategias con IA"
 3. **Frontend envía** datos PICO al backend
-4. **Backend (Groq/Llama 3.3)** genera 4 estrategias
-5. **Estrategias se rellenan** automáticamente en los campos
-6. **Usuario puede editar** si es necesario
+4. **Backend (Groq/Llama 3.3)** genera 3 estrategias (PubMed, Semantic Scholar, Crossref)
+5. **Backend copia automáticamente** la estrategia de Crossref a ArXiv (para ahorrar tokens)
+6. **Estrategias se rellenan** automáticamente en los campos
+7. **Usuario puede editar** si es necesario
 
 ### Prompt de IA
 
@@ -158,11 +159,12 @@ Basado en este PICO:
 - Comparación: [C]
 - Outcome: [O]
 
-Genera 4 estrategias de búsqueda optimizadas siguiendo EXACTAMENTE estos formatos:
+Genera 3 estrategias de búsqueda optimizadas siguiendo EXACTAMENTE estos formatos:
 1. PubMed (MeSH syntax)
 2. Semantic Scholar (palabras clave)
-3. ArXiv (términos naturales)
-4. Crossref (sin comillas)
+3. Crossref (sin comillas)
+
+NOTA: ArXiv usará la misma estrategia que Crossref (para ahorrar tokens)
 
 IMPORTANTE:
 - Traduce todos los términos al INGLÉS
@@ -176,14 +178,14 @@ IMPORTANTE:
 {
   "pubmed": "(\"Type 2 Diabetes Mellitus\"[Mesh] OR T2DM...) AND (Metformin[Mesh] OR...)",
   "semantic": "(Type 2 Diabetes Mellitus OR T2DM) AND (Metformin) AND (Cardiovascular Risk)",
-  "arxiv": "Type 2 diabetes treatment metformin cardiovascular outcomes",
-  "crossref": "Type 2 Diabetes Mellitus T2DM... Metformin Glucophage..."
+  "arxiv": "Type 2 Diabetes Mellitus T2DM Non-Insulin-Dependent Diabetes NIDDM Adult-Onset Diabetes Metformin Glucophage Biguanides",
+  "crossref": "Type 2 Diabetes Mellitus T2DM Non-Insulin-Dependent Diabetes NIDDM Adult-Onset Diabetes Metformin Glucophage Biguanides"
 }
 ```
 
 ---
 
-## 🔧 Mejoras en ArXiv
+## Mejoras en ArXiv
 
 ### Problema Anterior
 - Búsquedas muy restrictivas (solo título/abstract)
