@@ -51,11 +51,11 @@ O: Reducción de riesgos cardiovasculares
 
 ---
 
-### 2. Semantic Scholar (Palabras Clave Naturales)
+### 2. Semantic Scholar (Palabras Clave Naturales - SIMPLE)
 
 **Formato:**
 ```
-(Term1 OR Synonym1) AND (Term2) AND (Outcome)
+(Población OR Sinónimo) AND (Intervención) AND (Outcome)
 ```
 
 **Ejemplo (Diabetes + Metformina):**
@@ -66,14 +66,21 @@ O: Reducción de riesgos cardiovasculares
 **Características:**
 - ✅ Búsqueda semántica (entiende significado)
 - ✅ Palabras clave naturales en inglés
-- ✅ Operadores simples: AND, OR
-- ✅ Más flexible que PubMed
-- ✅ Cubre múltiples disciplinas
+- ✅ **SIMPLE y directa** (solo 3 conceptos)
+- ✅ Máximo 2-3 sinónimos por concepto
+- ✅ Términos amplios, no muy específicos
+- ✅ Mejor cobertura de resultados
 
 **Componentes:**
-- `Type 2 Diabetes Mellitus OR T2DM` - Concepto población
-- `Metformin` - Concepto intervención
-- `Cardiovascular Risk` - Concepto outcome
+- `Type 2 Diabetes Mellitus OR T2DM` - Concepto población (máx 2 sinónimos)
+- `Metformin` - Concepto intervención (sin sinónimos)
+- `Cardiovascular Risk` - Concepto outcome (sin sinónimos)
+
+**⚠️ IMPORTANTE:**
+- ❌ NO incluyas la comparación (Insulin, Sulfonylureas, etc.)
+- ❌ NO hagas estrategias complejas
+- ✅ Mantén solo los términos más relevantes
+- ✅ Usa términos amplios para mayor cobertura
 
 ---
 
@@ -176,10 +183,10 @@ IMPORTANTE:
 
 ```json
 {
-  "pubmed": "(\"Type 2 Diabetes Mellitus\"[Mesh] OR T2DM...) AND (Metformin[Mesh] OR...)",
+  "pubmed": "(\"Type 2 Diabetes Mellitus\"[Mesh] OR T2DM OR \"Diabetes Mellitus, Non-Insulin-Dependent\") AND (Metformin[Mesh] OR Metformin OR Glucophage)",
   "semantic": "(Type 2 Diabetes Mellitus OR T2DM) AND (Metformin) AND (Cardiovascular Risk)",
-  "arxiv": "Type 2 Diabetes Mellitus T2DM Non-Insulin-Dependent Diabetes NIDDM Adult-Onset Diabetes Metformin Glucophage Biguanides",
-  "crossref": "Type 2 Diabetes Mellitus T2DM Non-Insulin-Dependent Diabetes NIDDM Adult-Onset Diabetes Metformin Glucophage Biguanides"
+  "crossref": "Type 2 Diabetes Mellitus T2DM Non-Insulin-Dependent Diabetes NIDDM Adult-Onset Diabetes Metformin Glucophage Biguanides",
+  "arxiv": "Type 2 Diabetes Mellitus T2DM Non-Insulin-Dependent Diabetes NIDDM Adult-Onset Diabetes Metformin Glucophage Biguanides"
 }
 ```
 
@@ -245,11 +252,15 @@ all:diabetes AND all:metformin AND all:cardiovascular
 
 ### ❌ Errores Comunes
 
-1. ❌ Mezclar operadores en ArXiv: `Type 2 diabetes AND metformin` (NO)
-2. ❌ Usar comillas en Crossref: `"Type 2 Diabetes"` (NO)
-3. ❌ Olvidar MeSH en PubMed: `diabetes` en lugar de `"Type 2 Diabetes Mellitus"[Mesh]`
-4. ❌ Términos muy generales: `disease` en lugar de `diabetes`
-5. ❌ No traducir al inglés: Usar español en búsquedas
+1. ❌ **Semantic Scholar demasiado compleja**: `(Type 2 Diabetes OR T2DM) AND (Metformin OR Glucophage) AND (Insulin OR Sulfonylureas) AND (Cardiovascular Risk)` → Devuelve 0 resultados
+   - ✅ **Correcto**: `(Type 2 Diabetes Mellitus OR T2DM) AND (Metformin) AND (Cardiovascular Risk)` → Devuelve 100+ resultados
+2. ❌ Mezclar operadores en ArXiv: `Type 2 diabetes AND metformin` (NO)
+3. ❌ Usar comillas en Crossref: `"Type 2 Diabetes"` (NO)
+4. ❌ Olvidar MeSH en PubMed: `diabetes` en lugar de `"Type 2 Diabetes Mellitus"[Mesh]`
+5. ❌ Términos muy generales: `disease` en lugar de `diabetes`
+6. ❌ No traducir al inglés: Usar español en búsquedas
+7. ❌ Incluir comparación en Semantic Scholar: NO incluyas Insulin, Sulfonylureas, etc.
+8. ❌ Demasiados sinónimos en Semantic Scholar: Máximo 2-3 por concepto
 
 ---
 

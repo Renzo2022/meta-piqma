@@ -746,9 +746,12 @@ Genera 3 estrategias de búsqueda optimizadas siguiendo EXACTAMENTE estos format
    - Formato: (("Term1"[Mesh] OR Synonym1 OR "Term2") AND ("Term3"[Mesh] OR Synonym2))
    - Ejemplo: (("Type 2 Diabetes Mellitus"[Mesh] OR T2DM OR "Diabetes Mellitus, Non-Insulin-Dependent" OR NIDDM OR "Adult-Onset Diabetes") AND (Metformin[Mesh] OR Metformin OR Glucophage OR Biguanides))
 
-2. **Semantic Scholar** (palabras clave simples con operadores):
-   - Formato: (Term1 OR Synonym1) AND (Term2) AND (Outcome)
+2. **Semantic Scholar** (SIMPLE - solo 3 conceptos clave):
+   - Formato: (Población OR Sinónimo) AND (Intervención) AND (Outcome)
    - Ejemplo: (Type 2 Diabetes Mellitus OR T2DM) AND (Metformin) AND (Cardiovascular Risk)
+   - IMPORTANTE: Mantén SOLO los términos más relevantes, NO incluyas comparación
+   - IMPORTANTE: Máximo 2-3 sinónimos por concepto
+   - IMPORTANTE: Usa términos amplios, no muy específicos
 
 3. **Crossref** (copia la estrategia de PubMed sin comillas ni corchetes):
    - Formato: Term1 Mesh Synonym1 Term2 Mesh Synonym2
@@ -757,6 +760,7 @@ Genera 3 estrategias de búsqueda optimizadas siguiendo EXACTAMENTE estos format
 IMPORTANTE:
 - Traduce todos los términos al INGLÉS
 - Usa sinónimos y términos MeSH apropiados
+- Para Semantic Scholar: SIMPLIFICA al máximo, solo 3 conceptos principales
 - Devuelve SOLO un objeto JSON válido con las claves: "pubmed", "semantic", "crossref"
 - NO incluyas markdown (```json), explicaciones ni texto adicional
 - Formato de respuesta exacto: {{"pubmed": "...", "semantic": "...", "crossref": "..."}}
