@@ -756,7 +756,7 @@ IMPORTANTE:
         
         # Llamar a Gemini
         try:
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel('gemini-pro')
             response = model.generate_content(prompt)
             
             # Extraer texto de la respuesta
