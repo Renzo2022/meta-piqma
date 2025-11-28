@@ -74,7 +74,31 @@ cp .env.example .env
 # - SUPABASE_URL
 # - SUPABASE_KEY
 # - SUPABASE_SERVICE_KEY
+# - GROQ_API_KEY (para generación de estrategias con IA)
 ```
+
+### Paso 4.5: Configurar Groq API (Opcional pero Recomendado)
+
+Para usar la generación automática de estrategias con IA:
+
+1. **Crear cuenta en Groq**
+   - Ir a [console.groq.com](https://console.groq.com)
+   - Crear una cuenta gratuita
+   - Ir a "API Keys"
+   - Crear una nueva API key
+
+2. **Agregar a .env**
+   ```
+   GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxx
+   ```
+
+3. **Verificar en logs**
+   - Al iniciar el servidor, deberías ver:
+   ```
+   [Groq] ✓ Cliente configurado correctamente
+   ```
+
+**Nota:** Sin GROQ_API_KEY, la generación de estrategias no funcionará, pero el resto de la aplicación seguirá funcionando normalmente.
 
 ### Paso 5: Verificar Instalación
 ```bash

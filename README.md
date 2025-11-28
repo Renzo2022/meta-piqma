@@ -11,6 +11,7 @@
 - **Semantic Scholar**: Búsqueda semántica
 - **ArXiv**: Búsqueda en preprints científicos (con filtros de categoría)
 - **Crossref**: Búsqueda en metadatos de publicaciones
+- **Generación Automática con IA**: Groq/Llama 3.3 genera estrategias optimizadas basadas en criterios PICO
 
 ### 2. **Gestión PRISMA 2020**
 - Diagrama interactivo del flujo PRISMA 2020
@@ -36,6 +37,32 @@
 - Grafo de relaciones entre estudios
 - Análisis de conectividad
 - Exportación de visualizaciones
+
+## 🤖 Generación de Estrategias con IA
+
+MetaPiqma utiliza **Groq/Llama 3.3** para generar automáticamente estrategias de búsqueda optimizadas:
+
+**Flujo:**
+1. Usuario define criterios PICO (Población, Intervención, Comparación, Outcome)
+2. Usuario hace clic en "✨ Generar Estrategias con IA"
+3. Backend (Groq) genera 3 estrategias optimizadas:
+   - **PubMed**: Sintaxis MeSH con términos controlados
+   - **Semantic Scholar**: Palabras clave naturales con operadores booleanos
+   - **Crossref**: Términos sin comillas ni corchetes
+4. Backend copia automáticamente la estrategia de Crossref a ArXiv (para ahorrar tokens)
+5. Estrategias se rellenan automáticamente en los campos
+6. Usuario puede editar si es necesario
+
+**Ventajas:**
+- ✅ Estrategias optimizadas para cada base de datos
+- ✅ Traducción automática al inglés
+- ✅ Inclusión de sinónimos y términos MeSH
+- ✅ Ahorro de tokens (reutiliza estrategia Crossref para ArXiv)
+- ✅ Mejora en relevancia de resultados
+
+**Requisitos:**
+- Variable de entorno: `GROQ_API_KEY`
+- Modelo: `llama-3.3-70b-versatile`
 
 ## 🏗️ Arquitectura
 

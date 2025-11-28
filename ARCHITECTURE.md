@@ -172,6 +172,10 @@ POST /api/v1/search
 POST /api/v1/run-meta-analysis
   Input: { projectId }
   Output: { metrics, charts }
+
+POST /api/v1/generate-strategies
+  Input: GenerateStrategiesRequest { population, intervention, comparison, outcome }
+  Output: GenerateStrategiesResponse { strategies: { pubmed, semantic, crossref, arxiv } }
 ```
 
 ### PRISMA
@@ -341,17 +345,78 @@ Artículo 2: "Effect of Exercise on Diabetes" (Smith, 2020)
 - **Data Validation**: Pydantic models
 - **Async Operations**: Requests library
 
+## 🤖 Generación de Estrategias con IA
+
+### Flujo Completo
+
+```
+Usuario define PICO
+         ↓
+Usuario hace clic "Generar Estrategias con IA"
+         ↓
+Frontend envía POST /api/v1/generate-strategies
+         ↓
+Backend (Groq/Llama 3.3) procesa:
+  1. Recibe: { population, intervention, comparison, outcome }
+  2. Construye prompt especializado
+  3. Llama a Groq API
+  4. Parsea respuesta JSON
+  5. Valida 3 claves: pubmed, semantic, crossref
+  6. Copia crossref → arxiv (ahorro de tokens)
+  7. Devuelve 4 estrategias
+         ↓
+Frontend recibe estrategias
+         ↓
+Campos se rellenan automáticamente
+         ↓
+Usuario puede editar si es necesario
+```
+
+### Prompt de IA
+
+El backend construye un prompt especializado que instruye a Groq para:
+- Actuar como bibliotecario experto en revisiones sistemáticas
+- Generar 3 estrategias optimizadas (PubMed, Semantic Scholar, Crossref)
+- Usar sintaxis específica para cada base de datos
+- Traducir términos al inglés
+- Incluir sinónimos y términos MeSH
+- Devolver JSON válido
+
+### Optimización de Tokens
+
+- **Antes**: 4 estrategias generadas = más tokens
+- **Ahora**: 3 estrategias generadas + 1 copiada = ~30% menos tokens
+- **Estrategia**: Crossref es similar a ArXiv, se reutiliza
+
+### Manejo de Errores
+
+```python
+if not GROQ_API_KEY:
+    print("[Groq] ⚠ API key no configurada")
+    # Aplicación sigue funcionando sin IA
+
+if not client:
+    raise HTTPException(500, "API Key de Groq no configurada")
+
+try:
+    response = client.chat.completions.create(...)
+except Exception as e:
+    raise HTTPException(500, f"Error generando estrategias: {str(e)}")
+```
+
 ## 🧪 Testing
 
 ### Backend
 - Unit tests con pytest
 - Integration tests
 - API tests con requests
+- Tests de generación de estrategias con IA
 
 ### Frontend
 - Component tests con Vitest
 - E2E tests con Playwright
 - Manual testing
+- Tests de integración con Groq API
 
 ## 📦 Dependencias Principales
 
@@ -370,11 +435,12 @@ Artículo 2: "Effect of Exercise on Diabetes" (Smith, 2020)
 
 ### Backend (requirements.txt)
 ```
-fastapi==0.103.2
-uvicorn==0.24.0.post1
+fastapi==0.109.0
+uvicorn==0.27.0
 requests==2.31.0
-pydantic==1.10.13
+pydantic==2.5.0
 python-multipart==0.0.6
+groq==0.4.1  # Para generación de estrategias con IA
 ```
 
 ## 🚀 Performance
