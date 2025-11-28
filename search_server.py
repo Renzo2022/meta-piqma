@@ -740,7 +740,7 @@ Basado en este PICO:
 - Comparación: {request.comparison}
 - Outcome: {request.outcome}
 
-Genera 4 estrategias de búsqueda optimizadas siguiendo EXACTAMENTE estos formatos:
+Genera 3 estrategias de búsqueda optimizadas siguiendo EXACTAMENTE estos formatos:
 
 1. **PubMed** (usando MeSH terms y TIAB):
    - Formato: (("Term1"[Mesh] OR Synonym1 OR "Term2") AND ("Term3"[Mesh] OR Synonym2))
@@ -750,24 +750,18 @@ Genera 4 estrategias de búsqueda optimizadas siguiendo EXACTAMENTE estos format
    - Formato: (Term1 OR Synonym1) AND (Term2) AND (Outcome)
    - Ejemplo: (Type 2 Diabetes Mellitus OR T2DM) AND (Metformin) AND (Cardiovascular Risk)
 
-3. **ArXiv** (términos clave naturales - MUY IMPORTANTE):
-   - Formato: keyword1 keyword2 keyword3 outcome (sin operadores AND/OR)
-   - Incluir: términos principales, sinónimos, intervención, outcome
-   - Ejemplo: Type 2 diabetes treatment metformin cardiovascular outcomes
-   - NOTA: ArXiv es para preprints científicos, usar términos amplios y naturales
-   - Incluir variaciones: diabetes, T2DM, metformin, treatment, cardiovascular, risk
-
-4. **Crossref** (copia la estrategia de PubMed sin comillas ni corchetes):
+3. **Crossref** (copia la estrategia de PubMed sin comillas ni corchetes):
    - Formato: Term1 Mesh Synonym1 Term2 Mesh Synonym2
    - Ejemplo: Type 2 Diabetes Mellitus T2DM Non-Insulin-Dependent Diabetes NIDDM Adult-Onset Diabetes Metformin Glucophage Biguanides
 
 IMPORTANTE:
 - Traduce todos los términos al INGLÉS
 - Usa sinónimos y términos MeSH apropiados
-- Para ArXiv: incluye términos amplios, variaciones y sinónimos (sin operadores booleanos)
-- Devuelve SOLO un objeto JSON válido con las claves: "pubmed", "semantic", "arxiv", "crossref"
+- Devuelve SOLO un objeto JSON válido con las claves: "pubmed", "semantic", "crossref"
 - NO incluyas markdown (```json), explicaciones ni texto adicional
-- Formato de respuesta exacto: {{"pubmed": "...", "semantic": "...", "arxiv": "...", "crossref": "..."}}
+- Formato de respuesta exacto: {{"pubmed": "...", "semantic": "...", "crossref": "..."}}
+
+NOTA: ArXiv usará la misma estrategia que Crossref (sin comillas ni corchetes)
 """
         
         # Llamar a Groq
@@ -801,19 +795,23 @@ IMPORTANTE:
             # Parsear JSON
             strategies = json.loads(response_text)
             
-            # Validar que tenga las claves esperadas
-            required_keys = ["pubmed", "semantic", "arxiv", "crossref"]
+            # Validar que tenga las claves esperadas (solo 3: pubmed, semantic, crossref)
+            required_keys = ["pubmed", "semantic", "crossref"]
             for key in required_keys:
                 if key not in strategies:
                     raise ValueError(f"Respuesta de Groq no contiene la clave '{key}'")
             
+            # Agregar automáticamente arxiv copiando de crossref (para ahorrar tokens)
+            strategies["arxiv"] = strategies["crossref"]
+            
             print(f"[Groq] ✓ Estrategias generadas exitosamente")
             print(f"[Groq] - PubMed: {strategies['pubmed'][:80]}...")
+            print(f"[Groq] - ArXiv: (copiada de Crossref)")
             
             return GenerateStrategiesResponse(
                 success=True,
                 strategies=strategies,
-                message="Estrategias generadas exitosamente con IA (Groq)"
+                message="Estrategias generadas exitosamente con IA (Groq) - ArXiv usa estrategia de Crossref"
             )
             
         except Exception as e:
