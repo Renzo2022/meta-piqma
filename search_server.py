@@ -398,42 +398,53 @@ def search_arxiv(query: str) -> List[dict]:
             # Estrategia mejorada: buscar en todas las categorías relevantes
             keywords = query.strip().split()
             
-            # Filtrar palabras muy cortas (< 3 caracteres) para evitar ruido
-            # Excepto si es la única palabra
+            # Filtrar palabras muy cortas (< 2 caracteres) para evitar ruido
+            # Pero mantener palabras de 2-3 caracteres que podrían ser importantes (T2DM, AI, etc.)
             if len(keywords) > 1:
-                keywords = [kw for kw in keywords if len(kw) >= 3]
+                keywords = [kw for kw in keywords if len(kw) >= 2]
             
             if not keywords:
                 # Si todas las palabras fueron filtradas, usar la búsqueda original
                 search_query = f'all:{query}'
             elif len(keywords) == 1:
                 # Una palabra: buscar en todas partes (all:)
-                # Esto es más flexible que solo título/abstract
                 search_query = f'all:{keywords[0]}'
-            elif len(keywords) <= 3:
-                # 2-3 palabras: usar AND para mayor precisión
+            elif len(keywords) <= 4:
+                # 2-4 palabras: usar AND para mayor precisión
                 # Buscar en todas partes (all:) para mayor cobertura
                 search_parts = []
                 for keyword in keywords:
                     search_parts.append(f"all:{keyword}")
                 search_query = ' AND '.join(search_parts)
             else:
-                # 4+ palabras: usar OR para mayor flexibilidad
-                # Buscar en todas partes (all:)
+                # 5+ palabras: mezclar AND y OR para flexibilidad
+                # Primero 3-4 palabras con AND (términos principales)
+                # Resto con OR (variaciones)
+                main_keywords = keywords[:4]
+                optional_keywords = keywords[4:]
+                
                 search_parts = []
-                for keyword in keywords:
+                for keyword in main_keywords:
                     search_parts.append(f"all:{keyword}")
-                search_query = ' OR '.join(search_parts)
+                search_query = ' AND '.join(search_parts)
+                
+                # Agregar palabras opcionales con OR
+                if optional_keywords:
+                    optional_parts = [f"all:{kw}" for kw in optional_keywords]
+                    search_query = f"({search_query}) AND ({' OR '.join(optional_parts)})"
             
             # Agregar filtro de categoría para búsquedas médicas/biológicas
             # Categorías relevantes en ArXiv:
             # q-bio = Quantitative Biology (biología cuantitativa)
-            # stat = Statistics (estadística)
-            # cs.AI = Computer Science - AI (IA)
-            # physics.med-ph = Medical Physics (física médica)
-            if any(term in query.lower() for term in ['diabetes', 'medical', 'health', 'disease', 'treatment', 'patient', 'clinical']):
-                # Para búsquedas médicas, filtrar por categoría q-bio
-                search_query = f'({search_query}) AND (cat:q-bio OR cat:stat OR cat:cs.AI OR cat:physics.med-ph)'
+            # q-bio.PE = Populations and Evolution
+            # q-bio.QM = Quantitative Methods
+            # stat = Statistics
+            # cs.AI = Computer Science - AI
+            # physics.med-ph = Medical Physics
+            medical_terms = ['diabetes', 'medical', 'health', 'disease', 'treatment', 'patient', 'clinical', 'cardiovascular', 'risk', 'metformin', 'insulin', 'therapy']
+            if any(term in query.lower() for term in medical_terms):
+                # Para búsquedas médicas, filtrar por categoría
+                search_query = f'({search_query}) AND (cat:q-bio OR cat:q-bio.PE OR cat:q-bio.QM OR cat:stat OR cat:cs.AI OR cat:physics.med-ph)'
         
         params = {
             'search_query': search_query,
@@ -720,7 +731,7 @@ async def generate_strategies(request: GenerateStrategiesRequest):
         print(f"  - Comparación: {request.comparison}")
         print(f"  - Outcome: {request.outcome}")
         
-        # Construir prompt optimizado para Gemini
+        # Construir prompt optimizado para Groq
         prompt = f"""Actúa como un bibliotecario experto en revisiones sistemáticas y búsquedas bibliográficas académicas.
 
 Basado en este PICO:
@@ -739,9 +750,12 @@ Genera 4 estrategias de búsqueda optimizadas siguiendo EXACTAMENTE estos format
    - Formato: (Term1 OR Synonym1) AND (Term2) AND (Outcome)
    - Ejemplo: (Type 2 Diabetes Mellitus OR T2DM) AND (Metformin) AND (Cardiovascular Risk)
 
-3. **ArXiv** (términos clave naturales):
-   - Formato: term1 term2 term3 outcome
+3. **ArXiv** (términos clave naturales - MUY IMPORTANTE):
+   - Formato: keyword1 keyword2 keyword3 outcome (sin operadores AND/OR)
+   - Incluir: términos principales, sinónimos, intervención, outcome
    - Ejemplo: Type 2 diabetes treatment metformin cardiovascular outcomes
+   - NOTA: ArXiv es para preprints científicos, usar términos amplios y naturales
+   - Incluir variaciones: diabetes, T2DM, metformin, treatment, cardiovascular, risk
 
 4. **Crossref** (copia la estrategia de PubMed sin comillas ni corchetes):
    - Formato: Term1 Mesh Synonym1 Term2 Mesh Synonym2
@@ -750,6 +764,7 @@ Genera 4 estrategias de búsqueda optimizadas siguiendo EXACTAMENTE estos format
 IMPORTANTE:
 - Traduce todos los términos al INGLÉS
 - Usa sinónimos y términos MeSH apropiados
+- Para ArXiv: incluye términos amplios, variaciones y sinónimos (sin operadores booleanos)
 - Devuelve SOLO un objeto JSON válido con las claves: "pubmed", "semantic", "arxiv", "crossref"
 - NO incluyas markdown (```json), explicaciones ni texto adicional
 - Formato de respuesta exacto: {{"pubmed": "...", "semantic": "...", "arxiv": "...", "crossref": "..."}}
