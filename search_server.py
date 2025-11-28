@@ -15,6 +15,10 @@ import os
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
 import google.generativeai as genai
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env (para desarrollo local)
+load_dotenv()
 
 # ============================================================================
 # CONFIGURACIÓN
