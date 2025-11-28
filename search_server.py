@@ -14,7 +14,7 @@ from datetime import datetime
 import os
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
-import google.generativeai as genai
+from groq import Groq
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde .env (para desarrollo local)
@@ -39,13 +39,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configurar Google Gemini
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
-    print("[Gemini] ✓ API configurada correctamente")
+# Configurar Cliente Groq
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+client = None
+if GROQ_API_KEY:
+    client = Groq(api_key=GROQ_API_KEY)
+    print("[Groq] ✓ Cliente configurado correctamente")
 else:
-    print("[Gemini] ⚠ API key no configurada (variable GOOGLE_API_KEY no encontrada)")
+    print("[Groq] ⚠ API key no configurada (variable GROQ_API_KEY no encontrada)")
 
 # ============================================================================
 # MODELOS
@@ -754,42 +755,33 @@ IMPORTANTE:
 - Formato de respuesta exacto: {{"pubmed": "...", "semantic": "...", "arxiv": "...", "crossref": "..."}}
 """
         
-        # Lista de modelos a probar en orden de preferencia
-        models_to_try = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro', 'gemini-1.0-pro']
-        
-        response = None
-        last_error = None
-        
-        for model_name in models_to_try:
-            try:
-                print(f"[Gemini] Intentando con modelo: {model_name}")
-                model = genai.GenerativeModel(model_name)
-                response = model.generate_content(prompt)
-                print(f"[Gemini] ✓ Éxito con modelo: {model_name}")
-                break
-            except Exception as e:
-                print(f"[Gemini] ❌ Falló modelo {model_name}: {str(e)}")
-                last_error = e
-        
-        if not response:
-            # Si fallaron todos, intentar listar modelos disponibles para debug
-            try:
-                available = [m.name for m in genai.list_models()]
-                print(f"[Gemini] Modelos disponibles en esta API Key: {available}")
-            except:
-                pass
-            raise HTTPException(status_code=500, detail=f"No se pudo generar contenido con ningún modelo. Último error: {str(last_error)}")
-            
-        # Extraer texto de la respuesta
+        # Llamar a Groq
         try:
-            response_text = response.text.strip()
-            print(f"[Gemini] Respuesta recibida ({len(response_text)} caracteres)")
+            if not client:
+                raise HTTPException(status_code=500, detail="API Key de Groq no configurada en el servidor")
+
+            completion = client.chat.completions.create(
+                model="llama3-70b-8192",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Eres un bibliotecario experto en revisiones sistemáticas y búsquedas bibliográficas complejas. Tu tarea es traducir conceptos médicos al inglés y construir estrategias de búsqueda precisas."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.1,
+                max_tokens=1024,
+                top_p=1,
+                stream=False,
+                response_format={"type": "json_object"}
+            )
             
-            # Limpiar markdown si Gemini lo añadió
-            if response_text.startswith("```json"):
-                response_text = response_text.replace("```json", "").replace("```", "").strip()
-            elif response_text.startswith("```"):
-                response_text = response_text.replace("```", "").strip()
+            # Extraer texto de la respuesta
+            response_text = completion.choices[0].message.content.strip()
+            print(f"[Groq] Respuesta recibida ({len(response_text)} caracteres)")
             
             # Parsear JSON
             strategies = json.loads(response_text)
@@ -798,33 +790,24 @@ IMPORTANTE:
             required_keys = ["pubmed", "semantic", "arxiv", "crossref"]
             for key in required_keys:
                 if key not in strategies:
-                    raise ValueError(f"Respuesta de Gemini no contiene la clave '{key}'")
+                    raise ValueError(f"Respuesta de Groq no contiene la clave '{key}'")
             
-            print(f"[Gemini] ✓ Estrategias generadas exitosamente")
-            print(f"[Gemini] - PubMed: {strategies['pubmed'][:80]}...")
-            print(f"[Gemini] - Semantic: {strategies['semantic'][:80]}...")
-            print(f"[Gemini] - ArXiv: {strategies['arxiv'][:80]}...")
-            print(f"[Gemini] - Crossref: {strategies['crossref'][:80]}...")
+            print(f"[Groq] ✓ Estrategias generadas exitosamente")
+            print(f"[Groq] - PubMed: {strategies['pubmed'][:80]}...")
             
             return GenerateStrategiesResponse(
                 success=True,
                 strategies=strategies,
-                message="Estrategias generadas exitosamente con IA"
+                message="Estrategias generadas exitosamente con IA (Groq)"
             )
             
-        except json.JSONDecodeError as e:
-            print(f"[Gemini] Error parseando JSON: {str(e)}")
-            print(f"[Gemini] Respuesta recibida: {response_text[:200]}...")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error parseando respuesta de Gemini. La IA no devolvió un JSON válido."
-            )
         except Exception as e:
-            print(f"[Gemini] Error llamando a Gemini: {str(e)}")
+            print(f"[Groq] Error: {str(e)}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Error generando estrategias con IA: {str(e)}"
+                detail=f"Error generando estrategias con Groq: {str(e)}"
             )
+
     
     except HTTPException:
         raise
