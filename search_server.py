@@ -344,6 +344,9 @@ def search_arxiv(query: str) -> List[dict]:
     API: https://arxiv.org/help/api
     No requiere autenticación
     Límite: 3 solicitudes por segundo
+    
+    NOTA: ArXiv es principalmente para física, matemáticas, CS, biología
+    Para búsquedas médicas, usar PubMed o Semantic Scholar
     """
     if not query or query.strip() == '':
         return []
@@ -355,7 +358,7 @@ def search_arxiv(query: str) -> List[dict]:
         
         # Detectar si la query ya contiene sintaxis de ArXiv
         # (contiene title:, abs:, AND, OR, etc.)
-        has_arxiv_syntax = any(keyword in query for keyword in ['title:', 'abs:', ' AND ', ' OR ', '[Mesh]'])
+        has_arxiv_syntax = any(keyword in query for keyword in ['title:', 'abs:', ' AND ', ' OR ', 'cat:'])
         
         if has_arxiv_syntax:
             # La query ya tiene sintaxis de ArXiv, usarla directamente
@@ -365,7 +368,7 @@ def search_arxiv(query: str) -> List[dict]:
             search_query = search_query.replace('"', '')
         else:
             # Construir búsqueda automáticamente
-            # Estrategia: Filtrar palabras muy cortas (números, preposiciones)
+            # Estrategia mejorada: buscar en todas las categorías relevantes
             keywords = query.strip().split()
             
             # Filtrar palabras muy cortas (< 3 caracteres) para evitar ruido
@@ -377,20 +380,33 @@ def search_arxiv(query: str) -> List[dict]:
                 # Si todas las palabras fueron filtradas, usar la búsqueda original
                 search_query = f'all:{query}'
             elif len(keywords) == 1:
-                # Una palabra: buscar en título o resumen
-                search_query = f'(title:{keywords[0]} OR abs:{keywords[0]})'
+                # Una palabra: buscar en todas partes (all:)
+                # Esto es más flexible que solo título/abstract
+                search_query = f'all:{keywords[0]}'
             elif len(keywords) <= 3:
                 # 2-3 palabras: usar AND para mayor precisión
+                # Buscar en todas partes (all:) para mayor cobertura
                 search_parts = []
                 for keyword in keywords:
-                    search_parts.append(f"(title:{keyword} OR abs:{keyword})")
+                    search_parts.append(f"all:{keyword}")
                 search_query = ' AND '.join(search_parts)
             else:
                 # 4+ palabras: usar OR para mayor flexibilidad
+                # Buscar en todas partes (all:)
                 search_parts = []
                 for keyword in keywords:
-                    search_parts.append(f"(title:{keyword} OR abs:{keyword})")
+                    search_parts.append(f"all:{keyword}")
                 search_query = ' OR '.join(search_parts)
+            
+            # Agregar filtro de categoría para búsquedas médicas/biológicas
+            # Categorías relevantes en ArXiv:
+            # q-bio = Quantitative Biology (biología cuantitativa)
+            # stat = Statistics (estadística)
+            # cs.AI = Computer Science - AI (IA)
+            # physics.med-ph = Medical Physics (física médica)
+            if any(term in query.lower() for term in ['diabetes', 'medical', 'health', 'disease', 'treatment', 'patient', 'clinical']):
+                # Para búsquedas médicas, filtrar por categoría q-bio
+                search_query = f'({search_query}) AND (cat:q-bio OR cat:stat OR cat:cs.AI OR cat:physics.med-ph)'
         
         params = {
             'search_query': search_query,
