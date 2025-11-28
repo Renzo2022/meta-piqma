@@ -443,6 +443,211 @@ python-multipart==0.0.6
 groq==0.4.1  # Para generación de estrategias con IA
 ```
 
+## 📊 Módulo 7: Análisis de Grafos Bibliométricos
+
+### Descripción General
+
+El Módulo 7 implementa una visualización interactiva de redes bibliométricas usando **Cytoscape.js** con algoritmo de **fuerza dirigida (COSE)**, similar a VOSviewer y Flowsint.
+
+### Arquitectura Completa
+
+```
+Frontend (React)                Backend (Python)
+    ↓                               ↓
+ModuleGraphAnalysis.jsx    →   /api/v1/network-analysis
+    ↓                               ↓
+apiClient.runNetworkAnalysis()  network_analysis()
+    ↓                               ↓
+Cytoscape Component         Genera elementos JSON
+    ↓                               ↓
+COSE Layout (Fuerza)        20 Papers + 10 Authors + 5 Topics
+    ↓                               ↓
+Visualización Interactiva   ~100+ Enlaces (relaciones)
+```
+
+### Backend: Generador de Red (search_server.py)
+
+**Endpoint:**
+```
+POST /api/v1/network-analysis
+Input: { projectId }
+Output: { success, elements, message }
+```
+
+**Lógica:**
+1. Recibe `projectId` del frontend
+2. Genera estructura simulada de alta fidelidad:
+   - **20 Nodos Paper** (Artículos): Clase `paper`, color azul cian (#78DCE8)
+   - **10 Nodos Author** (Autores): Clase `author`, color rosa (#FF6188)
+   - **5 Nodos Topic** (Temas): Clase `topic`, color amarillo (#FFD866)
+
+3. Crea enlaces lógicos:
+   - Cada author → 2-3 papers (autoría)
+   - Cada paper → 1-2 topics (temas tratados)
+   - Algunos authors → otros authors (co-autoría)
+   - Algunos papers → otros papers (citaciones)
+
+4. Devuelve JSON en formato Cytoscape:
+```json
+{
+  "success": true,
+  "elements": [
+    { "data": { "id": "p1", "label": "Paper 1", "type": "paper" } },
+    { "data": { "id": "a1", "label": "Author 1", "type": "author" } },
+    { "data": { "id": "t1", "label": "Topic 1", "type": "topic" } },
+    { "data": { "source": "a1", "target": "p1", "label": "authored" } }
+  ],
+  "message": "Análisis de red completado"
+}
+```
+
+### Frontend: Visualización (ModuleGraphAnalysis.jsx)
+
+**Componentes:**
+1. **Botón "Generar Red Bibliométrica"**
+   - Llama a `apiClient.runNetworkAnalysis(projectId)`
+   - Muestra spinner de carga
+
+2. **Leyenda Visual**
+   - Artículos (azul cian, 20)
+   - Autores (rosa, 10)
+   - Temas (amarillo, 5)
+
+3. **Contenedor Cytoscape**
+   - Altura: 600px
+   - Fondo: #272822 (Monokai dark)
+   - Responsive: 100% ancho
+
+4. **Información de la Red**
+   - Elementos totales
+   - Nodos
+   - Enlaces
+   - Algoritmo (COSE)
+
+### Algoritmo COSE (Compound Spring Embedder)
+
+**Configuración:**
+```javascript
+const graphLayout = {
+  name: 'cose',
+  animate: true,
+  animationDuration: 1000,
+  fit: true,
+  padding: 30,
+  nodeSpacing: 15,
+  gravity: 0.5,
+  friction: 0.8,
+  numIter: 1000,
+  initialTemp: 200,
+  coolingFactor: 0.95,
+  minTemp: 1.0,
+}
+```
+
+**Cómo funciona:**
+- **Repulsión**: Nodos se repelen entre sí (evita superposición)
+- **Atracción**: Enlaces atraen nodos conectados
+- **Animación**: Nodos se organizan suavemente en 1 segundo
+- **Resultado**: Estructura orgánica flotante tipo VOSviewer
+
+### Estilos Monokai (Tema Profesional)
+
+```javascript
+// Nodos Paper (Artículos)
+{
+  selector: 'node[type="paper"]',
+  style: {
+    'background-color': '#78DCE8',  // Azul cian
+    'width': '35px',
+    'height': '35px',
+  }
+}
+
+// Nodos Author (Autores)
+{
+  selector: 'node[type="author"]',
+  style: {
+    'background-color': '#FF6188',  // Rosa
+    'width': '45px',
+    'height': '45px',
+  }
+}
+
+// Nodos Topic (Temas - Hubs)
+{
+  selector: 'node[type="topic"]',
+  style: {
+    'background-color': '#FFD866',  // Amarillo
+    'width': '55px',
+    'height': '55px',
+    'font-weight': 'bold',
+  }
+}
+
+// Enlaces
+{
+  selector: 'edge',
+  style: {
+    'width': 1.5,
+    'line-color': '#75715E',  // Gris sutil
+    'opacity': 0.6,
+  }
+}
+```
+
+### Flujo Completo
+
+```
+1. Usuario va a Módulo 7
+   ↓
+2. Ve descripción y leyenda
+   ↓
+3. Hace clic en "Generar Red Bibliométrica"
+   ↓
+4. Frontend envía POST /api/v1/network-analysis
+   ↓
+5. Backend genera grafo (20 papers + 10 authors + 5 topics)
+   ↓
+6. Backend devuelve ~100+ elementos (nodos + enlaces)
+   ↓
+7. Frontend recibe elementos
+   ↓
+8. Cytoscape renderiza con COSE layout
+   ↓
+9. Nodos se organizan automáticamente (1 segundo)
+   ↓
+10. Se muestra información de la red
+    ↓
+11. Usuario puede interactuar (zoom, pan, drag)
+```
+
+### Interactividad
+
+- **Zoom**: Rueda del ratón
+- **Pan**: Click + arrastrar
+- **Drag**: Click en nodo + arrastrar
+- **Selección**: Click en nodo (borde blanco brillante)
+- **Información**: Hover muestra etiqueta
+
+### Ventajas de esta Implementación
+
+✅ **Arquitectura Real**: Backend genera estructura, frontend visualiza
+✅ **Algoritmo Profesional**: COSE proporciona layout tipo VOSviewer
+✅ **Diferenciación Visual**: Colores específicos por tipo de nodo
+✅ **Interactividad Completa**: Zoom, pan, drag, selección
+✅ **Rendimiento**: Maneja 100+ elementos sin lag
+✅ **Responsive**: Se adapta al tamaño del contenedor
+✅ **Tema Profesional**: Monokai colors para estética consistente
+
+### Datos Simulados (Justificación)
+
+Como no tenemos datos de citas reales masivos, generamos:
+- Estructura realista (20 papers, 10 authors, 5 topics)
+- Enlaces lógicos (autoría, temas, citaciones)
+- Distribución realista (algunos nodos son hubs)
+
+**Futuro**: Conectar con datos reales de Supabase
+
 ## 🚀 Performance
 
 ### Frontend
@@ -450,6 +655,7 @@ groq==0.4.1  # Para generación de estrategias con IA
 - Lazy loading de componentes
 - Memoization con React.memo
 - Debouncing en búsquedas
+- Cytoscape optimizado para 100+ elementos
 
 ### Backend
 - Búsquedas paralelas
