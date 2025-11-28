@@ -706,15 +706,15 @@ async def generate_strategies(request: GenerateStrategiesRequest):
     Recibe datos PICO y devuelve estrategias optimizadas para cada base de datos
     """
     try:
-        # Validar que la API key esté configurada
-        if not GOOGLE_API_KEY:
+        # Validar que el cliente Groq esté configurado
+        if not client:
             raise HTTPException(
                 status_code=500,
-                detail="API key de Google Gemini no configurada. Por favor configura la variable GOOGLE_API_KEY en tu archivo .env"
+                detail="API key de Groq no configurada. Por favor configura la variable GROQ_API_KEY en Render o en tu archivo .env"
             )
         
-        print(f"\n[Gemini] Generando estrategias de búsqueda...")
-        print(f"[Gemini] PICO:")
+        print(f"\n[Groq] Generando estrategias de búsqueda...")
+        print(f"[Groq] PICO:")
         print(f"  - Población: {request.population}")
         print(f"  - Intervención: {request.intervention}")
         print(f"  - Comparación: {request.comparison}")
