@@ -1786,11 +1786,25 @@ async def network_analysis(request: NetworkAnalysisRequest):
         # ============================================================================
         print(f"[NETWORK] Consultando artículos del proyecto {request.projectId}...")
         
-        # Nota: En producción, esto vendría de Supabase
-        # Por ahora, generamos datos realistas basados en el projectId
-        # TODO: Conectar con Supabase cuando esté disponible
+        # DATOS QUE SE OBTIENEN DE SUPABASE (tabla 'articles'):
+        # - id: Identificador único del artículo
+        # - title: Título del artículo
+        # - authors: Autores (formato: "Author 1, Author 2")
+        # - year: Año de publicación
+        # - abstract: Resumen del artículo
+        # - url: URL del artículo
+        # - source: Base de datos (PubMed, Semantic Scholar, ArXiv, Crossref)
+        # - status: Estado (identified, duplicate, excluded_title, included_title, excluded_fulltext, included_final)
         
-        # Simular obtención de artículos (en futuro: from Supabase)
+        # TODO: Reemplazar con consulta real a Supabase
+        # articles = supabase.table('articles')\
+        #     .select('id, title, authors, year, abstract, url, source, status')\
+        #     .eq('project_id', request.projectId)\
+        #     .neq('status', 'duplicate')\
+        #     .execute()
+        # articles = articles.data
+        
+        # Por ahora, simular obtención de artículos (en futuro: from Supabase)
         num_articles = min(20, max(5, request.projectId % 20 + 5))  # 5-20 artículos
         articles = []
         for i in range(1, num_articles + 1):
@@ -1798,7 +1812,11 @@ async def network_analysis(request: NetworkAnalysisRequest):
                 "id": f"article_{request.projectId}_{i}",
                 "title": f"Study {i}: Research on Topic {(i % 4) + 1}",
                 "authors": f"Author {(i % 8) + 1}, Author {((i+1) % 8) + 1}",
-                "year": 2020 + (i % 5)
+                "year": 2020 + (i % 5),
+                "abstract": f"This study investigates the effects of intervention on outcome in population {i}.",
+                "url": f"https://example.com/article/{i}",
+                "source": ["PubMed", "Semantic Scholar", "ArXiv", "Crossref"][i % 4],
+                "status": "included_final"
             })
         
         print(f"[NETWORK] ✓ {len(articles)} artículos cargados")
@@ -1868,19 +1886,36 @@ async def network_analysis(request: NetworkAnalysisRequest):
                     "id": article["id"],
                     "label": f"Study {i} ({article['year']})",
                     "type": "paper",
-                    "title": article["title"]
+                    # INFORMACIÓN DETALLADA (para interactividad)
+                    "title": article["title"],
+                    "year": article["year"],
+                    "authors": article["authors"],
+                    "abstract": article["abstract"],
+                    "url": article["url"],
+                    "source": article["source"],
+                    "status": article["status"],
+                    # Información para popup
+                    "popup_title": f"📄 {article['title']}",
+                    "popup_info": f"Year: {article['year']}\nSource: {article['source']}\nAuthors: {article['authors']}"
                 }
             })
         
         # Nodos: Autores
         for author_name, author_id in author_ids.items():
             num_papers = len(author_papers[author_name])
+            papers_list = ", ".join([f"Study {articles.index(next(a for a in articles if a['id'] in author_papers[author_name]))+1}" 
+                                    for _ in range(min(3, num_papers))])
             elements.append({
                 "data": {
                     "id": author_id,
                     "label": author_name,
                     "type": "author",
-                    "papers": num_papers
+                    # INFORMACIÓN DETALLADA (para interactividad)
+                    "papers": num_papers,
+                    "papers_list": author_papers[author_name],
+                    # Información para popup
+                    "popup_title": f"👤 {author_name}",
+                    "popup_info": f"Papers: {num_papers}\nCollaborations: {len([p for p in author_papers[author_name]])}"
                 }
             })
         
@@ -1892,7 +1927,12 @@ async def network_analysis(request: NetworkAnalysisRequest):
                     "id": topic_id,
                     "label": topic_name,
                     "type": "topic",
-                    "papers": num_papers
+                    # INFORMACIÓN DETALLADA (para interactividad)
+                    "papers": num_papers,
+                    "papers_list": topic_papers[topic_name],
+                    # Información para popup
+                    "popup_title": f"🏷️ {topic_name}",
+                    "popup_info": f"Papers: {num_papers}\nFrequency: {num_papers}/{len(articles)}"
                 }
             })
         

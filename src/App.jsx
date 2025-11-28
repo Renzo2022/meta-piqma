@@ -3403,6 +3403,8 @@ const ModuleGraphAnalysis = () => {
   const { state } = useProject();
   const [isLoading, setIsLoading] = useState(false);
   const [graphElements, setGraphElements] = useState([]);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const cyRef = React.useRef(null);
 
   // Estilos Monokai para Cytoscape - Profesional tipo VOSviewer
   const graphStylesheet = [
@@ -3463,6 +3465,14 @@ const ModuleGraphAnalysis = () => {
         'line-color': '#A1EFE4',
       },
     },
+    {
+      selector: 'node:selected',
+      style: {
+        'border-width': '4px',
+        'border-color': '#FFD866',
+        'box-shadow': '0 0 10px #FFD866',
+      },
+    },
   ];
 
   // Layout de fuerza dirigida (COSE)
@@ -3491,6 +3501,7 @@ const ModuleGraphAnalysis = () => {
     try {
       const elements = await apiClient.runNetworkAnalysis(state.currentProjectId);
       setGraphElements(elements);
+      setSelectedNode(null);
     } catch (error) {
       console.error('Error generando red:', error);
       alert('Error generando red: ' + error.message);
@@ -3498,6 +3509,36 @@ const ModuleGraphAnalysis = () => {
       setIsLoading(false);
     }
   };
+
+  // Manejador para cuando se hace clic en un nodo
+  const handleNodeClick = (event) => {
+    if (cyRef.current) {
+      const cy = cyRef.current;
+      cy.on('tap', 'node', (evt) => {
+        const node = evt.target;
+        setSelectedNode({
+          id: node.id(),
+          label: node.data('label'),
+          type: node.data('type'),
+          data: node.data(),
+        });
+      });
+      
+      // Deseleccionar cuando se hace clic en el fondo
+      cy.on('tap', (evt) => {
+        if (evt.target === cy) {
+          setSelectedNode(null);
+        }
+      });
+    }
+  };
+
+  // Efecto para configurar eventos de Cytoscape
+  React.useEffect(() => {
+    if (graphElements.length > 0) {
+      handleNodeClick();
+    }
+  }, [graphElements]);
 
   return (
     <motion.div
@@ -3549,29 +3590,155 @@ const ModuleGraphAnalysis = () => {
         </div>
       </div>
 
-      <div className="relative w-full h-[600px] bg-monokai-dark rounded-lg border border-monokai-subtle border-opacity-30 overflow-hidden">
-        {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-monokai-dark bg-opacity-80">
-            <LoadingSpinner />
-          </div>
-        ) : graphElements.length > 0 ? (
-          <CytoscapeComponent
-            elements={graphElements}
-            style={{ width: '100%', height: '100%' }}
-            stylesheet={graphStylesheet}
-            layout={graphLayout}
-            wheelSensitivity={0.1}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Network className="w-12 h-12 text-monokai-subtle mx-auto mb-4" />
-              <p className="text-monokai-subtle">
-                Haz clic en "Generar Red Bibliométrica" para visualizar la red
-              </p>
+      <div className="grid grid-cols-3 gap-6">
+        {/* Grafo */}
+        <div className="col-span-2 relative w-full h-[600px] bg-monokai-dark rounded-lg border border-monokai-subtle border-opacity-30 overflow-hidden">
+          {isLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center z-10 bg-monokai-dark bg-opacity-80">
+              <LoadingSpinner />
             </div>
-          </div>
-        )}
+          ) : graphElements.length > 0 ? (
+            <CytoscapeComponent
+              elements={graphElements}
+              style={{ width: '100%', height: '100%' }}
+              stylesheet={graphStylesheet}
+              layout={graphLayout}
+              wheelSensitivity={0.1}
+              cy={(cy) => {
+                cyRef.current = cy;
+                handleNodeClick();
+              }}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <Network className="w-12 h-12 text-monokai-subtle mx-auto mb-4" />
+                <p className="text-monokai-subtle">
+                  Haz clic en "Generar Red Bibliométrica" para visualizar la red
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Panel de Información del Nodo Seleccionado */}
+        <div className="h-[600px] bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30 overflow-y-auto">
+          {selectedNode ? (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className="p-6"
+            >
+              <div className="mb-4 pb-4 border-b border-monokai-subtle border-opacity-30">
+                <h3 className="text-lg font-bold text-monokai-yellow mb-2">
+                  {selectedNode.data.popup_title || selectedNode.label}
+                </h3>
+                <p className="text-xs text-monokai-subtle uppercase tracking-wide">
+                  {selectedNode.type === 'paper' && '📄 Artículo'}
+                  {selectedNode.type === 'author' && '👤 Autor'}
+                  {selectedNode.type === 'topic' && '🏷️ Tema'}
+                </p>
+              </div>
+
+              {/* Información por tipo de nodo */}
+              {selectedNode.type === 'paper' && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-monokai-subtle mb-1">TÍTULO</p>
+                    <p className="text-sm text-monokai-text font-semibold">{selectedNode.data.title}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-monokai-subtle mb-1">AUTORES</p>
+                    <p className="text-sm text-monokai-text">{selectedNode.data.authors}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-monokai-subtle mb-1">AÑO</p>
+                      <p className="text-sm font-bold text-monokai-blue">{selectedNode.data.year}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-monokai-subtle mb-1">FUENTE</p>
+                      <p className="text-sm font-bold text-monokai-green">{selectedNode.data.source}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-monokai-subtle mb-1">RESUMEN</p>
+                    <p className="text-xs text-monokai-text leading-relaxed">{selectedNode.data.abstract}</p>
+                  </div>
+                  {selectedNode.data.url && (
+                    <a
+                      href={selectedNode.data.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block text-xs text-monokai-blue hover:text-monokai-yellow transition-colors"
+                    >
+                      Ver artículo →
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {selectedNode.type === 'author' && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-monokai-subtle mb-1">NOMBRE</p>
+                    <p className="text-sm font-bold text-monokai-text">{selectedNode.label}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-monokai-subtle mb-2">ARTÍCULOS PUBLICADOS</p>
+                    <p className="text-2xl font-bold text-monokai-pink">{selectedNode.data.papers}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-monokai-subtle mb-2">COLABORACIONES</p>
+                    <div className="space-y-1">
+                      {selectedNode.data.papers_list && selectedNode.data.papers_list.slice(0, 5).map((paperId, idx) => (
+                        <p key={idx} className="text-xs text-monokai-text">• {paperId}</p>
+                      ))}
+                      {selectedNode.data.papers_list && selectedNode.data.papers_list.length > 5 && (
+                        <p className="text-xs text-monokai-subtle">+{selectedNode.data.papers_list.length - 5} más</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedNode.type === 'topic' && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-monokai-subtle mb-1">TEMA</p>
+                    <p className="text-sm font-bold text-monokai-text">{selectedNode.label}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-monokai-subtle mb-2">ARTÍCULOS RELACIONADOS</p>
+                    <p className="text-2xl font-bold text-monokai-yellow">{selectedNode.data.papers}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-monokai-subtle mb-2">FRECUENCIA</p>
+                    <div className="w-full bg-monokai-dark rounded h-2">
+                      <div
+                        className="bg-monokai-yellow h-2 rounded"
+                        style={{ width: `${(selectedNode.data.papers / 20) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-monokai-subtle mt-1">
+                      {Math.round((selectedNode.data.papers / 20) * 100)}% de los artículos
+                    </p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-center p-4">
+              <div>
+                <Info className="w-8 h-8 text-monokai-subtle mx-auto mb-2" />
+                <p className="text-sm text-monokai-subtle">
+                  Haz clic en un nodo para ver información detallada
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {graphElements.length > 0 && (
