@@ -1152,34 +1152,132 @@ const ArticleCard = ({ article }) => {
 // COMPONENTES STUB (Placeholders para cada módulo)
 // ============================================================================
 
-const LandingPage = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-    className="flex flex-col items-center justify-center h-full"
-  >
-    <div className="text-center">
-      <h1 className="text-5xl font-bold mb-4 text-monokai-pink">
-        Bienvenido a MetaPiqma
-      </h1>
-      <p className="text-xl text-monokai-subtle mb-8">
-        Plataforma integrada para revisiones sistemáticas y meta-análisis
-      </p>
-      <div className="grid grid-cols-2 gap-4 mt-12">
-        <div className="p-6 bg-monokai-sidebar rounded-lg border border-monokai-pink border-opacity-30">
-          <Zap className="w-8 h-8 text-monokai-yellow mb-2" />
-          <p className="text-sm">Rápido y eficiente</p>
+const LandingPage = () => {
+  const { dispatch } = useProject();
+
+  const modules = [
+    {
+      id: 'pico',
+      title: '📋 PICO',
+      description: 'Define los criterios de inclusión/exclusión',
+      icon: ClipboardList,
+      color: 'text-monokai-green',
+      features: ['Población', 'Intervención', 'Comparación', 'Outcome'],
+    },
+    {
+      id: 'search',
+      title: '🔍 Búsqueda',
+      description: 'Busca en múltiples bases de datos',
+      icon: Search,
+      color: 'text-monokai-yellow',
+      features: ['PubMed', 'Semantic Scholar', 'ArXiv', 'Crossref'],
+    },
+    {
+      id: 'screening',
+      title: '🎯 Cribado',
+      description: 'Filtra por título y resumen',
+      icon: Filter,
+      color: 'text-monokai-blue',
+      features: ['Revisar títulos', 'Marcar duplicados', 'Incluir/Excluir'],
+    },
+    {
+      id: 'eligibility',
+      title: '✅ Elegibilidad',
+      description: 'Evalúa texto completo',
+      icon: CheckCircle,
+      color: 'text-monokai-purple',
+      features: ['Revisar textos', 'Criterios PICO', 'Incluir finales'],
+    },
+    {
+      id: 'prisma',
+      title: '📊 PRISMA 2020',
+      description: 'Diagrama de flujo de revisión',
+      icon: BarChart3,
+      color: 'text-monokai-orange',
+      features: ['Identificación', 'Cribado', 'Elegibilidad', 'Incluidos'],
+    },
+    {
+      id: 'metaanalysis',
+      title: '⚡ Meta-Análisis',
+      description: 'Extrae datos y calcula métricas',
+      icon: Zap,
+      color: 'text-monokai-pink',
+      features: ['Extracción', 'Forest Plot', 'Funnel Plot', 'Métricas'],
+    },
+    {
+      id: 'graphanalysis',
+      title: '🕸️ Análisis de Grafos',
+      description: 'Visualiza relaciones bibliométricas',
+      icon: Network,
+      color: 'text-monokai-blue',
+      features: ['Red de artículos', 'Autores', 'Temas', 'Relaciones'],
+    },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-12"
+    >
+      {/* HERO SECTION */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        className="text-center py-16"
+      >
+        <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-monokai-pink via-monokai-purple to-monokai-blue bg-clip-text text-transparent">
+          MetaPiqma
+        </h1>
+        <p className="text-2xl text-monokai-text mb-2">
+          Plataforma Integrada para Revisiones Sistemáticas
+        </p>
+        <p className="text-lg text-monokai-subtle mb-12">
+          Desde la búsqueda bibliográfica hasta el meta-análisis, todo en un solo lugar
+        </p>
+      </motion.div>
+
+      {/* WORKFLOW SECTION */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+        className="bg-monokai-sidebar rounded-lg border border-monokai-subtle border-opacity-30 p-12"
+      >
+        <h2 className="text-3xl font-bold text-monokai-pink mb-12 text-center">Flujo de Trabajo</h2>
+        <div className="flex items-center justify-between">
+          {[
+            { label: 'PICO', icon: ClipboardList, color: 'text-monokai-green' },
+            { label: 'Búsqueda', icon: Search, color: 'text-monokai-yellow' },
+            { label: 'Cribado', icon: Filter, color: 'text-monokai-blue' },
+            { label: 'Elegibilidad', icon: CheckCircle, color: 'text-monokai-purple' },
+            { label: 'PRISMA', icon: BarChart3, color: 'text-monokai-orange' },
+            { label: 'Meta-Análisis', icon: Zap, color: 'text-monokai-pink' },
+            { label: 'Grafos', icon: Network, color: 'text-monokai-blue' },
+          ].map((step, idx) => {
+            const Icon = step.icon;
+            return (
+              <div key={step.label} className="flex items-center flex-1">
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-monokai-dark rounded-full flex items-center justify-center border-2 border-monokai-subtle border-opacity-50">
+                    <Icon className={`w-7 h-7 ${step.color}`} />
+                  </div>
+                  <p className="text-xs text-monokai-subtle mt-3 text-center font-semibold">{step.label}</p>
+                </div>
+                {idx < 6 && (
+                  <div className="flex-1 h-1 bg-gradient-to-r from-monokai-subtle to-transparent mx-3" />
+                )}
+              </div>
+            );
+          })}
         </div>
-        <div className="p-6 bg-monokai-sidebar rounded-lg border border-monokai-blue border-opacity-30">
-          <Network className="w-8 h-8 text-monokai-blue mb-2" />
-          <p className="text-sm">Análisis integrado</p>
-        </div>
-      </div>
-    </div>
-  </motion.div>
-);
+      </motion.div>
+    </motion.div>
+  );
+};
 
 // ============================================================================
 // SUB-COMPONENTES PARA MÓDULO PICO
