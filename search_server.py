@@ -754,12 +754,34 @@ IMPORTANTE:
 - Formato de respuesta exacto: {{"pubmed": "...", "semantic": "...", "arxiv": "...", "crossref": "..."}}
 """
         
-        # Llamar a Gemini
-        try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(prompt)
+        # Lista de modelos a probar en orden de preferencia
+        models_to_try = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro', 'gemini-1.0-pro']
+        
+        response = None
+        last_error = None
+        
+        for model_name in models_to_try:
+            try:
+                print(f"[Gemini] Intentando con modelo: {model_name}")
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(prompt)
+                print(f"[Gemini] ✓ Éxito con modelo: {model_name}")
+                break
+            except Exception as e:
+                print(f"[Gemini] ❌ Falló modelo {model_name}: {str(e)}")
+                last_error = e
+        
+        if not response:
+            # Si fallaron todos, intentar listar modelos disponibles para debug
+            try:
+                available = [m.name for m in genai.list_models()]
+                print(f"[Gemini] Modelos disponibles en esta API Key: {available}")
+            except:
+                pass
+            raise HTTPException(status_code=500, detail=f"No se pudo generar contenido con ningún modelo. Último error: {str(last_error)}")
             
-            # Extraer texto de la respuesta
+        # Extraer texto de la respuesta
+        try:
             response_text = response.text.strip()
             print(f"[Gemini] Respuesta recibida ({len(response_text)} caracteres)")
             
